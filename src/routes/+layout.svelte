@@ -2,14 +2,16 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import ToastContainer from '$lib/components/ToastContainer.svelte';
+	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import { onMount } from 'svelte';
 	import { requestNotificationPermission, toastStore } from '$lib/utils/notifications';
-	import { Wifi, WifiOff, Bell, Sun, Moon, CalendarDays } from 'lucide-svelte';
+	import { Wifi, WifiOff, Bell, Sun, Moon, CalendarDays, Settings } from 'lucide-svelte';
 
 	let { children } = $props();
 
 	let isOnline = $state(true);
 	let isDarkMode = $state(true);
+	let isSettingsOpen = $state(false);
 	let notificationPermission = $state<NotificationPermission>('default');
 
 	function handleOnline() {
@@ -168,6 +170,17 @@
 						<Moon class="h-4 w-4 text-indigo-600" />
 					{/if}
 				</button>
+
+				<!-- Settings Button -->
+				<button
+					type="button"
+					onclick={() => (isSettingsOpen = true)}
+					class="rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
+					title="Configuración"
+					aria-label="Abrir configuración"
+				>
+					<Settings class="h-4 w-4" />
+				</button>
 			</div>
 		</div>
 	</nav>
@@ -179,4 +192,7 @@
 
 	<!-- In-app Toasts -->
 	<ToastContainer />
+
+	<!-- Settings Modal -->
+	<SettingsModal bind:isOpen={isSettingsOpen} />
 </div>

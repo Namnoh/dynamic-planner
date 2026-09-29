@@ -5,9 +5,11 @@
 @layer base {
 	:root {
 		color-scheme: light;
+		--card-bg-base: #ffffff;
 	}
 	:root.dark {
 		color-scheme: dark;
+		--card-bg-base: #1e293b;
 	}
 	body {
 		@apply transition-colors duration-150;

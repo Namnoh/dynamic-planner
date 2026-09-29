@@ -10,6 +10,7 @@
 		exportDatabaseToJson,
 		importDatabaseFromJson
 	} from '$lib/db';
+	import { settingsStore, type BlockColorStyle } from '$lib/stores/settings';
 	import type { ScheduledEvent, DayTemplate, ActivityTemplate } from '$lib/types';
 	import ExportModal from './ExportModal.svelte';
 	import { toastStore, sendPlannerNotification } from '$lib/utils/notifications';
@@ -35,6 +36,24 @@
 	let activityTemplates = $state<ActivityTemplate[]>([]);
 	let isExportModalOpen = $state(false);
 	let boardElement = $state<HTMLElement | null>(null);
+	let blockColorStyle = $state<BlockColorStyle>(settingsStore.current);
+
+	$effect(() => {
+		const unsubscribe = settingsStore.subscribe((val) => {
+			blockColorStyle = val;
+		});
+		return unsubscribe;
+	});
+
+	function getBlockStyle(item: ScheduledEvent, styleMode: BlockColorStyle): string {
+		const color = item.color || '#3b82f6';
+		if (styleMode === 'full') {
+			const tintPercent = item.completed ? '8%' : '16%';
+			const borderPercent = item.completed ? '25%' : '40%';
+			return `border-left: 4px solid ${color}; background-color: color-mix(in srgb, ${color} ${tintPercent}, var(--card-bg-base)); border-color: color-mix(in srgb, ${color} ${borderPercent}, transparent);`;
+		}
+		return `border-left: 4px solid ${color};`;
+	}
 
 	// Quick Add Modal / State
 	let isAddModalOpen = $state(false);
@@ -473,10 +492,16 @@
 				>
 					{#each dayColumns[dayIndex] || [] as item (item.id)}
 						<article
-							class="group relative flex flex-col gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800/90 p-2.5 shadow-xs transition-all hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md cursor-grab active:cursor-grabbing {item.completed
-								? 'opacity-60 bg-slate-100/70 dark:bg-slate-900/40 border-dashed'
-								: 'bg-white dark:bg-slate-800/90'}"
-							style="border-left: 4px solid {item.color || '#3b82f6'};"
+							class="group relative flex flex-col gap-1.5 rounded-xl p-2.5 shadow-xs transition-all cursor-grab active:cursor-grabbing {item.completed
+								? 'opacity-60 border-dashed'
+								: ''} {blockColorStyle === 'border'
+								? (item.completed
+									? 'border border-slate-200 dark:border-slate-800/90 bg-slate-100/70 dark:bg-slate-900/40'
+									: 'border border-slate-200 dark:border-slate-800/90 bg-white dark:bg-slate-800/90 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md')
+								: (item.completed
+									? 'border'
+									: 'border hover:shadow-md hover:brightness-105')}"
+							style={getBlockStyle(item, blockColorStyle)}
 						>
 							<!-- Time and Complete checkbox -->
 							<div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
@@ -522,7 +547,9 @@
 							<!-- Notes or Category Tag -->
 							<div class="flex items-center justify-between gap-1 mt-0.5">
 								<span
-									class="rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-transparent"
+									class="rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider {blockColorStyle === 'full'
+										? 'bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200'
+										: 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-transparent'}"
 								>
 									{item.category}
 								</span>
