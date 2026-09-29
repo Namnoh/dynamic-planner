@@ -367,11 +367,11 @@
 </script>
 
 <div class="flex flex-col gap-5 w-full">
-	<!-- Control Bar Superior -->
+	<!-- Top Control Bar -->
 	<header
 		class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 p-4 shadow-md dark:shadow-xl backdrop-blur-md transition-colors"
 	>
-		<!-- Left: Navegación de Semana -->
+		<!-- Left: Week Navigation -->
 		<div class="flex items-center gap-2">
 			<div class="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 border border-slate-200 dark:border-slate-700/60 shadow-inner">
 				<button
@@ -407,7 +407,7 @@
 			</div>
 		</div>
 
-		<!-- Center: Aplicar Plantilla Rápida -->
+		<!-- Center: Quick Apply Template -->
 		<div class="flex items-center gap-2 flex-wrap">
 			<div class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
 				<Layers class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
@@ -440,7 +440,7 @@
 			</button>
 		</div>
 
-		<!-- Right: Botones de Exportación, Demo y Datos -->
+		<!-- Right: Export, Demo and Data Controls -->
 		<div class="flex items-center gap-2 flex-wrap">
 			<button
 				type="button"
@@ -492,7 +492,7 @@
 		</div>
 	</header>
 
-	<!-- Board Semanal (7 Columnas de días con DnD) -->
+	<!-- Weekly Board (7 Day Columns with DnD) -->
 	<div
 		bind:this={boardElement}
 		id="weekly-planner-board"
@@ -565,11 +565,11 @@
 							style={getBlockStyle(item, blockColorStyle)}
 							onclick={() => openEditModal(item)}
 						>
-							<!-- Tab de Acciones Superior Flotante (Smooth Hover) -->
+							<!-- Floating Top Action Tab (Smooth Hover) -->
 							<div
 								class="no-export absolute -top-3 right-2 z-20 flex items-center gap-0.5 rounded-lg border border-slate-200/90 dark:border-slate-700/90 bg-white/95 dark:bg-slate-800/95 px-1 py-0.5 shadow-md backdrop-blur-md transition-all duration-150 ease-out opacity-0 -translate-y-1 scale-95 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 group-hover:pointer-events-auto"
 							>
-								<!-- Botón Check / Completar -->
+								<!-- Check / Complete Button -->
 								<button
 									type="button"
 									onclick={(e) => { e.stopPropagation(); toggleCompleted(item); }}
@@ -582,10 +582,10 @@
 									<Check class="h-3 w-3 stroke-[2.5]" />
 								</button>
 
-								<!-- Divisor vertical sutil -->
+								<!-- Subtle Vertical Divider -->
 								<div class="h-3 w-px bg-slate-200 dark:bg-slate-700/80 my-auto"></div>
 
-								<!-- Botón Editar -->
+								<!-- Edit Button -->
 								<button
 									type="button"
 									onclick={(e) => { e.stopPropagation(); openEditModal(item); }}
@@ -596,7 +596,7 @@
 									<Pencil class="h-3 w-3 stroke-[2]" />
 								</button>
 
-								<!-- Botón Eliminar -->
+								<!-- Delete Button -->
 								<button
 									type="button"
 									onclick={(e) => { e.stopPropagation(); deleteEvent(item.id); }}
@@ -608,7 +608,7 @@
 								</button>
 							</div>
 
-							<!-- Fila 1: Horas (tipografía simple y limpia) y Categoría -->
+							<!-- Row 1: Time (clean typography) and Category -->
 							<div class="flex items-center justify-between gap-1 leading-none">
 								<span class="inline-flex items-center gap-1 font-sans text-[11px] font-medium tabular-nums text-slate-500 dark:text-slate-400 tracking-tight">
 									{#if item.completed}
@@ -626,7 +626,7 @@
 								</span>
 							</div>
 
-							<!-- Fila 2: Título del Bloque -->
+							<!-- Row 2: Block Title -->
 							<h5
 								class="text-xs font-semibold leading-snug tracking-tight {item.completed
 									? 'line-through text-slate-400 dark:text-slate-500'
@@ -635,7 +635,7 @@
 								{item.title}
 							</h5>
 
-							<!-- Fila 3: Subtareas o Notas (sólo si existen) -->
+							<!-- Row 3: Subtasks or Notes (if present) -->
 							{#if (item.subtasks && item.subtasks.length > 0) || item.notes}
 								<div class="flex items-center justify-between gap-2 pt-0.5 text-[10px] text-slate-400 dark:text-slate-500">
 									{#if item.notes}
@@ -683,7 +683,7 @@
 	</div>
 </div>
 
-<!-- Modal para Añadir Bloque -->
+<!-- Quick Add Block Modal -->
 {#if isAddModalOpen}
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
@@ -784,7 +784,7 @@
 	</div>
 {/if}
 
-<!-- Modal para Editar Bloque Existente -->
+<!-- Edit Existing Block Modal -->
 {#if isEditModalOpen}
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
@@ -823,7 +823,7 @@
 					/>
 				</div>
 
-				<!-- Selector de Día -->
+				<!-- Day Selector -->
 				<div>
 					<label for="edit-date-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Día Asignado</label>
 					<select
@@ -894,7 +894,7 @@
 					</div>
 				</div>
 
-				<!-- Notas adicionales -->
+				<!-- Additional Notes -->
 				<div>
 					<label for="edit-notes-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Notas / Recordatorio (Opcional)</label>
 					<input
@@ -906,7 +906,7 @@
 					/>
 				</div>
 
-				<!-- Estado completado -->
+				<!-- Completed Status -->
 				<label class="flex items-center gap-2 cursor-pointer pt-1">
 					<input
 						type="checkbox"
@@ -917,7 +917,7 @@
 				</label>
 			</div>
 
-			<!-- Footer acciones -->
+			<!-- Action Buttons Footer -->
 			<div class="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800">
 				<button
 					type="button"
@@ -949,7 +949,7 @@
 	</div>
 {/if}
 
-<!-- Modal de Exportación Gráfica -->
+<!-- Graphic Export Modal -->
 <ExportModal
 	bind:isOpen={isExportModalOpen}
 	targetElement={boardElement}

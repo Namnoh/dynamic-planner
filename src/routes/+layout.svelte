@@ -105,7 +105,7 @@
 <div
 	class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white antialiased transition-colors duration-200"
 >
-	<!-- Navbar Principal -->
+	<!-- Main Navbar -->
 	<nav
 		class="sticky top-0 z-40 border-b border-slate-200 bg-white/80 dark:border-slate-800/80 dark:bg-slate-950/80 backdrop-blur-md py-3 transition-colors"
 	>

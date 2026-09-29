@@ -135,7 +135,7 @@
 </script>
 
 <div class="space-y-8 w-full">
-	<!-- Sección 1: Plantillas de Día Modulares -->
+	<!-- Section 1: Modular Day Templates -->
 	<section
 		class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 p-6 shadow-md dark:shadow-xl backdrop-blur-md space-y-6 transition-colors"
 	>
@@ -160,7 +160,7 @@
 			</button>
 		</div>
 
-		<!-- Constructor Visual de Plantilla de Día -->
+		<!-- Visual Day Template Builder -->
 		{#if isCreatingDayTemplate}
 			<div class="rounded-2xl border border-indigo-300 dark:border-indigo-500/40 bg-indigo-50/40 dark:bg-slate-900/90 p-5 space-y-5 animate-in fade-in duration-200">
 				<h4 class="text-sm font-bold text-indigo-700 dark:text-indigo-300">Constructor de Rutina Diaria</h4>
@@ -188,7 +188,7 @@
 					</div>
 				</div>
 
-				<!-- Añadir bloque a la plantilla -->
+				<!-- Add Block to Template -->
 				<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-950/60 p-4 space-y-3">
 					<h5 class="text-xs font-semibold text-slate-700 dark:text-slate-300">Añadir Bloque de Tiempo a la Secuencia</h5>
 					<div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
@@ -236,7 +236,7 @@
 					</div>
 				</div>
 
-				<!-- Lista de bloques ensamblados -->
+				<!-- Assembled Blocks List -->
 				{#if tplBlocks.length > 0}
 					<div class="space-y-2">
 						<span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Secuencia Ensamblada:</span>
@@ -283,7 +283,7 @@
 			</div>
 		{/if}
 
-		<!-- Grid de Plantillas de Día Existentes -->
+		<!-- Grid of Existing Day Templates -->
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 			{#each dayTemplates as tpl}
 				<div class="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 p-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs">
@@ -325,7 +325,7 @@
 		</div>
 	</section>
 
-	<!-- Sección 2: Catálogo de Bloques de Actividad Base -->
+	<!-- Section 2: Base Activity Template Catalog -->
 	<section
 		class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 p-6 shadow-md dark:shadow-xl backdrop-blur-md space-y-6 transition-colors"
 	>

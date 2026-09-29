@@ -235,13 +235,13 @@ export function generateDemoScheduledEvents(): ScheduledEvent[] {
 
 	// Map week days: Mon (0) to Sun (6)
 	const daysConfig: { offset: number; templateId: string }[] = [
-		{ offset: 0, templateId: 'tpl-remote-focus' }, // Lunes
-		{ offset: 1, templateId: 'tpl-balance-comms' }, // Martes
-		{ offset: 2, templateId: 'tpl-remote-focus' }, // Miércoles
-		{ offset: 3, templateId: 'tpl-balance-comms' }, // Jueves
-		{ offset: 4, templateId: 'tpl-remote-focus' }, // Viernes
-		{ offset: 5, templateId: 'tpl-weekend-recharge' }, // Sábado
-		{ offset: 6, templateId: 'tpl-weekend-recharge' } // Domingo
+		{ offset: 0, templateId: 'tpl-remote-focus' }, // Monday
+		{ offset: 1, templateId: 'tpl-balance-comms' }, // Tuesday
+		{ offset: 2, templateId: 'tpl-remote-focus' }, // Wednesday
+		{ offset: 3, templateId: 'tpl-balance-comms' }, // Thursday
+		{ offset: 4, templateId: 'tpl-remote-focus' }, // Friday
+		{ offset: 5, templateId: 'tpl-weekend-recharge' }, // Saturday
+		{ offset: 6, templateId: 'tpl-weekend-recharge' } // Sunday
 	];
 
 	const activityMap = new Map(DEMO_ACTIVITIES.map((a) => [a.id, a]));

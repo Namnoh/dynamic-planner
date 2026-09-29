@@ -95,7 +95,7 @@
 				</button>
 			</div>
 
-			<!-- Opción: Estilo de Color de Bloques -->
+			<!-- Setting: Block Color Style -->
 			<div class="space-y-3.5">
 				<div class="flex items-center gap-2">
 					<Palette class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
@@ -107,9 +107,9 @@
 					Define cómo se aplican los colores de categoría en tus tarjetas de planificación:
 				</p>
 
-				<!-- Selector visual interactivo con previews -->
+				<!-- Interactive Visual Selector with Previews -->
 				<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-					<!-- Opción 1: Solo Borde Izquierdo -->
+					<!-- Option 1: Left Border Only -->
 					<button
 						type="button"
 						onclick={() => selectStyle('border')}
@@ -126,7 +126,7 @@
 							{/if}
 						</div>
 
-						<!-- Mini preview de Borde Izquierdo -->
+						<!-- Left Border Mini Preview -->
 						<div
 							class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 px-2.5 py-2 shadow-2xs space-y-1"
 							style="border-left: 3.5px solid #3b82f6;"
@@ -143,7 +143,7 @@
 						</span>
 					</button>
 
-					<!-- Opción 2: Color Completo -->
+					<!-- Option 2: Full Color -->
 					<button
 						type="button"
 						onclick={() => selectStyle('full')}
@@ -160,7 +160,7 @@
 							{/if}
 						</div>
 
-						<!-- Mini preview de Color Completo -->
+						<!-- Full Color Mini Preview -->
 						<div
 							class="w-full rounded-xl px-2.5 py-2 shadow-2xs space-y-1 border"
 							style="border-left: 3.5px solid #3b82f6; background-color: color-mix(in srgb, #3b82f6 14%, transparent); border-color: color-mix(in srgb, #3b82f6 35%, transparent);"
@@ -179,7 +179,7 @@
 				</div>
 			</div>
 
-			<!-- Sección de Privacidad y Modelo Local-First -->
+			<!-- Local-First Privacy Section (Obsidian-Style) -->
 			<div class="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
 				<div class="flex items-center gap-2">
 					<ShieldCheck class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -203,7 +203,7 @@
 					</div>
 				</div>
 
-				<!-- Portabilidad de datos (JSON) -->
+				<!-- Data Portability (JSON Import/Export) -->
 				<div class="space-y-1.5 pt-1">
 					<span class="text-xs font-semibold text-slate-700 dark:text-slate-300">
 						Portabilidad y Respaldo (Importar / Exportar JSON):

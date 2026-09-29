@@ -91,7 +91,7 @@
 				</button>
 			</div>
 
-			<!-- Formato -->
+			<!-- Format Selection -->
 			<fieldset class="space-y-2 border-0 p-0 m-0">
 				<legend class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
 					Formato de Imagen
@@ -115,7 +115,7 @@
 				</div>
 			</fieldset>
 
-			<!-- Resolución / Escala -->
+			<!-- Resolution / Scale -->
 			<fieldset class="space-y-2 border-0 p-0 m-0">
 				<legend class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
 					Resolución & Nitidez
@@ -144,7 +144,7 @@
 				</div>
 			</fieldset>
 
-			<!-- Calidad de compresión (solo JPEG y WebP) -->
+			<!-- Compression quality (JPEG and WebP only) -->
 			{#if format !== 'png'}
 				<div class="space-y-1.5 animate-in fade-in duration-100">
 					<div class="flex justify-between text-xs">
@@ -168,7 +168,7 @@
 				herramientas se ocultarán automáticamente durante la captura para una imagen perfecta.
 			</div>
 
-			<!-- Footer acciones -->
+			<!-- Action buttons footer -->
 			<div class="flex items-center justify-end gap-3 pt-2">
 				<button
 					type="button"
