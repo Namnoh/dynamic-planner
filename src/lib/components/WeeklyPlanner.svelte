@@ -26,7 +26,9 @@
 		Clock,
 		FileDown,
 		FileUp,
-		Layers
+		Layers,
+		Pencil,
+		X
 	} from 'lucide-svelte';
 
 	// Component State
@@ -63,6 +65,63 @@
 	let newEventEndTime = $state('10:00');
 	let newEventCategory = $state('work');
 	let newEventColor = $state('#3b82f6');
+
+	// Edit Modal / State
+	let isEditModalOpen = $state(false);
+	let editingEventId = $state<string | null>(null);
+	let editEventDate = $state('');
+	let editEventTitle = $state('');
+	let editEventStartTime = $state('09:00');
+	let editEventEndTime = $state('10:00');
+	let editEventCategory = $state('work');
+	let editEventColor = $state('#3b82f6');
+	let editEventNotes = $state('');
+	let editEventCompleted = $state(false);
+
+	function openEditModal(event: ScheduledEvent) {
+		editingEventId = event.id;
+		editEventDate = event.date;
+		editEventTitle = event.title;
+		editEventStartTime = event.startTime;
+		editEventEndTime = event.endTime;
+		editEventCategory = event.category;
+		editEventColor = event.color || '#3b82f6';
+		editEventNotes = event.notes || '';
+		editEventCompleted = event.completed;
+		isEditModalOpen = true;
+	}
+
+	async function handleUpdateEvent() {
+		if (!editingEventId || !editEventTitle.trim()) return;
+
+		await db.scheduledEvents.update(editingEventId, {
+			title: editEventTitle.trim(),
+			date: editEventDate,
+			startTime: editEventStartTime,
+			endTime: editEventEndTime,
+			category: editEventCategory,
+			color: editEventColor,
+			notes: editEventNotes.trim() || undefined,
+			completed: editEventCompleted
+		});
+
+		isEditModalOpen = false;
+		editingEventId = null;
+		toastStore.show({
+			title: 'Bloque actualizado',
+			message: 'Los cambios se han guardado con éxito.',
+			type: 'success'
+		});
+		refreshData();
+	}
+
+	async function handleDeleteFromEditModal() {
+		if (!editingEventId) return;
+		const idToDelete = editingEventId;
+		isEditModalOpen = false;
+		editingEventId = null;
+		await deleteEvent(idToDelete);
+	}
 
 	// Apply Template Dropdown State
 	let selectedTemplateId = $state<string>('');
@@ -491,8 +550,10 @@
 					class="flex-1 flex flex-col gap-2 p-2.5 overflow-y-auto"
 				>
 					{#each dayColumns[dayIndex] || [] as item (item.id)}
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 						<article
-							class="group relative flex flex-col gap-1.5 rounded-xl p-2.5 shadow-xs transition-all cursor-grab active:cursor-grabbing {item.completed
+							class="group relative flex flex-col gap-1.5 rounded-xl p-2.5 shadow-xs transition-all cursor-pointer {item.completed
 								? 'opacity-60 border-dashed'
 								: ''} {blockColorStyle === 'border'
 								? (item.completed
@@ -502,6 +563,7 @@
 									? 'border'
 									: 'border hover:shadow-md hover:brightness-105')}"
 							style={getBlockStyle(item, blockColorStyle)}
+							onclick={() => openEditModal(item)}
 						>
 							<!-- Time and Complete checkbox -->
 							<div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
@@ -513,11 +575,12 @@
 								<div class="flex items-center gap-1.5">
 									<button
 										type="button"
-										onclick={() => toggleCompleted(item)}
+										onclick={(e) => { e.stopPropagation(); toggleCompleted(item); }}
 										class="no-export flex h-4 w-4 items-center justify-center rounded border transition-colors cursor-pointer {item.completed
 											? 'border-emerald-500 bg-emerald-500 text-white'
 											: 'border-slate-300 dark:border-slate-600 hover:border-slate-400 bg-slate-50 dark:bg-slate-800'}"
 										title={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
+										aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
 									>
 										{#if item.completed}
 											<Check class="h-3 w-3 stroke-[3]" />
@@ -526,9 +589,20 @@
 
 									<button
 										type="button"
-										onclick={() => deleteEvent(item.id)}
+										onclick={(e) => { e.stopPropagation(); openEditModal(item); }}
+										class="no-export opacity-0 group-hover:opacity-100 rounded p-0.5 text-slate-400 hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400 transition-all cursor-pointer"
+										title="Editar bloque"
+										aria-label="Editar bloque"
+									>
+										<Pencil class="h-3 w-3" />
+									</button>
+
+									<button
+										type="button"
+										onclick={(e) => { e.stopPropagation(); deleteEvent(item.id); }}
 										class="no-export opacity-0 group-hover:opacity-100 rounded p-0.5 text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400 transition-all cursor-pointer"
 										title="Eliminar bloque"
+										aria-label="Eliminar bloque"
 									>
 										<Trash2 class="h-3 w-3" />
 									</button>
@@ -689,6 +763,171 @@
 				>
 					Guardar Bloque
 				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Modal para Editar Bloque Existente -->
+{#if isEditModalOpen}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+		role="dialog"
+		aria-modal="true"
+	>
+		<div
+			class="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-slate-900 dark:text-slate-100 shadow-2xl space-y-4 transition-colors"
+		>
+			<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+				<div class="flex items-center gap-2">
+					<div class="rounded-lg bg-indigo-50 dark:bg-indigo-600/20 p-1.5 text-indigo-600 dark:text-indigo-400">
+						<Pencil class="h-4 w-4" />
+					</div>
+					<h4 class="font-bold text-base">Editar Bloque de Tiempo</h4>
+				</div>
+				<button
+					type="button"
+					onclick={() => (isEditModalOpen = false)}
+					class="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 cursor-pointer"
+					aria-label="Cerrar modal"
+				>
+					<X class="h-4 w-4" />
+				</button>
+			</div>
+
+			<div class="space-y-3.5 text-xs">
+				<div>
+					<label for="edit-title-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Título del Bloque</label>
+					<input
+						id="edit-title-input"
+						type="text"
+						bind:value={editEventTitle}
+						placeholder="Ej: Deep Work, Gimnasio, Estudio..."
+						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+					/>
+				</div>
+
+				<!-- Selector de Día -->
+				<div>
+					<label for="edit-date-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Día Asignado</label>
+					<select
+						id="edit-date-select"
+						bind:value={editEventDate}
+						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+					>
+						{#each weekDays as d}
+							<option value={d.dateStr}>{d.dayName} ({d.dayNumber}) - {d.dateStr}</option>
+						{/each}
+					</select>
+				</div>
+
+				<div class="grid grid-cols-2 gap-2">
+					<div>
+						<label for="edit-start-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Hora Inicio</label>
+						<input
+							id="edit-start-time"
+							type="time"
+							bind:value={editEventStartTime}
+							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+						/>
+					</div>
+					<div>
+						<label for="edit-end-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Hora Fin</label>
+						<input
+							id="edit-end-time"
+							type="time"
+							bind:value={editEventEndTime}
+							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+						/>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-2 gap-2">
+					<div>
+						<label for="edit-category-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
+						<select
+							id="edit-category-select"
+							bind:value={editEventCategory}
+							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+						>
+							<option value="work">Trabajo (Work)</option>
+							<option value="study">Estudio (Study)</option>
+							<option value="sport">Deporte (Sport)</option>
+							<option value="social">Social</option>
+							<option value="hobby">Hobby / Creativo</option>
+							<option value="rest">Descanso (Rest)</option>
+						</select>
+					</div>
+
+					<div>
+						<span class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Color</span>
+						<div class="flex items-center gap-1.5 mt-1">
+							{#each ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#f43f5e', '#14b8a6'] as clr}
+								<button
+									type="button"
+									onclick={() => (editEventColor = clr)}
+									aria-label="Seleccionar color {clr}"
+									class="h-6 w-6 rounded-full border-2 transition-transform cursor-pointer {editEventColor ===
+									clr
+										? 'border-indigo-600 dark:border-white scale-110 shadow-xs'
+										: 'border-transparent opacity-80 hover:opacity-100'}"
+									style="background-color: {clr};"
+								></button>
+							{/each}
+						</div>
+					</div>
+				</div>
+
+				<!-- Notas adicionales -->
+				<div>
+					<label for="edit-notes-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Notas / Recordatorio (Opcional)</label>
+					<input
+						id="edit-notes-input"
+						type="text"
+						bind:value={editEventNotes}
+						placeholder="Ej: Revisar documentación antes de empezar..."
+						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+					/>
+				</div>
+
+				<!-- Estado completado -->
+				<label class="flex items-center gap-2 cursor-pointer pt-1">
+					<input
+						type="checkbox"
+						bind:checked={editEventCompleted}
+						class="rounded accent-indigo-600 h-4 w-4 cursor-pointer"
+					/>
+					<span class="text-xs text-slate-700 dark:text-slate-300">Marcar este bloque como completado</span>
+				</label>
+			</div>
+
+			<!-- Footer acciones -->
+			<div class="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800">
+				<button
+					type="button"
+					onclick={handleDeleteFromEditModal}
+					class="flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors cursor-pointer"
+				>
+					<Trash2 class="h-3.5 w-3.5" />
+					<span>Eliminar</span>
+				</button>
+
+				<div class="flex items-center gap-2">
+					<button
+						type="button"
+						onclick={() => (isEditModalOpen = false)}
+						class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+					>
+						Cancelar
+					</button>
+					<button
+						type="button"
+						onclick={handleUpdateEvent}
+						class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white transition-all cursor-pointer shadow-md"
+					>
+						Guardar Cambios
+					</button>
+				</div>
 			</div>
 		</div>
 	</div>
