@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { settingsStore, type BlockColorStyle } from '$lib/stores/settings';
 	import { toastStore } from '$lib/utils/notifications';
-	import { Settings, X, Palette, CheckCircle2 } from 'lucide-svelte';
+	import { exportDatabaseToJson, importDatabaseFromJson } from '$lib/db';
+	import { Settings, X, Palette, CheckCircle2, ShieldCheck, FileDown, FileUp } from 'lucide-svelte';
 
 	let { isOpen = $bindable(false) }: { isOpen: boolean } = $props();
 
@@ -22,6 +23,45 @@
 			type: 'info',
 			durationMs: 2500
 		});
+	}
+
+	async function handleExportJson() {
+		const json = await exportDatabaseToJson();
+		const blob = new Blob([json], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `dynamic-planner-backup-${new Date().toISOString().split('T')[0]}.json`;
+		a.click();
+		URL.revokeObjectURL(url);
+		toastStore.show({
+			title: 'Copia de seguridad descargada',
+			message: 'Archivo JSON generado localmente en tu dispositivo.',
+			type: 'success'
+		});
+	}
+
+	async function handleImportJson(e: Event) {
+		const input = e.target as HTMLInputElement;
+		if (!input.files || input.files.length === 0) return;
+		const file = input.files[0];
+		const text = await file.text();
+		try {
+			await importDatabaseFromJson(text);
+			toastStore.show({
+				title: 'Copia de seguridad restaurada',
+				message: 'Los datos locales han sido actualizados con éxito.',
+				type: 'success'
+			});
+			window.location.reload();
+		} catch (err: any) {
+			toastStore.show({
+				title: 'Error al restaurar',
+				message: err.message,
+				type: 'error'
+			});
+		}
+		input.value = '';
 	}
 </script>
 
@@ -136,6 +176,59 @@
 							Tarjeta completamente teñida con el color temático para un vistazo rápido.
 						</span>
 					</button>
+				</div>
+			</div>
+
+			<!-- Sección de Privacidad y Modelo Local-First -->
+			<div class="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+				<div class="flex items-center gap-2">
+					<ShieldCheck class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+					<h4 class="font-bold text-sm text-slate-800 dark:text-slate-200">Privacidad y Soberanía Local</h4>
+				</div>
+
+				<div class="rounded-xl border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-950/20 p-3 text-xs space-y-2 text-slate-700 dark:text-slate-300">
+					<p class="leading-relaxed">
+						<strong>Tus datos te pertenecen al 100%:</strong> La aplicación funciona de manera completamente local y aislada. No existen servidores externos, ni telemetría, ni analíticas, ni almacenamiento en la nube.
+					</p>
+					<div class="flex flex-wrap gap-1.5 pt-1">
+						<span class="rounded-md bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-300">
+							✓ IndexedDB Local
+						</span>
+						<span class="rounded-md bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-300">
+							✓ Cero Telemetría
+						</span>
+						<span class="rounded-md bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-300">
+							✓ Air-Gapped / CSP Bloqueo Total
+						</span>
+					</div>
+				</div>
+
+				<!-- Portabilidad de datos (JSON) -->
+				<div class="space-y-1.5 pt-1">
+					<span class="text-xs font-semibold text-slate-700 dark:text-slate-300">
+						Portabilidad y Respaldo (Importar / Exportar JSON):
+					</span>
+					<p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
+						Para mover tus rutinas a otro navegador o dispositivo, descarga tu archivo JSON y luego impórtalo allí.
+					</p>
+					<div class="flex items-center gap-2 pt-1">
+						<button
+							type="button"
+							onclick={handleExportJson}
+							class="flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+						>
+							<FileDown class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+							<span>Exportar JSON</span>
+						</button>
+
+						<label
+							class="flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+						>
+							<FileUp class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+							<span>Importar JSON</span>
+							<input type="file" accept=".json" onchange={handleImportJson} class="hidden" />
+						</label>
+					</div>
 				</div>
 			</div>
 
