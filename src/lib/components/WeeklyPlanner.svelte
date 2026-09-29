@@ -1,7 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { dndzone, type DndEvent } from 'svelte-dnd-action';
-	import { db, getMondayOfCurrentWeek, applyDayTemplateToDate, seedDemoData, clearAllData, exportDatabaseToJson, importDatabaseFromJson } from '$lib/db';
+	import {
+		db,
+		getMondayOfCurrentWeek,
+		applyDayTemplateToDate,
+		seedDemoData,
+		clearAllData,
+		exportDatabaseToJson,
+		importDatabaseFromJson
+	} from '$lib/db';
 	import type { ScheduledEvent, DayTemplate, ActivityTemplate } from '$lib/types';
 	import ExportModal from './ExportModal.svelte';
 	import { toastStore, sendPlannerNotification } from '$lib/utils/notifications';
@@ -17,8 +25,7 @@
 		Clock,
 		FileDown,
 		FileUp,
-		Layers,
-		MoreVertical
+		Layers
 	} from 'lucide-svelte';
 
 	// Component State
@@ -284,15 +291,15 @@
 <div class="flex flex-col gap-5 w-full">
 	<!-- Control Bar Superior -->
 	<header
-		class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-4 shadow-xl backdrop-blur-md"
+		class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 p-4 shadow-md dark:shadow-xl backdrop-blur-md transition-colors"
 	>
 		<!-- Left: Navegación de Semana -->
 		<div class="flex items-center gap-2">
-			<div class="flex items-center rounded-xl bg-slate-800/80 p-1 border border-slate-700/60 shadow-inner">
+			<div class="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 border border-slate-200 dark:border-slate-700/60 shadow-inner">
 				<button
 					type="button"
 					onclick={prevWeek}
-					class="rounded-lg p-1.5 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
+					class="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white transition-colors cursor-pointer"
 					title="Semana anterior"
 				>
 					<ChevronLeft class="h-4 w-4" />
@@ -300,14 +307,14 @@
 				<button
 					type="button"
 					onclick={goToCurrentWeek}
-					class="px-3 py-1 text-xs font-semibold text-slate-200 hover:text-white transition-colors cursor-pointer"
+					class="px-3 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white transition-colors cursor-pointer"
 				>
 					Hoy
 				</button>
 				<button
 					type="button"
 					onclick={nextWeek}
-					class="rounded-lg p-1.5 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
+					class="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white transition-colors cursor-pointer"
 					title="Semana siguiente"
 				>
 					<ChevronRight class="h-4 w-4" />
@@ -315,8 +322,8 @@
 			</div>
 
 			<div class="flex items-center gap-2 pl-2">
-				<Calendar class="h-4 w-4 text-indigo-400" />
-				<span class="text-sm font-bold tracking-tight text-slate-100">
+				<Calendar class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+				<span class="text-sm font-bold tracking-tight text-slate-800 dark:text-slate-100">
 					{weekRangeLabel}
 				</span>
 			</div>
@@ -324,13 +331,13 @@
 
 		<!-- Center: Aplicar Plantilla Rápida -->
 		<div class="flex items-center gap-2 flex-wrap">
-			<div class="flex items-center gap-1.5 text-xs text-slate-400">
-				<Layers class="h-3.5 w-3.5 text-indigo-400" />
+			<div class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
+				<Layers class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
 				<span class="hidden sm:inline">Plantilla:</span>
 			</div>
 			<select
 				bind:value={selectedTemplateId}
-				class="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+				class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
 			>
 				<option value="">Seleccionar plantilla...</option>
 				{#each dayTemplates as tpl}
@@ -339,7 +346,7 @@
 			</select>
 			<select
 				bind:value={targetDayOffset}
-				class="rounded-xl border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+				class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
 			>
 				{#each weekDays as d, idx}
 					<option value={idx}>{d.dayName} ({d.dayNumber})</option>
@@ -349,7 +356,7 @@
 				type="button"
 				onclick={handleApplyTemplate}
 				disabled={!selectedTemplateId}
-				class="rounded-xl bg-indigo-600/80 hover:bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-40 cursor-pointer shadow-xs"
+				class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-40 cursor-pointer shadow-xs"
 			>
 				Aplicar
 			</button>
@@ -360,7 +367,7 @@
 			<button
 				type="button"
 				onclick={() => (isExportModalOpen = true)}
-				class="flex items-center gap-1.5 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-600/30 px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer shadow-xs"
+				class="flex items-center gap-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-600/20 border border-emerald-300 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-600/30 px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer shadow-xs"
 				title="Exportar horario en PNG, JPEG o WebP"
 			>
 				<Camera class="h-3.5 w-3.5" />
@@ -370,7 +377,7 @@
 			<button
 				type="button"
 				onclick={handleSeedDemo}
-				class="flex items-center gap-1.5 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/30 px-2.5 py-1.5 text-xs font-medium transition-all cursor-pointer"
+				class="flex items-center gap-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 px-2.5 py-1.5 text-xs font-medium transition-all cursor-pointer"
 				title="Cargar rutina de ejemplo para profesional remoto"
 			>
 				<Sparkles class="h-3.5 w-3.5" />
@@ -380,24 +387,24 @@
 			<button
 				type="button"
 				onclick={handleClearAll}
-				class="rounded-xl p-2 text-slate-400 hover:bg-rose-500/20 hover:text-rose-300 border border-slate-700/60 transition-colors cursor-pointer"
+				class="rounded-xl p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-500/20 dark:hover:text-rose-300 border border-slate-200 dark:border-slate-700/60 transition-colors cursor-pointer"
 				title="Limpiar todo (Lienzo en blanco)"
 			>
 				<Trash2 class="h-3.5 w-3.5" />
 			</button>
 
 			<!-- Backup JSON Menu -->
-			<div class="flex items-center rounded-xl border border-slate-700/60 bg-slate-800/60 p-0.5">
+			<div class="flex items-center rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-800/60 p-0.5">
 				<button
 					type="button"
 					onclick={handleExportJson}
-					class="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+					class="p-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
 					title="Exportar respaldo JSON local"
 				>
 					<FileDown class="h-3.5 w-3.5" />
 				</button>
 				<label
-					class="p-1.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+					class="p-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
 					title="Importar respaldo JSON"
 				>
 					<FileUp class="h-3.5 w-3.5" />
@@ -411,30 +418,30 @@
 	<div
 		bind:this={boardElement}
 		id="weekly-planner-board"
-		class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3.5 w-full bg-slate-950/40 p-4 rounded-3xl border border-slate-800/60"
+		class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3.5 w-full bg-slate-200/60 dark:bg-slate-950/40 p-4 rounded-3xl border border-slate-300/70 dark:border-slate-800/60 transition-colors"
 	>
 		{#each weekDays as day, dayIndex}
 			<section
 				class="flex flex-col min-h-[460px] rounded-2xl border transition-all duration-200 {day.isToday
-					? 'border-indigo-500/60 bg-slate-900/90 shadow-lg shadow-indigo-950/30 ring-1 ring-indigo-500/20'
-					: 'border-slate-800/80 bg-slate-900/50'}"
+					? 'border-indigo-500 bg-white dark:bg-slate-900/90 shadow-md ring-1 ring-indigo-500/30 dark:shadow-indigo-950/30 dark:ring-indigo-500/20'
+					: 'border-slate-200 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/50 shadow-xs'}"
 			>
 				<!-- Day Header -->
-				<div class="flex items-center justify-between p-3.5 border-b border-slate-800/80">
+				<div class="flex items-center justify-between p-3.5 border-b border-slate-200 dark:border-slate-800/80">
 					<div class="flex items-center gap-2">
 						<span
 							class="flex h-7 w-7 items-center justify-center rounded-xl text-xs font-bold {day.isToday
 								? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/50'
-								: 'bg-slate-800 text-slate-300'}"
+								: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}"
 						>
 							{day.dayNumber}
 						</span>
 						<div>
-							<h4 class="text-xs font-bold uppercase tracking-wider text-slate-200">
+							<h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
 								{day.dayName}
 							</h4>
 							{#if day.isToday}
-								<span class="text-[10px] font-semibold text-indigo-400 block -mt-0.5">HOY</span>
+								<span class="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 block -mt-0.5">HOY</span>
 							{/if}
 						</div>
 					</div>
@@ -442,7 +449,7 @@
 					<button
 						type="button"
 						onclick={() => openAddModal(day.dateStr)}
-						class="no-export rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors cursor-pointer"
+						class="no-export rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
 						title="Añadir bloque"
 					>
 						<Plus class="h-3.5 w-3.5" />
@@ -466,15 +473,15 @@
 				>
 					{#each dayColumns[dayIndex] || [] as item (item.id)}
 						<article
-							class="group relative flex flex-col gap-1.5 rounded-xl border border-slate-800/90 bg-slate-850/90 p-2.5 shadow-sm transition-all hover:border-slate-700 hover:shadow-md cursor-grab active:cursor-grabbing {item.completed
-								? 'opacity-60 bg-slate-900/40 border-dashed'
-								: ''}"
+							class="group relative flex flex-col gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800/90 p-2.5 shadow-xs transition-all hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md cursor-grab active:cursor-grabbing {item.completed
+								? 'opacity-60 bg-slate-100/70 dark:bg-slate-900/40 border-dashed'
+								: 'bg-white dark:bg-slate-800/90'}"
 							style="border-left: 4px solid {item.color || '#3b82f6'};"
 						>
 							<!-- Time and Complete checkbox -->
-							<div class="flex items-center justify-between text-[11px] text-slate-400">
+							<div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
 								<span class="flex items-center gap-1 font-mono font-medium">
-									<Clock class="h-3 w-3 text-slate-500" />
+									<Clock class="h-3 w-3 text-slate-400 dark:text-slate-500" />
 									{item.startTime} - {item.endTime}
 								</span>
 
@@ -484,7 +491,7 @@
 										onclick={() => toggleCompleted(item)}
 										class="no-export flex h-4 w-4 items-center justify-center rounded border transition-colors cursor-pointer {item.completed
 											? 'border-emerald-500 bg-emerald-500 text-white'
-											: 'border-slate-600 hover:border-slate-400 bg-slate-800'}"
+											: 'border-slate-300 dark:border-slate-600 hover:border-slate-400 bg-slate-50 dark:bg-slate-800'}"
 										title={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
 									>
 										{#if item.completed}
@@ -495,7 +502,7 @@
 									<button
 										type="button"
 										onclick={() => deleteEvent(item.id)}
-										class="no-export opacity-0 group-hover:opacity-100 rounded p-0.5 text-slate-500 hover:text-rose-400 transition-all cursor-pointer"
+										class="no-export opacity-0 group-hover:opacity-100 rounded p-0.5 text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400 transition-all cursor-pointer"
 										title="Eliminar bloque"
 									>
 										<Trash2 class="h-3 w-3" />
@@ -505,9 +512,9 @@
 
 							<!-- Title -->
 							<h5
-								class="text-xs font-semibold text-slate-100 leading-snug {item.completed
-									? 'line-through text-slate-400'
-									: ''}"
+								class="text-xs font-semibold leading-snug {item.completed
+									? 'line-through text-slate-400 dark:text-slate-500'
+									: 'text-slate-900 dark:text-slate-100'}"
 							>
 								{item.title}
 							</h5>
@@ -515,13 +522,13 @@
 							<!-- Notes or Category Tag -->
 							<div class="flex items-center justify-between gap-1 mt-0.5">
 								<span
-									class="rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-800/80 text-slate-300"
+									class="rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-transparent"
 								>
 									{item.category}
 								</span>
 
 								{#if item.subtasks && item.subtasks.length > 0}
-									<span class="text-[10px] text-slate-400">
+									<span class="text-[10px] text-slate-500 dark:text-slate-400">
 										✓ {item.subtasks.filter((s) => s.completed).length}/{item.subtasks.length}
 									</span>
 								{/if}
@@ -531,13 +538,13 @@
 
 					{#if (dayColumns[dayIndex] || []).length === 0}
 						<div
-							class="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-slate-800/80 rounded-xl text-slate-500 text-xs gap-1.5"
+							class="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-slate-300 dark:border-slate-800/80 rounded-xl text-slate-400 dark:text-slate-500 text-xs gap-1.5"
 						>
 							<span>Sin bloques</span>
 							<button
 								type="button"
 								onclick={() => openAddModal(day.dateStr)}
-								class="no-export text-[11px] text-indigo-400 hover:underline cursor-pointer"
+								class="no-export text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
 							>
 								+ Programar
 							</button>
@@ -549,7 +556,7 @@
 				<button
 					type="button"
 					onclick={() => openAddModal(day.dateStr)}
-					class="no-export m-2 flex items-center justify-center gap-1 rounded-xl border border-slate-800/80 py-1.5 text-[11px] font-medium text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 transition-all cursor-pointer"
+					class="no-export m-2 flex items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800/80 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200 transition-all cursor-pointer"
 				>
 					<Plus class="h-3 w-3" />
 					<span>Agregar</span>
@@ -562,51 +569,54 @@
 <!-- Modal para Añadir Bloque -->
 {#if isAddModalOpen}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
 		role="dialog"
 	>
 		<div
-			class="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900 p-5 text-slate-100 shadow-2xl space-y-4"
+			class="w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-slate-900 dark:text-slate-100 shadow-2xl space-y-4"
 		>
 			<h4 class="font-bold text-base">Nuevo Bloque de Tiempo</h4>
 
 			<div class="space-y-3 text-xs">
 				<div>
-					<label class="block font-medium text-slate-300 mb-1">Título del Bloque</label>
+					<label for="event-title-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Título del Bloque</label>
 					<input
+						id="event-title-input"
 						type="text"
 						bind:value={newEventTitle}
 						placeholder="Ej: Deep Work, Gimnasio, Estudio..."
-						class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-						autofocus
+						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
 					/>
 				</div>
 
 				<div class="grid grid-cols-2 gap-2">
 					<div>
-						<label class="block font-medium text-slate-300 mb-1">Hora Inicio</label>
+						<label for="event-start-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Hora Inicio</label>
 						<input
+							id="event-start-time"
 							type="time"
 							bind:value={newEventStartTime}
-							class="w-full rounded-xl border border-slate-700 bg-slate-800 px-2 py-1.5 text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
 						/>
 					</div>
 					<div>
-						<label class="block font-medium text-slate-300 mb-1">Hora Fin</label>
+						<label for="event-end-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Hora Fin</label>
 						<input
+							id="event-end-time"
 							type="time"
 							bind:value={newEventEndTime}
-							class="w-full rounded-xl border border-slate-700 bg-slate-800 px-2 py-1.5 text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
 						/>
 					</div>
 				</div>
 
 				<div class="grid grid-cols-2 gap-2">
 					<div>
-						<label class="block font-medium text-slate-300 mb-1">Categoría</label>
+						<label for="event-category-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
 						<select
+							id="event-category-select"
 							bind:value={newEventCategory}
-							class="w-full rounded-xl border border-slate-700 bg-slate-800 px-2 py-1.5 text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
 						>
 							<option value="work">Trabajo (Work)</option>
 							<option value="study">Estudio (Study)</option>
@@ -618,15 +628,16 @@
 					</div>
 
 					<div>
-						<label class="block font-medium text-slate-300 mb-1">Color</label>
+						<span class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Color</span>
 						<div class="flex items-center gap-1.5 mt-1">
 							{#each ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#f43f5e', '#14b8a6'] as clr}
 								<button
 									type="button"
 									onclick={() => (newEventColor = clr)}
+									aria-label="Seleccionar color {clr}"
 									class="h-6 w-6 rounded-full border-2 transition-transform cursor-pointer {newEventColor ===
 									clr
-										? 'border-white scale-110'
+										? 'border-indigo-600 dark:border-white scale-110 shadow-xs'
 										: 'border-transparent opacity-80 hover:opacity-100'}"
 									style="background-color: {clr};"
 								></button>
@@ -636,11 +647,11 @@
 				</div>
 			</div>
 
-			<div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+			<div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
 				<button
 					type="button"
 					onclick={() => (isAddModalOpen = false)}
-					class="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+					class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
 				>
 					Cancelar
 				</button>

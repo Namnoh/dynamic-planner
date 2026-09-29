@@ -2,7 +2,7 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import ToastContainer from '$lib/components/ToastContainer.svelte';
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { requestNotificationPermission, toastStore } from '$lib/utils/notifications';
 	import { Wifi, WifiOff, Bell, Sun, Moon, CalendarDays } from 'lucide-svelte';
 
@@ -27,25 +27,17 @@
 	}
 
 	onMount(() => {
-		// Online / Offline listeners
 		isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 		window.addEventListener('online', handleOnline);
 		window.addEventListener('offline', handleOffline);
 
-		// Notification permission status
 		if ('Notification' in window) {
 			notificationPermission = Notification.permission;
 		}
 
-		// Dark mode initialization
-		const savedTheme = localStorage.getItem('theme');
-		if (savedTheme === 'light') {
-			isDarkMode = false;
-			document.documentElement.classList.remove('dark');
-		} else {
-			isDarkMode = true;
-			document.documentElement.classList.add('dark');
-		}
+		// Initialize theme state from current class on html or localStorage
+		const isDark = document.documentElement.classList.contains('dark');
+		isDarkMode = isDark;
 
 		// Register PWA Service Worker
 		if ('serviceWorker' in navigator) {
@@ -109,27 +101,27 @@
 </svelte:head>
 
 <div
-	class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white antialiased"
+	class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white antialiased transition-colors duration-200"
 >
 	<!-- Navbar Principal -->
 	<nav
-		class="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-4 lg:px-8 py-3"
+		class="sticky top-0 z-40 border-b border-slate-200 bg-white/80 dark:border-slate-800/80 dark:bg-slate-950/80 backdrop-blur-md px-4 lg:px-8 py-3 transition-colors"
 	>
 		<div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
 			<!-- Logo -->
 			<div class="flex items-center gap-3">
 				<div
-					class="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-tr from-indigo-600 to-indigo-400 text-white shadow-md shadow-indigo-600/30"
+					class="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-tr from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30"
 				>
 					<CalendarDays class="h-5 w-5" />
 				</div>
 				<div>
 					<h1
-						class="text-base font-extrabold tracking-tight bg-linear-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent"
+						class="text-base font-extrabold tracking-tight bg-linear-to-r from-slate-900 via-indigo-950 to-indigo-600 dark:from-white dark:via-slate-200 dark:to-indigo-300 bg-clip-text text-transparent"
 					>
 						Dynamic Planner
 					</h1>
-					<p class="text-[10px] text-slate-400 hidden sm:block">
+					<p class="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">
 						Planificación modular & Time-blocking Offline
 					</p>
 				</div>
@@ -140,8 +132,8 @@
 				<!-- Offline / Online Badge -->
 				<div
 					class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border {isOnline
-						? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-						: 'border-amber-500/30 bg-amber-500/10 text-amber-400'}"
+						? 'border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30'
+						: 'border-amber-500/30 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'}"
 				>
 					{#if isOnline}
 						<Wifi class="h-3 w-3" />
@@ -156,23 +148,24 @@
 				<button
 					type="button"
 					onclick={handleRequestNotifications}
-					class="rounded-xl p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors border border-slate-800 cursor-pointer"
+					class="rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
 					title="Activar notificaciones de escritorio"
 				>
-					<Bell class="h-4 w-4 {notificationPermission === 'granted' ? 'text-indigo-400' : ''}" />
+					<Bell class="h-4 w-4 {notificationPermission === 'granted' ? 'text-indigo-600 dark:text-indigo-400' : ''}" />
 				</button>
 
 				<!-- Dark / Light Mode Toggle -->
 				<button
 					type="button"
 					onclick={toggleTheme}
-					class="rounded-xl p-2 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors border border-slate-800 cursor-pointer"
-					title="Cambiar tema"
+					class="rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
+					title={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+					aria-label={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
 				>
 					{#if isDarkMode}
 						<Sun class="h-4 w-4 text-amber-400" />
 					{:else}
-						<Moon class="h-4 w-4 text-indigo-400" />
+						<Moon class="h-4 w-4 text-indigo-600" />
 					{/if}
 				</button>
 			</div>

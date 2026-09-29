@@ -28,7 +28,7 @@
 
 <div class="space-y-6">
 	<!-- Tab Switcher -->
-	<div class="flex items-center justify-between border-b border-slate-800 pb-3">
+	<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 transition-colors">
 		<div class="flex items-center gap-2">
 			<button
 				type="button"
@@ -36,7 +36,7 @@
 				class="flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all cursor-pointer {activeTab ===
 				'planner'
 					? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-					: 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}"
+					: 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'}"
 			>
 				<Calendar class="h-4 w-4" />
 				<span>Planificador Semanal (DnD)</span>
@@ -48,7 +48,7 @@
 				class="flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all cursor-pointer {activeTab ===
 				'templates'
 					? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-					: 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}"
+					: 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'}"
 			>
 				<Layers class="h-4 w-4" />
 				<span>Gestor de Plantillas & Bloques</span>

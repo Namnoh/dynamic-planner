@@ -2,7 +2,7 @@
 	import { db } from '$lib/db';
 	import type { ActivityTemplate, DayTemplate, DayTemplateBlock } from '$lib/types';
 	import { toastStore } from '$lib/utils/notifications';
-	import { Plus, Trash2, Edit2, Clock, Layers, Sparkles, Check, Tag } from 'lucide-svelte';
+	import { Plus, Trash2, Clock, Layers, Tag } from 'lucide-svelte';
 
 	let { onTemplatesUpdated }: { onTemplatesUpdated?: () => void } = $props();
 
@@ -136,14 +136,16 @@
 
 <div class="space-y-8 w-full">
 	<!-- Sección 1: Plantillas de Día Modulares -->
-	<section class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-xl backdrop-blur-md space-y-6">
-		<div class="flex items-center justify-between border-b border-slate-800 pb-4">
+	<section
+		class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 p-6 shadow-md dark:shadow-xl backdrop-blur-md space-y-6 transition-colors"
+	>
+		<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
 			<div>
-				<h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-					<Layers class="h-5 w-5 text-indigo-400" />
+				<h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+					<Layers class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
 					Plantillas de Día Modulares
 				</h3>
-				<p class="text-xs text-slate-400">
+				<p class="text-xs text-slate-500 dark:text-slate-400">
 					Ensambla rutinas completas pre-armadas ("Día Enfoque", "Día Balance", etc.) para aplicar con un solo clic.
 				</p>
 			</div>
@@ -160,39 +162,42 @@
 
 		<!-- Constructor Visual de Plantilla de Día -->
 		{#if isCreatingDayTemplate}
-			<div class="rounded-2xl border border-indigo-500/40 bg-slate-900/90 p-5 space-y-5 animate-in fade-in duration-200">
-				<h4 class="text-sm font-bold text-indigo-300">Constructor de Rutina Diaria</h4>
+			<div class="rounded-2xl border border-indigo-300 dark:border-indigo-500/40 bg-indigo-50/40 dark:bg-slate-900/90 p-5 space-y-5 animate-in fade-in duration-200">
+				<h4 class="text-sm font-bold text-indigo-700 dark:text-indigo-300">Constructor de Rutina Diaria</h4>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label class="block text-xs font-medium text-slate-300 mb-1">Nombre de la Plantilla</label>
+						<label for="tpl-name-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Nombre de la Plantilla</label>
 						<input
+							id="tpl-name-input"
 							type="text"
 							bind:value={tplName}
 							placeholder="Ej: Día Enfoque Remoto"
-							class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
 						/>
 					</div>
 					<div>
-						<label class="block text-xs font-medium text-slate-300 mb-1">Descripción (Opcional)</label>
+						<label for="tpl-desc-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Descripción (Opcional)</label>
 						<input
+							id="tpl-desc-input"
 							type="text"
 							bind:value={tplDescription}
 							placeholder="Ej: Enfoque matutino, código en la tarde y deporte."
-							class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
 						/>
 					</div>
 				</div>
 
 				<!-- Añadir bloque a la plantilla -->
-				<div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-3">
-					<h5 class="text-xs font-semibold text-slate-300">Añadir Bloque de Tiempo a la Secuencia</h5>
+				<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-950/60 p-4 space-y-3">
+					<h5 class="text-xs font-semibold text-slate-700 dark:text-slate-300">Añadir Bloque de Tiempo a la Secuencia</h5>
 					<div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
 						<div>
-							<label class="block text-[11px] text-slate-400 mb-1">Actividad Base</label>
+							<label for="block-act-select" class="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">Actividad Base</label>
 							<select
+								id="block-act-select"
 								bind:value={selectedActivityIdForBlock}
-								class="w-full rounded-lg border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-slate-200"
+								class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200"
 							>
 								{#each activities as act}
 									<option value={act.id}>{act.title}</option>
@@ -200,28 +205,30 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-[11px] text-slate-400 mb-1">Hora Inicio</label>
+							<label for="block-start-input" class="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">Hora Inicio</label>
 							<input
+								id="block-start-input"
 								type="time"
 								bind:value={blockStartTime}
-								class="w-full rounded-lg border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-slate-200"
+								class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200"
 							/>
 						</div>
 						<div>
-							<label class="block text-[11px] text-slate-400 mb-1">Duración (minutos)</label>
+							<label for="block-dur-input" class="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">Duración (minutos)</label>
 							<input
+								id="block-dur-input"
 								type="number"
 								min="15"
 								step="15"
 								bind:value={blockDuration}
-								class="w-full rounded-lg border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-slate-200"
+								class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200"
 							/>
 						</div>
 						<div class="flex items-end">
 							<button
 								type="button"
 								onclick={handleAddBlockToTemplate}
-								class="w-full rounded-lg bg-indigo-600/80 hover:bg-indigo-600 py-1.5 text-xs font-medium text-white transition-all cursor-pointer"
+								class="w-full rounded-lg bg-indigo-600 hover:bg-indigo-500 py-1.5 text-xs font-medium text-white transition-all cursor-pointer shadow-xs"
 							>
 								+ Insertar Bloque
 							</button>
@@ -232,21 +239,22 @@
 				<!-- Lista de bloques ensamblados -->
 				{#if tplBlocks.length > 0}
 					<div class="space-y-2">
-						<span class="text-xs font-semibold text-slate-300">Secuencia Ensamblada:</span>
+						<span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Secuencia Ensamblada:</span>
 						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
 							{#each tplBlocks as blk, idx}
-								<div class="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-800/80 p-2.5 text-xs">
+								<div class="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 p-2.5 text-xs shadow-xs">
 									<div>
-										<span class="font-mono text-indigo-400 font-bold">{blk.startTime}</span>
-										<span class="text-slate-400 text-[10px]">({blk.duration}m)</span>
-										<p class="font-medium text-slate-200 mt-0.5">
+										<span class="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{blk.startTime}</span>
+										<span class="text-slate-500 dark:text-slate-400 text-[10px]">({blk.duration}m)</span>
+										<p class="font-medium text-slate-800 dark:text-slate-200 mt-0.5">
 											{blk.customTitle || activities.find((a) => a.id === blk.activityId)?.title || 'Bloque'}
 										</p>
 									</div>
 									<button
 										type="button"
 										onclick={() => handleRemoveBlockFromTemplate(idx)}
-										class="p-1 text-slate-500 hover:text-rose-400 cursor-pointer"
+										class="p-1 text-slate-400 hover:text-rose-500 cursor-pointer"
+										title="Quitar bloque"
 									>
 										<Trash2 class="h-3.5 w-3.5" />
 									</button>
@@ -256,11 +264,11 @@
 					</div>
 				{/if}
 
-				<div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+				<div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
 					<button
 						type="button"
 						onclick={() => (isCreatingDayTemplate = false)}
-						class="px-4 py-2 text-xs text-slate-400 hover:text-slate-200"
+						class="px-4 py-2 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
 					>
 						Cancelar
 					</button>
@@ -278,21 +286,21 @@
 		<!-- Grid de Plantillas de Día Existentes -->
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 			{#each dayTemplates as tpl}
-				<div class="flex flex-col justify-between rounded-2xl border border-slate-800 bg-slate-900/40 p-4 hover:border-slate-700 transition-all">
+				<div class="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 p-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs">
 					<div class="space-y-2">
 						<div class="flex items-start justify-between">
-							<h4 class="font-bold text-sm text-slate-100">{tpl.name}</h4>
+							<h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">{tpl.name}</h4>
 							<button
 								type="button"
 								onclick={() => handleDeleteDayTemplate(tpl.id)}
-								class="text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+								class="text-slate-400 hover:text-rose-500 p-1 cursor-pointer"
 								title="Eliminar plantilla"
 							>
 								<Trash2 class="h-4 w-4" />
 							</button>
 						</div>
 						{#if tpl.description}
-							<p class="text-xs text-slate-400">{tpl.description}</p>
+							<p class="text-xs text-slate-600 dark:text-slate-400">{tpl.description}</p>
 						{/if}
 						<div class="flex items-center gap-1.5 text-[11px] text-slate-500 pt-1">
 							<Clock class="h-3 w-3" />
@@ -300,14 +308,14 @@
 						</div>
 					</div>
 
-					<div class="mt-3 pt-3 border-t border-slate-800/80 flex flex-wrap gap-1">
+					<div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80 flex flex-wrap gap-1">
 						{#each tpl.blocks.slice(0, 4) as b}
-							<span class="rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-mono text-slate-300">
+							<span class="rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-transparent px-2 py-0.5 text-[10px] font-mono text-slate-700 dark:text-slate-300">
 								{b.startTime} ({b.duration}m)
 							</span>
 						{/each}
 						{#if tpl.blocks.length > 4}
-							<span class="rounded-md bg-slate-800/60 px-1.5 py-0.5 text-[10px] text-slate-500">
+							<span class="rounded-md bg-slate-100 dark:bg-slate-800/60 px-1.5 py-0.5 text-[10px] text-slate-500">
 								+{tpl.blocks.length - 4} más
 							</span>
 						{/if}
@@ -318,14 +326,16 @@
 	</section>
 
 	<!-- Sección 2: Catálogo de Bloques de Actividad Base -->
-	<section class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 shadow-xl backdrop-blur-md space-y-6">
-		<div class="flex items-center justify-between border-b border-slate-800 pb-4">
+	<section
+		class="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 p-6 shadow-md dark:shadow-xl backdrop-blur-md space-y-6 transition-colors"
+	>
+		<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
 			<div>
-				<h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-					<Tag class="h-5 w-5 text-indigo-400" />
+				<h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+					<Tag class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
 					Catálogo de Bloques de Actividad
 				</h3>
-				<p class="text-xs text-slate-400">
+				<p class="text-xs text-slate-500 dark:text-slate-400">
 					Bloques atómicos personalizables (categoría, duración habitual, color) para reutilizar en cualquier día.
 				</p>
 			</div>
@@ -333,7 +343,7 @@
 			<button
 				type="button"
 				onclick={() => (isCreatingActivity = !isCreatingActivity)}
-				class="flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 text-xs font-semibold text-slate-200 transition-all cursor-pointer"
+				class="flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 px-3.5 py-2 text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all cursor-pointer"
 			>
 				<Plus class="h-4 w-4" />
 				<span>{isCreatingActivity ? 'Cerrar' : 'Crear Bloque'}</span>
@@ -341,23 +351,25 @@
 		</div>
 
 		{#if isCreatingActivity}
-			<div class="rounded-2xl border border-slate-700 bg-slate-900/90 p-5 space-y-4 animate-in fade-in duration-200">
-				<h4 class="text-sm font-bold text-slate-200">Nuevo Bloque Base</h4>
+			<div class="rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/90 p-5 space-y-4 animate-in fade-in duration-200">
+				<h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">Nuevo Bloque Base</h4>
 				<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 					<div>
-						<label class="block text-xs font-medium text-slate-300 mb-1">Título</label>
+						<label for="act-title-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Título</label>
 						<input
+							id="act-title-input"
 							type="text"
 							bind:value={actTitle}
 							placeholder="Ej: Sprint de Programación"
-							class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
 						/>
 					</div>
 					<div>
-						<label class="block text-xs font-medium text-slate-300 mb-1">Categoría</label>
+						<label for="act-cat-select" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
 						<select
+							id="act-cat-select"
 							bind:value={actCategory}
-							class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-200"
+							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
 						>
 							<option value="work">Trabajo (Work)</option>
 							<option value="study">Estudio (Study)</option>
@@ -368,27 +380,29 @@
 						</select>
 					</div>
 					<div>
-						<label class="block text-xs font-medium text-slate-300 mb-1">Duración habitual (min)</label>
+						<label for="act-dur-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Duración habitual (min)</label>
 						<input
+							id="act-dur-input"
 							type="number"
 							step="15"
 							min="15"
 							bind:value={actDuration}
-							class="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-slate-100"
+							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
 						/>
 					</div>
 				</div>
 
 				<div class="flex items-center justify-between">
 					<div class="flex items-center gap-2">
-						<span class="text-xs text-slate-300 font-medium">Color:</span>
+						<span class="text-xs text-slate-700 dark:text-slate-300 font-medium">Color:</span>
 						<div class="flex items-center gap-1.5">
 							{#each ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#f43f5e', '#14b8a6'] as clr}
 								<button
 									type="button"
 									onclick={() => (actColor = clr)}
+									aria-label="Color {clr}"
 									class="h-5 w-5 rounded-full border-2 transition-transform cursor-pointer {actColor === clr
-										? 'border-white scale-110'
+										? 'border-indigo-600 dark:border-white scale-110'
 										: 'border-transparent opacity-70 hover:opacity-100'}"
 									style="background-color: {clr};"
 								></button>
@@ -400,7 +414,7 @@
 						<button
 							type="button"
 							onclick={() => (isCreatingActivity = false)}
-							class="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
+							class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
 						>
 							Cancelar
 						</button>
@@ -419,12 +433,12 @@
 		<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
 			{#each activities as act}
 				<div
-					class="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/40 p-3 hover:border-slate-700 transition-all"
+					class="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 p-3 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs"
 					style="border-left: 4px solid {act.color};"
 				>
 					<div class="space-y-0.5">
-						<h5 class="text-xs font-semibold text-slate-100">{act.title}</h5>
-						<div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+						<h5 class="text-xs font-semibold text-slate-900 dark:text-slate-100">{act.title}</h5>
+						<div class="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
 							<span class="uppercase tracking-wider font-bold">{act.category}</span>
 							<span>•</span>
 							<span>{act.defaultDuration} min</span>
@@ -433,7 +447,7 @@
 					<button
 						type="button"
 						onclick={() => handleDeleteActivity(act.id)}
-						class="text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+						class="text-slate-400 hover:text-rose-500 p-1 cursor-pointer"
 						title="Eliminar bloque base"
 					>
 						<Trash2 class="h-3.5 w-3.5" />
