@@ -50,11 +50,11 @@
 	function getBlockStyle(item: ScheduledEvent, styleMode: BlockColorStyle): string {
 		const color = item.color || '#3b82f6';
 		if (styleMode === 'full') {
-			const tintPercent = item.completed ? '8%' : '16%';
-			const borderPercent = item.completed ? '25%' : '40%';
-			return `border-left: 4px solid ${color}; background-color: color-mix(in srgb, ${color} ${tintPercent}, var(--card-bg-base)); border-color: color-mix(in srgb, ${color} ${borderPercent}, transparent);`;
+			const tintPercent = item.completed ? '8%' : '14%';
+			const borderPercent = item.completed ? '25%' : '35%';
+			return `border-left: 3.5px solid ${color}; background-color: color-mix(in srgb, ${color} ${tintPercent}, var(--card-bg-base)); border-color: color-mix(in srgb, ${color} ${borderPercent}, transparent);`;
 		}
-		return `border-left: 4px solid ${color};`;
+		return `border-left: 3.5px solid ${color};`;
 	}
 
 	// Quick Add Modal / State
@@ -547,93 +547,109 @@
 					}}
 					onconsider={(e) => handleDndConsider(dayIndex, e)}
 					onfinalize={(e) => handleDndFinalize(dayIndex, e)}
-					class="flex-1 flex flex-col gap-2 p-2.5 overflow-y-auto"
+					class="flex-1 flex flex-col gap-2 p-2.5 pt-3.5 overflow-y-auto"
 				>
 					{#each dayColumns[dayIndex] || [] as item (item.id)}
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
 						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 						<article
-							class="group relative flex flex-col gap-1.5 rounded-xl p-2.5 shadow-xs transition-all cursor-pointer {item.completed
-								? 'opacity-60 border-dashed'
+							class="group relative flex flex-col gap-1 rounded-xl px-2.5 py-2 shadow-2xs transition-all duration-150 cursor-pointer {item.completed
+								? 'opacity-65 border-dashed'
 								: ''} {blockColorStyle === 'border'
 								? (item.completed
 									? 'border border-slate-200 dark:border-slate-800/90 bg-slate-100/70 dark:bg-slate-900/40'
-									: 'border border-slate-200 dark:border-slate-800/90 bg-white dark:bg-slate-800/90 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md')
+									: 'border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-800/90 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs')
 								: (item.completed
 									? 'border'
-									: 'border hover:shadow-md hover:brightness-105')}"
+									: 'border hover:shadow-xs hover:brightness-[1.02]')}"
 							style={getBlockStyle(item, blockColorStyle)}
 							onclick={() => openEditModal(item)}
 						>
-							<!-- Time and Complete checkbox -->
-							<div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-								<span class="flex items-center gap-1 font-mono font-medium">
-									<Clock class="h-3 w-3 text-slate-400 dark:text-slate-500" />
-									{item.startTime} - {item.endTime}
-								</span>
+							<!-- Tab de Acciones Superior Flotante (Smooth Hover) -->
+							<div
+								class="no-export absolute -top-3 right-2 z-20 flex items-center gap-0.5 rounded-lg border border-slate-200/90 dark:border-slate-700/90 bg-white/95 dark:bg-slate-800/95 px-1 py-0.5 shadow-md backdrop-blur-md transition-all duration-150 ease-out opacity-0 -translate-y-1 scale-95 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 group-hover:pointer-events-auto"
+							>
+								<!-- Botón Check / Completar -->
+								<button
+									type="button"
+									onclick={(e) => { e.stopPropagation(); toggleCompleted(item); }}
+									class="flex h-5 w-5 items-center justify-center rounded-md transition-all duration-150 cursor-pointer {item.completed
+										? 'bg-emerald-500 text-white shadow-xs'
+										: 'text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-400'}"
+									title={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
+									aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
+								>
+									<Check class="h-3 w-3 stroke-[2.5]" />
+								</button>
 
-								<div class="flex items-center gap-1.5">
-									<button
-										type="button"
-										onclick={(e) => { e.stopPropagation(); toggleCompleted(item); }}
-										class="no-export flex h-4 w-4 items-center justify-center rounded border transition-colors cursor-pointer {item.completed
-											? 'border-emerald-500 bg-emerald-500 text-white'
-											: 'border-slate-300 dark:border-slate-600 hover:border-slate-400 bg-slate-50 dark:bg-slate-800'}"
-										title={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
-										aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
-									>
-										{#if item.completed}
-											<Check class="h-3 w-3 stroke-[3]" />
-										{/if}
-									</button>
+								<!-- Divisor vertical sutil -->
+								<div class="h-3 w-px bg-slate-200 dark:bg-slate-700/80 my-auto"></div>
 
-									<button
-										type="button"
-										onclick={(e) => { e.stopPropagation(); openEditModal(item); }}
-										class="no-export opacity-0 group-hover:opacity-100 rounded p-0.5 text-slate-400 hover:text-indigo-600 dark:text-slate-500 dark:hover:text-indigo-400 transition-all cursor-pointer"
-										title="Editar bloque"
-										aria-label="Editar bloque"
-									>
-										<Pencil class="h-3 w-3" />
-									</button>
+								<!-- Botón Editar -->
+								<button
+									type="button"
+									onclick={(e) => { e.stopPropagation(); openEditModal(item); }}
+									class="flex h-5 w-5 items-center justify-center rounded-md text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-400 transition-all duration-150 cursor-pointer"
+									title="Editar bloque"
+									aria-label="Editar bloque"
+								>
+									<Pencil class="h-3 w-3 stroke-[2]" />
+								</button>
 
-									<button
-										type="button"
-										onclick={(e) => { e.stopPropagation(); deleteEvent(item.id); }}
-										class="no-export opacity-0 group-hover:opacity-100 rounded p-0.5 text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400 transition-all cursor-pointer"
-										title="Eliminar bloque"
-										aria-label="Eliminar bloque"
-									>
-										<Trash2 class="h-3 w-3" />
-									</button>
-								</div>
+								<!-- Botón Eliminar -->
+								<button
+									type="button"
+									onclick={(e) => { e.stopPropagation(); deleteEvent(item.id); }}
+									class="flex h-5 w-5 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-950/50 dark:hover:text-rose-400 transition-all duration-150 cursor-pointer"
+									title="Eliminar bloque"
+									aria-label="Eliminar bloque"
+								>
+									<Trash2 class="h-3 w-3 stroke-[2]" />
+								</button>
 							</div>
 
-							<!-- Title -->
+							<!-- Fila 1: Horas (tipografía simple y limpia) y Categoría -->
+							<div class="flex items-center justify-between gap-1 leading-none">
+								<span class="inline-flex items-center gap-1 font-sans text-[11px] font-medium tabular-nums text-slate-500 dark:text-slate-400 tracking-tight">
+									{#if item.completed}
+										<Check class="h-3 w-3 text-emerald-500 stroke-[2.5]" />
+									{/if}
+									<span>{item.startTime} – {item.endTime}</span>
+								</span>
+
+								<span
+									class="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider {blockColorStyle === 'full'
+										? 'bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200'
+										: 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-transparent'}"
+								>
+									{item.category}
+								</span>
+							</div>
+
+							<!-- Fila 2: Título del Bloque -->
 							<h5
-								class="text-xs font-semibold leading-snug {item.completed
+								class="text-xs font-semibold leading-snug tracking-tight {item.completed
 									? 'line-through text-slate-400 dark:text-slate-500'
-									: 'text-slate-900 dark:text-slate-100'}"
+									: 'text-slate-800 dark:text-slate-100'}"
 							>
 								{item.title}
 							</h5>
 
-							<!-- Notes or Category Tag -->
-							<div class="flex items-center justify-between gap-1 mt-0.5">
-								<span
-									class="rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider {blockColorStyle === 'full'
-										? 'bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200'
-										: 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-transparent'}"
-								>
-									{item.category}
-								</span>
-
-								{#if item.subtasks && item.subtasks.length > 0}
-									<span class="text-[10px] text-slate-500 dark:text-slate-400">
-										✓ {item.subtasks.filter((s) => s.completed).length}/{item.subtasks.length}
-									</span>
-								{/if}
-							</div>
+							<!-- Fila 3: Subtareas o Notas (sólo si existen) -->
+							{#if (item.subtasks && item.subtasks.length > 0) || item.notes}
+								<div class="flex items-center justify-between gap-2 pt-0.5 text-[10px] text-slate-400 dark:text-slate-500">
+									{#if item.notes}
+										<span class="truncate italic max-w-[130px]" title={item.notes}>
+											{item.notes}
+										</span>
+									{/if}
+									{#if item.subtasks && item.subtasks.length > 0}
+										<span class="ml-auto font-sans tabular-nums text-[9.5px]">
+											✓ {item.subtasks.filter((s) => s.completed).length}/{item.subtasks.length}
+										</span>
+									{/if}
+								</div>
+							{/if}
 						</article>
 					{/each}
 

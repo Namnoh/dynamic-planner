@@ -244,7 +244,7 @@
 							{#each tplBlocks as blk, idx}
 								<div class="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 p-2.5 text-xs shadow-xs">
 									<div>
-										<span class="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{blk.startTime}</span>
+										<span class="font-sans tabular-nums font-semibold text-indigo-600 dark:text-indigo-400 tracking-tight">{blk.startTime}</span>
 										<span class="text-slate-500 dark:text-slate-400 text-[10px]">({blk.duration}m)</span>
 										<p class="font-medium text-slate-800 dark:text-slate-200 mt-0.5">
 											{blk.customTitle || activities.find((a) => a.id === blk.activityId)?.title || 'Bloque'}
@@ -310,7 +310,7 @@
 
 					<div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80 flex flex-wrap gap-1">
 						{#each tpl.blocks.slice(0, 4) as b}
-							<span class="rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-transparent px-2 py-0.5 text-[10px] font-mono text-slate-700 dark:text-slate-300">
+							<span class="rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-transparent px-2 py-0.5 text-[10px] font-sans tabular-nums font-medium tracking-tight text-slate-700 dark:text-slate-300">
 								{b.startTime} ({b.duration}m)
 							</span>
 						{/each}
