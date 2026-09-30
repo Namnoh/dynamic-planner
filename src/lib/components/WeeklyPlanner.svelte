@@ -13,7 +13,9 @@
 	import { settingsStore, type BlockColorStyle } from '$lib/stores/settings';
 	import type { ScheduledEvent, DayTemplate, ActivityTemplate } from '$lib/types';
 	import ExportModal from './ExportModal.svelte';
-	import ColorPicker from './ColorPicker.svelte';
+	import EventCard from './EventCard.svelte';
+	import AddEventModal from './AddEventModal.svelte';
+	import EditEventModal from './EditEventModal.svelte';
 	import { toastStore, sendPlannerNotification } from '$lib/utils/notifications';
 	import {
 		ChevronLeft,
@@ -23,13 +25,9 @@
 		Sparkles,
 		Trash2,
 		Plus,
-		Check,
-		Clock,
 		FileDown,
 		FileUp,
-		Layers,
-		Pencil,
-		X
+		Layers
 	} from 'lucide-svelte';
 
 	// Component State
@@ -48,80 +46,42 @@
 		return unsubscribe;
 	});
 
-	function getBlockStyle(item: ScheduledEvent, styleMode: BlockColorStyle): string {
-		const color = item.color || '#3b82f6';
-		if (styleMode === 'full') {
-			const tintPercent = item.completed ? '8%' : '14%';
-			const borderPercent = item.completed ? '25%' : '35%';
-			return `border-left: 3.5px solid ${color}; background-color: color-mix(in srgb, ${color} ${tintPercent}, var(--card-bg-base)); border-color: color-mix(in srgb, ${color} ${borderPercent}, transparent);`;
-		}
-		return `border-left: 3.5px solid ${color};`;
-	}
-
-	// Quick Add Modal / State
+	// Quick Add Modal State
 	let isAddModalOpen = $state(false);
 	let targetDateForNewEvent = $state('');
-	let newEventTitle = $state('');
-	let newEventStartTime = $state('09:00');
-	let newEventEndTime = $state('10:00');
-	let newEventCategory = $state('work');
-	let newEventColor = $state('#3b82f6');
 
-	// Edit Modal / State
+	// Edit Modal State
 	let isEditModalOpen = $state(false);
-	let editingEventId = $state<string | null>(null);
-	let editEventDate = $state('');
-	let editEventTitle = $state('');
-	let editEventStartTime = $state('09:00');
-	let editEventEndTime = $state('10:00');
-	let editEventCategory = $state('work');
-	let editEventColor = $state('#3b82f6');
-	let editEventNotes = $state('');
-	let editEventCompleted = $state(false);
+	let selectedEventForEdit = $state<ScheduledEvent | null>(null);
+
+	function openAddModal(dateStr: string) {
+		targetDateForNewEvent = dateStr;
+		isAddModalOpen = true;
+	}
 
 	function openEditModal(event: ScheduledEvent) {
-		editingEventId = event.id;
-		editEventDate = event.date;
-		editEventTitle = event.title;
-		editEventStartTime = event.startTime;
-		editEventEndTime = event.endTime;
-		editEventCategory = event.category;
-		editEventColor = event.color || '#3b82f6';
-		editEventNotes = event.notes || '';
-		editEventCompleted = event.completed;
+		selectedEventForEdit = event;
 		isEditModalOpen = true;
 	}
 
-	async function handleUpdateEvent() {
-		if (!editingEventId || !editEventTitle.trim()) return;
-
-		await db.scheduledEvents.update(editingEventId, {
-			title: editEventTitle.trim(),
-			date: editEventDate,
-			startTime: editEventStartTime,
-			endTime: editEventEndTime,
-			category: editEventCategory,
-			color: editEventColor,
-			notes: editEventNotes.trim() || undefined,
-			completed: editEventCompleted
+	async function handleUpdateEvent(updatedEvent: ScheduledEvent) {
+		await db.scheduledEvents.update(updatedEvent.id, {
+			title: updatedEvent.title,
+			date: updatedEvent.date,
+			startTime: updatedEvent.startTime,
+			endTime: updatedEvent.endTime,
+			category: updatedEvent.category,
+			color: updatedEvent.color,
+			notes: updatedEvent.notes,
+			completed: updatedEvent.completed
 		});
 
-		isEditModalOpen = false;
-		editingEventId = null;
 		toastStore.show({
 			title: 'Bloque actualizado',
 			message: 'Los cambios se han guardado con éxito.',
 			type: 'success'
 		});
 		refreshData();
-	}
-
-	async function handleDeleteFromEditModal() {
-		if (!editingEventId) return;
-		const idToDelete = editingEventId;
-		isEditModalOpen = false;
-		editingEventId = null;
-		await deleteEvent(idToDelete);
 	}
 
 	// Apply Template Dropdown State
@@ -238,7 +198,8 @@
 
 		if (nextState) {
 			sendPlannerNotification('¡Bloque completado! 🎯', {
-				body: `Has finalizado "${event.title}". ¡Buen trabajo!`
+				body: `Has finalizado "${event.title}". ¡Buen trabajo!`,
+				type: 'success'
 			});
 		}
 	}
@@ -275,33 +236,20 @@
 	}
 
 	// Add custom event
-	async function handleCreateEvent() {
-		if (!newEventTitle.trim()) return;
+	async function handleCreateEvent(eventData: Omit<ScheduledEvent, 'id'>) {
 		const id = crypto.randomUUID ? crypto.randomUUID() : `event-${Date.now()}`;
 		const newEvt: ScheduledEvent = {
 			id,
-			date: targetDateForNewEvent,
-			startTime: newEventStartTime,
-			endTime: newEventEndTime,
-			title: newEventTitle.trim(),
-			category: newEventCategory,
-			completed: false,
-			color: newEventColor
+			...eventData
 		};
 
 		await db.scheduledEvents.add(newEvt);
-		isAddModalOpen = false;
-		newEventTitle = '';
 		toastStore.show({
 			title: 'Bloque programado',
+			message: `"${newEvt.title}" añadido con éxito.`,
 			type: 'success'
 		});
 		refreshData();
-	}
-
-	function openAddModal(dateStr: string) {
-		targetDateForNewEvent = dateStr;
-		isAddModalOpen = true;
 	}
 
 	// Demo and reset handlers
@@ -551,107 +499,13 @@
 					class="flex-1 flex flex-col gap-2 p-2.5 pt-3.5 overflow-y-auto"
 				>
 					{#each dayColumns[dayIndex] || [] as item (item.id)}
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-						<article
-							class="group relative flex flex-col gap-1 rounded-xl px-2.5 py-2 shadow-2xs transition-all duration-150 cursor-pointer {item.completed
-								? 'opacity-65 border-dashed'
-								: ''} {blockColorStyle === 'border'
-								? (item.completed
-									? 'border border-slate-200 dark:border-slate-800/90 bg-slate-100/70 dark:bg-slate-900/40'
-									: 'border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-800/90 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs')
-								: (item.completed
-									? 'border'
-									: 'border hover:shadow-xs hover:brightness-[1.02]')}"
-							style={getBlockStyle(item, blockColorStyle)}
-							onclick={() => openEditModal(item)}
-						>
-							<!-- Floating Top Action Tab (Smooth Hover) -->
-							<div
-								class="no-export absolute -top-3 right-2 z-20 flex items-center gap-0.5 rounded-lg border border-slate-200/90 dark:border-slate-700/90 bg-white/95 dark:bg-slate-800/95 px-1 py-0.5 shadow-md backdrop-blur-md transition-all duration-150 ease-out opacity-0 -translate-y-1 scale-95 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 group-hover:pointer-events-auto"
-							>
-								<!-- Check / Complete Button -->
-								<button
-									type="button"
-									onclick={(e) => { e.stopPropagation(); toggleCompleted(item); }}
-									class="flex h-5 w-5 items-center justify-center rounded-md transition-all duration-150 cursor-pointer {item.completed
-										? 'bg-emerald-500 text-white shadow-xs'
-										: 'text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-400'}"
-									title={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
-									aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
-								>
-									<Check class="h-3 w-3 stroke-[2.5]" />
-								</button>
-
-								<!-- Subtle Vertical Divider -->
-								<div class="h-3 w-px bg-slate-200 dark:bg-slate-700/80 my-auto"></div>
-
-								<!-- Edit Button -->
-								<button
-									type="button"
-									onclick={(e) => { e.stopPropagation(); openEditModal(item); }}
-									class="flex h-5 w-5 items-center justify-center rounded-md text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-400 transition-all duration-150 cursor-pointer"
-									title="Editar bloque"
-									aria-label="Editar bloque"
-								>
-									<Pencil class="h-3 w-3 stroke-[2]" />
-								</button>
-
-								<!-- Delete Button -->
-								<button
-									type="button"
-									onclick={(e) => { e.stopPropagation(); deleteEvent(item.id); }}
-									class="flex h-5 w-5 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-950/50 dark:hover:text-rose-400 transition-all duration-150 cursor-pointer"
-									title="Eliminar bloque"
-									aria-label="Eliminar bloque"
-								>
-									<Trash2 class="h-3 w-3 stroke-[2]" />
-								</button>
-							</div>
-
-							<!-- Row 1: Time (clean typography) and Category -->
-							<div class="flex items-center justify-between gap-1 leading-none">
-								<span class="inline-flex items-center gap-1 font-sans text-[11px] font-medium tabular-nums text-slate-500 dark:text-slate-400 tracking-tight">
-									{#if item.completed}
-										<Check class="h-3 w-3 text-emerald-500 stroke-[2.5]" />
-									{/if}
-									<span>{item.startTime} – {item.endTime}</span>
-								</span>
-
-								<span
-									class="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider {blockColorStyle === 'full'
-										? 'bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200'
-										: 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-transparent'}"
-								>
-									{item.category}
-								</span>
-							</div>
-
-							<!-- Row 2: Block Title -->
-							<h5
-								class="text-xs font-semibold leading-snug tracking-tight {item.completed
-									? 'line-through text-slate-400 dark:text-slate-500'
-									: 'text-slate-800 dark:text-slate-100'}"
-							>
-								{item.title}
-							</h5>
-
-							<!-- Row 3: Subtasks or Notes (if present) -->
-							{#if (item.subtasks && item.subtasks.length > 0) || item.notes}
-								<div class="flex items-center justify-between gap-2 pt-0.5 text-[10px] text-slate-400 dark:text-slate-500">
-									{#if item.notes}
-										<span class="truncate italic max-w-[130px]" title={item.notes}>
-											{item.notes}
-										</span>
-									{/if}
-									{#if item.subtasks && item.subtasks.length > 0}
-										<span class="ml-auto font-sans tabular-nums text-[9.5px]">
-											✓ {item.subtasks.filter((s) => s.completed).length}/{item.subtasks.length}
-										</span>
-									{/if}
-								</div>
-							{/if}
-						</article>
+						<EventCard
+							event={item}
+							{blockColorStyle}
+							onEdit={openEditModal}
+							onToggleComplete={toggleCompleted}
+							onDelete={deleteEvent}
+						/>
 					{/each}
 
 					{#if (dayColumns[dayIndex] || []).length === 0}
@@ -684,235 +538,20 @@
 	</div>
 </div>
 
-<!-- Quick Add Block Modal -->
-{#if isAddModalOpen}
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
-		role="dialog"
-	>
-		<div
-			class="w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-slate-900 dark:text-slate-100 shadow-2xl space-y-4"
-		>
-			<h4 class="font-bold text-base">Nuevo Bloque de Tiempo</h4>
+<!-- Modals -->
+<AddEventModal
+	bind:isOpen={isAddModalOpen}
+	targetDate={targetDateForNewEvent}
+	onSave={handleCreateEvent}
+/>
 
-			<div class="space-y-3 text-xs">
-				<div>
-					<label for="event-title-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Título del Bloque</label>
-					<input
-						id="event-title-input"
-						type="text"
-						bind:value={newEventTitle}
-						placeholder="Ej: Deep Work, Gimnasio, Estudio..."
-						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-					/>
-				</div>
-
-				<div class="grid grid-cols-2 gap-2">
-					<div>
-						<label for="event-start-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Hora Inicio</label>
-						<input
-							id="event-start-time"
-							type="time"
-							bind:value={newEventStartTime}
-							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-						/>
-					</div>
-					<div>
-						<label for="event-end-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Hora Fin</label>
-						<input
-							id="event-end-time"
-							type="time"
-							bind:value={newEventEndTime}
-							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-						/>
-					</div>
-				</div>
-
-				<div>
-					<label for="event-category-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
-					<select
-						id="event-category-select"
-						bind:value={newEventCategory}
-						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-					>
-						<option value="work">Trabajo (Work)</option>
-						<option value="study">Estudio (Study)</option>
-						<option value="sport">Deporte (Sport)</option>
-						<option value="social">Social</option>
-						<option value="hobby">Hobby / Creativo</option>
-						<option value="rest">Descanso (Rest)</option>
-					</select>
-				</div>
-
-				<ColorPicker bind:selectedColor={newEventColor} label="Color del Bloque" />
-			</div>
-
-			<div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-				<button
-					type="button"
-					onclick={() => (isAddModalOpen = false)}
-					class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
-				>
-					Cancelar
-				</button>
-				<button
-					type="button"
-					onclick={handleCreateEvent}
-					class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white transition-all cursor-pointer shadow-md"
-				>
-					Guardar Bloque
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
-
-<!-- Edit Existing Block Modal -->
-{#if isEditModalOpen}
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
-		role="dialog"
-		aria-modal="true"
-	>
-		<div
-			class="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-slate-900 dark:text-slate-100 shadow-2xl space-y-4 transition-colors"
-		>
-			<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-				<div class="flex items-center gap-2">
-					<div class="rounded-lg bg-indigo-50 dark:bg-indigo-600/20 p-1.5 text-indigo-600 dark:text-indigo-400">
-						<Pencil class="h-4 w-4" />
-					</div>
-					<h4 class="font-bold text-base">Editar Bloque de Tiempo</h4>
-				</div>
-				<button
-					type="button"
-					onclick={() => (isEditModalOpen = false)}
-					class="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 cursor-pointer"
-					aria-label="Cerrar modal"
-				>
-					<X class="h-4 w-4" />
-				</button>
-			</div>
-
-			<div class="space-y-3.5 text-xs">
-				<div>
-					<label for="edit-title-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Título del Bloque</label>
-					<input
-						id="edit-title-input"
-						type="text"
-						bind:value={editEventTitle}
-						placeholder="Ej: Deep Work, Gimnasio, Estudio..."
-						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-					/>
-				</div>
-
-				<!-- Day Selector -->
-				<div>
-					<label for="edit-date-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Día Asignado</label>
-					<select
-						id="edit-date-select"
-						bind:value={editEventDate}
-						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-					>
-						{#each weekDays as d}
-							<option value={d.dateStr}>{d.dayName} ({d.dayNumber}) - {d.dateStr}</option>
-						{/each}
-					</select>
-				</div>
-
-				<div class="grid grid-cols-2 gap-2">
-					<div>
-						<label for="edit-start-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Hora Inicio</label>
-						<input
-							id="edit-start-time"
-							type="time"
-							bind:value={editEventStartTime}
-							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-						/>
-					</div>
-					<div>
-						<label for="edit-end-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Hora Fin</label>
-						<input
-							id="edit-end-time"
-							type="time"
-							bind:value={editEventEndTime}
-							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-						/>
-					</div>
-				</div>
-
-				<div>
-					<label for="edit-category-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
-					<select
-						id="edit-category-select"
-						bind:value={editEventCategory}
-						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-					>
-						<option value="work">Trabajo (Work)</option>
-						<option value="study">Estudio (Study)</option>
-						<option value="sport">Deporte (Sport)</option>
-						<option value="social">Social</option>
-						<option value="hobby">Hobby / Creativo</option>
-						<option value="rest">Descanso (Rest)</option>
-					</select>
-				</div>
-
-				<ColorPicker bind:selectedColor={editEventColor} label="Color del Bloque" />
-
-				<!-- Additional Notes -->
-				<div>
-					<label for="edit-notes-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Notas / Recordatorio (Opcional)</label>
-					<input
-						id="edit-notes-input"
-						type="text"
-						bind:value={editEventNotes}
-						placeholder="Ej: Revisar documentación antes de empezar..."
-						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-					/>
-				</div>
-
-				<!-- Completed Status -->
-				<label class="flex items-center gap-2 cursor-pointer pt-1">
-					<input
-						type="checkbox"
-						bind:checked={editEventCompleted}
-						class="rounded accent-indigo-600 h-4 w-4 cursor-pointer"
-					/>
-					<span class="text-xs text-slate-700 dark:text-slate-300">Marcar este bloque como completado</span>
-				</label>
-			</div>
-
-			<!-- Action Buttons Footer -->
-			<div class="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800">
-				<button
-					type="button"
-					onclick={handleDeleteFromEditModal}
-					class="flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors cursor-pointer"
-				>
-					<Trash2 class="h-3.5 w-3.5" />
-					<span>Eliminar</span>
-				</button>
-
-				<div class="flex items-center gap-2">
-					<button
-						type="button"
-						onclick={() => (isEditModalOpen = false)}
-						class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
-					>
-						Cancelar
-					</button>
-					<button
-						type="button"
-						onclick={handleUpdateEvent}
-						class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white transition-all cursor-pointer shadow-md"
-					>
-						Guardar Cambios
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-{/if}
+<EditEventModal
+	bind:isOpen={isEditModalOpen}
+	event={selectedEventForEdit}
+	{weekDays}
+	onSave={handleUpdateEvent}
+	onDelete={deleteEvent}
+/>
 
 <!-- Graphic Export Modal -->
 <ExportModal

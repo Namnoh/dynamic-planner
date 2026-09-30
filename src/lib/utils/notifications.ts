@@ -59,10 +59,13 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
  */
 export async function sendPlannerNotification(
 	title: string,
-	options?: { body?: string; icon?: string; tag?: string }
+	options?: {
+		body?: string;
+		icon?: string;
+		tag?: string;
+		type?: 'info' | 'success' | 'warning' | 'error';
+	}
 ): Promise<void> {
-	let nativeSuccess = false;
-
 	if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
 		try {
 			new Notification(title, {
@@ -71,19 +74,16 @@ export async function sendPlannerNotification(
 				tag: options?.tag,
 				badge: '/favicon.svg'
 			});
-			nativeSuccess = true;
 		} catch (err) {
 			console.warn('Error al disparar notificación nativa:', err);
 		}
 	}
 
-	// Always trigger in-app visual toast if native notification wasn't displayed
-	if (!nativeSuccess) {
-		toastStore.show({
-			title,
-			message: options?.body,
-			type: 'info',
-			durationMs: 5000
-		});
-	}
+	// Always trigger in-app visual toast for immediate user feedback
+	toastStore.show({
+		title,
+		message: options?.body,
+		type: options?.type || 'success',
+		durationMs: 4000
+	});
 }

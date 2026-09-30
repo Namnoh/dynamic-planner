@@ -18,13 +18,22 @@
 >
 	{#each toasts as toast (toast.id)}
 		<div
-			class="pointer-events-auto flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 p-3.5 shadow-lg dark:shadow-xl backdrop-blur-md transition-all animate-in slide-in-from-bottom-3 duration-200"
+			class="pointer-events-auto flex items-start gap-3 rounded-xl border bg-white/95 dark:bg-slate-900/95 p-3.5 shadow-lg dark:shadow-xl backdrop-blur-md transition-all animate-in slide-in-from-bottom-3 duration-200 {toast.type ===
+			'success'
+				? 'border-emerald-500/40 dark:border-emerald-500/40 shadow-emerald-500/5'
+				: toast.type === 'error'
+					? 'border-rose-500/40 dark:border-rose-500/40'
+					: toast.type === 'warning'
+						? 'border-amber-500/40 dark:border-amber-500/40'
+						: 'border-slate-200 dark:border-slate-700/80'}"
 		>
 			<div class="mt-0.5 shrink-0">
 				{#if toast.type === 'success'}
-					<CheckCircle2 class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+					<CheckCircle2 class="h-4 w-4 text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
 				{:else if toast.type === 'error'}
 					<AlertCircle class="h-4 w-4 text-rose-600 dark:text-rose-400" />
+				{:else if toast.type === 'warning'}
+					<AlertCircle class="h-4 w-4 text-amber-600 dark:text-amber-400" />
 				{:else}
 					<Info class="h-4 w-4 text-sky-600 dark:text-sky-400" />
 				{/if}

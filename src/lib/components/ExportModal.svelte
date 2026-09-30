@@ -2,7 +2,8 @@
 	import { exportElementAsImage } from '$lib/utils/exportImage';
 	import type { ExportImageOptions } from '$lib/types';
 	import { toastStore } from '$lib/utils/notifications';
-	import { Download, X, Image as ImageIcon, Loader2 } from 'lucide-svelte';
+	import Modal from './Modal.svelte';
+	import { Download, Image as ImageIcon, Loader2 } from 'lucide-svelte';
 
 	let {
 		isOpen = $bindable(false),
@@ -61,35 +62,15 @@
 	}
 </script>
 
-{#if isOpen}
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150"
-		role="dialog"
-		aria-modal="true"
-	>
-		<div
-			class="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900 p-6 text-slate-900 dark:text-slate-100 shadow-2xl space-y-5 transition-colors"
-		>
-			<!-- Header -->
-			<div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-				<div class="flex items-center gap-2.5">
-					<div class="rounded-lg bg-indigo-50 dark:bg-indigo-600/20 p-2 text-indigo-600 dark:text-indigo-400">
-						<ImageIcon class="h-5 w-5" />
-					</div>
-					<div>
-						<h3 class="font-semibold text-lg">Exportar Horario</h3>
-						<p class="text-xs text-slate-500 dark:text-slate-400">Descarga una captura limpia de tu planificación</p>
-					</div>
-				</div>
-				<button
-					type="button"
-					onclick={() => (isOpen = false)}
-					class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
-					aria-label="Cerrar modal"
-				>
-					<X class="h-5 w-5" />
-				</button>
-			</div>
+<Modal
+	bind:isOpen
+	title="Exportar Horario"
+	description="Descarga una captura limpia de tu planificación"
+	icon={ImageIcon}
+	maxWidth="max-w-md"
+>
+	{#snippet children()}
+		<div class="space-y-5">
 
 			<!-- Format Selection -->
 			<fieldset class="space-y-2 border-0 p-0 m-0">
@@ -168,31 +149,31 @@
 				herramientas se ocultarán automáticamente durante la captura para una imagen perfecta.
 			</div>
 
-			<!-- Action buttons footer -->
-			<div class="flex items-center justify-end gap-3 pt-2">
-				<button
-					type="button"
-					onclick={() => (isOpen = false)}
-					disabled={isExporting}
-					class="px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
-				>
-					Cancelar
-				</button>
-				<button
-					type="button"
-					onclick={handleExport}
-					disabled={isExporting}
-					class="flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-indigo-600/30 transition-all disabled:opacity-50 cursor-pointer"
-				>
-					{#if isExporting}
-						<Loader2 class="h-4 w-4 animate-spin" />
-						<span>Generando...</span>
-					{:else}
-						<Download class="h-4 w-4" />
-						<span>Descargar {format.toUpperCase()}</span>
-					{/if}
-				</button>
-			</div>
 		</div>
-	</div>
-{/if}
+	{/snippet}
+
+	{#snippet footerSnippet()}
+		<button
+			type="button"
+			onclick={() => (isOpen = false)}
+			disabled={isExporting}
+			class="px-4 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
+		>
+			Cancelar
+		</button>
+		<button
+			type="button"
+			onclick={handleExport}
+			disabled={isExporting}
+			class="flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-indigo-600/30 transition-all disabled:opacity-50 cursor-pointer"
+		>
+			{#if isExporting}
+				<Loader2 class="h-4 w-4 animate-spin" />
+				<span>Generando...</span>
+			{:else}
+				<Download class="h-4 w-4" />
+				<span>Descargar {format.toUpperCase()}</span>
+			{/if}
+		</button>
+	{/snippet}
+</Modal>
