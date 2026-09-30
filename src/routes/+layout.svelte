@@ -109,7 +109,7 @@
 	<nav
 		class="sticky top-0 z-40 border-b border-slate-200 bg-white/80 dark:border-slate-800/80 dark:bg-slate-950/80 backdrop-blur-md py-3 transition-colors"
 	>
-		<div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+		<div class="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
 			<!-- Logo -->
 			<div class="flex items-center gap-3">
 				<div
@@ -187,7 +187,7 @@
 
 	<!-- Main Content Slot -->
 	<main class="flex-1 w-full">
-		<div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+		<div class="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
 			{@render children()}
 		</div>
 	</main>
