@@ -2,6 +2,7 @@
 	import { db } from '$lib/db';
 	import type { ActivityTemplate, DayTemplate, DayTemplateBlock } from '$lib/types';
 	import { toastStore } from '$lib/utils/notifications';
+	import ColorPicker from './ColorPicker.svelte';
 	import { Plus, Trash2, Clock, Layers, Tag } from 'lucide-svelte';
 
 	let { onTemplatesUpdated }: { onTemplatesUpdated?: () => void } = $props();
@@ -392,40 +393,23 @@
 					</div>
 				</div>
 
-				<div class="flex items-center justify-between">
-					<div class="flex items-center gap-2">
-						<span class="text-xs text-slate-700 dark:text-slate-300 font-medium">Color:</span>
-						<div class="flex items-center gap-1.5">
-							{#each ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#f43f5e', '#14b8a6'] as clr}
-								<button
-									type="button"
-									onclick={() => (actColor = clr)}
-									aria-label="Color {clr}"
-									class="h-5 w-5 rounded-full border-2 transition-transform cursor-pointer {actColor === clr
-										? 'border-indigo-600 dark:border-white scale-110'
-										: 'border-transparent opacity-70 hover:opacity-100'}"
-									style="background-color: {clr};"
-								></button>
-							{/each}
-						</div>
-					</div>
+				<ColorPicker bind:selectedColor={actColor} label="Color de la Actividad" />
 
-					<div class="flex gap-2">
-						<button
-							type="button"
-							onclick={() => (isCreatingActivity = false)}
-							class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-						>
-							Cancelar
-						</button>
-						<button
-							type="button"
-							onclick={handleSaveActivity}
-							class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white shadow-md cursor-pointer"
-						>
-							Guardar Bloque
-						</button>
-					</div>
+				<div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+					<button
+						type="button"
+						onclick={() => (isCreatingActivity = false)}
+						class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
+					>
+						Cancelar
+					</button>
+					<button
+						type="button"
+						onclick={handleSaveActivity}
+						class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white shadow-md cursor-pointer"
+					>
+						Guardar Bloque
+					</button>
 				</div>
 			</div>
 		{/if}

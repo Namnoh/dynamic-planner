@@ -13,6 +13,7 @@
 	import { settingsStore, type BlockColorStyle } from '$lib/stores/settings';
 	import type { ScheduledEvent, DayTemplate, ActivityTemplate } from '$lib/types';
 	import ExportModal from './ExportModal.svelte';
+	import ColorPicker from './ColorPicker.svelte';
 	import { toastStore, sendPlannerNotification } from '$lib/utils/notifications';
 	import {
 		ChevronLeft,
@@ -727,41 +728,23 @@
 					</div>
 				</div>
 
-				<div class="grid grid-cols-2 gap-2">
-					<div>
-						<label for="event-category-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
-						<select
-							id="event-category-select"
-							bind:value={newEventCategory}
-							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-						>
-							<option value="work">Trabajo (Work)</option>
-							<option value="study">Estudio (Study)</option>
-							<option value="sport">Deporte (Sport)</option>
-							<option value="social">Social</option>
-							<option value="hobby">Hobby / Creativo</option>
-							<option value="rest">Descanso (Rest)</option>
-						</select>
-					</div>
-
-					<div>
-						<span class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Color</span>
-						<div class="flex items-center gap-1.5 mt-1">
-							{#each ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#f43f5e', '#14b8a6'] as clr}
-								<button
-									type="button"
-									onclick={() => (newEventColor = clr)}
-									aria-label="Seleccionar color {clr}"
-									class="h-6 w-6 rounded-full border-2 transition-transform cursor-pointer {newEventColor ===
-									clr
-										? 'border-indigo-600 dark:border-white scale-110 shadow-xs'
-										: 'border-transparent opacity-80 hover:opacity-100'}"
-									style="background-color: {clr};"
-								></button>
-							{/each}
-						</div>
-					</div>
+				<div>
+					<label for="event-category-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
+					<select
+						id="event-category-select"
+						bind:value={newEventCategory}
+						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+					>
+						<option value="work">Trabajo (Work)</option>
+						<option value="study">Estudio (Study)</option>
+						<option value="sport">Deporte (Sport)</option>
+						<option value="social">Social</option>
+						<option value="hobby">Hobby / Creativo</option>
+						<option value="rest">Descanso (Rest)</option>
+					</select>
 				</div>
+
+				<ColorPicker bind:selectedColor={newEventColor} label="Color del Bloque" />
 			</div>
 
 			<div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
@@ -858,41 +841,23 @@
 					</div>
 				</div>
 
-				<div class="grid grid-cols-2 gap-2">
-					<div>
-						<label for="edit-category-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
-						<select
-							id="edit-category-select"
-							bind:value={editEventCategory}
-							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-						>
-							<option value="work">Trabajo (Work)</option>
-							<option value="study">Estudio (Study)</option>
-							<option value="sport">Deporte (Sport)</option>
-							<option value="social">Social</option>
-							<option value="hobby">Hobby / Creativo</option>
-							<option value="rest">Descanso (Rest)</option>
-						</select>
-					</div>
-
-					<div>
-						<span class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Color</span>
-						<div class="flex items-center gap-1.5 mt-1">
-							{#each ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#f43f5e', '#14b8a6'] as clr}
-								<button
-									type="button"
-									onclick={() => (editEventColor = clr)}
-									aria-label="Seleccionar color {clr}"
-									class="h-6 w-6 rounded-full border-2 transition-transform cursor-pointer {editEventColor ===
-									clr
-										? 'border-indigo-600 dark:border-white scale-110 shadow-xs'
-										: 'border-transparent opacity-80 hover:opacity-100'}"
-									style="background-color: {clr};"
-								></button>
-							{/each}
-						</div>
-					</div>
+				<div>
+					<label for="edit-category-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
+					<select
+						id="edit-category-select"
+						bind:value={editEventCategory}
+						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+					>
+						<option value="work">Trabajo (Work)</option>
+						<option value="study">Estudio (Study)</option>
+						<option value="sport">Deporte (Sport)</option>
+						<option value="social">Social</option>
+						<option value="hobby">Hobby / Creativo</option>
+						<option value="rest">Descanso (Rest)</option>
+					</select>
 				</div>
+
+				<ColorPicker bind:selectedColor={editEventColor} label="Color del Bloque" />
 
 				<!-- Additional Notes -->
 				<div>
