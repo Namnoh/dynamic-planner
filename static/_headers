@@ -1,0 +1,20 @@
+# Global security headers for all paths
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Service Worker: Never cache so users always get the latest PWA updates
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/workbox-*.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Web Manifest
+/manifest.webmanifest
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Immutable Vite/SvelteKit bundled assets with content hashes
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable

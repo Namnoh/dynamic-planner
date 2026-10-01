@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { seedDemoData } from '$lib/db';
 	import WeeklyPlanner from '$lib/components/WeeklyPlanner.svelte';
 	import TemplateManager from '$lib/components/TemplateManager.svelte';
 	import { Calendar, Layers } from 'lucide-svelte';
@@ -10,14 +9,16 @@
 	let plannerKey = $state(0);
 
 	onMount(async () => {
-		// Initialize demo data on first load if DB is empty
-		try {
-			await seedDemoData(false);
-		} catch (e) {
-			console.error('Error al inicializar datos:', e);
-		} finally {
-			isInitializing = false;
+		// Only seed demo data in local development mode (never in production)
+		if (import.meta.env.DEV) {
+			try {
+				const { seedDemoData } = await import('$lib/db/demoData');
+				await seedDemoData(false);
+			} catch (e) {
+				console.error('Error al inicializar datos de desarrollo:', e);
+			}
 		}
+		isInitializing = false;
 	});
 
 	function handleTemplatesUpdated() {

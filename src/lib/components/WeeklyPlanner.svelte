@@ -5,7 +5,6 @@
 		db,
 		getMondayOfCurrentWeek,
 		applyDayTemplateToDate,
-		seedDemoData,
 		clearAllData,
 		exportDatabaseToJson,
 		importDatabaseFromJson
@@ -254,11 +253,12 @@
 
 	// Demo and reset handlers
 	async function handleSeedDemo() {
+		const { seedDemoData } = await import('$lib/db/demoData');
 		await seedDemoData(true);
 		currentMonday = getMondayOfCurrentWeek();
 		toastStore.show({
 			title: 'Datos de Ejemplo Cargados',
-			message: 'Rutina de profesional remoto cargada con éxito.',
+			message: 'Rutina de desarrollo cargada localmente con éxito.',
 			type: 'success'
 		});
 		refreshData();
@@ -401,15 +401,17 @@
 				<span>Exportar Horario</span>
 			</button>
 
-			<button
-				type="button"
-				onclick={handleSeedDemo}
-				class="flex items-center gap-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 px-2.5 py-1.5 text-xs font-medium transition-all cursor-pointer"
-				title="Cargar rutina de ejemplo para profesional remoto"
-			>
-				<Sparkles class="h-3.5 w-3.5" />
-				<span class="hidden md:inline">Cargar Demo</span>
-			</button>
+			{#if import.meta.env.DEV}
+				<button
+					type="button"
+					onclick={handleSeedDemo}
+					class="flex items-center gap-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 px-2.5 py-1.5 text-xs font-medium transition-all cursor-pointer"
+					title="Cargar rutina de ejemplo (Solo disponible en desarrollo local)"
+				>
+					<Sparkles class="h-3.5 w-3.5" />
+					<span class="hidden md:inline">Cargar Demo</span>
+				</button>
+			{/if}
 
 			<button
 				type="button"
