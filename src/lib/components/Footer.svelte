@@ -1,6 +1,5 @@
 <script lang="ts">
 	import {
-		CalendarDays,
 		ShieldCheck,
 		Layers,
 		BookOpen,
@@ -32,9 +31,11 @@
 			<!-- Col 1: Brand & Identity -->
 			<div class="space-y-4">
 				<div class="flex items-center gap-2.5">
-					<div class="flex h-8 w-8 items-center justify-center rounded-xl bg-linear-to-tr from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30">
-						<CalendarDays class="h-4.5 w-4.5" />
-					</div>
+					<img
+						src="/dynamic-planner.svg"
+						alt="Dynamic Planner Logo"
+						class="h-8 w-8 rounded-xl shadow-md shadow-indigo-600/25 shrink-0"
+					/>
 					<span class="text-base font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
 						Dynamic Planner
 					</span>

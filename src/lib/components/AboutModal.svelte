@@ -76,13 +76,22 @@
 				<div class="space-y-5 animate-in fade-in duration-200">
 					<!-- Hero Box -->
 					<div class="rounded-2xl border border-indigo-200 dark:border-indigo-500/30 bg-gradient-to-br from-indigo-50/80 via-white to-slate-50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-900/60 p-5 space-y-3">
-						<div class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/60 px-2.5 py-0.5 text-indigo-700 dark:text-indigo-300 font-semibold text-xs">
-							<Flame class="h-3.5 w-3.5" />
-							<span>Productividad con Propósito</span>
+						<div class="flex items-center gap-3">
+							<img
+								src="/dynamic-planner.svg"
+								alt="Dynamic Planner Logo"
+								class="h-11 w-11 rounded-2xl shadow-md shadow-indigo-600/25 shrink-0"
+							/>
+							<div>
+								<div class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/60 px-2.5 py-0.5 text-indigo-700 dark:text-indigo-300 font-semibold text-[11px]">
+									<Flame class="h-3 w-3" />
+									<span>Productividad con Propósito</span>
+								</div>
+								<h4 class="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 leading-snug mt-1">
+									¿Qué es Dynamic Planner?
+								</h4>
+							</div>
 						</div>
-						<h4 class="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 leading-snug">
-							¿Qué es Dynamic Planner?
-						</h4>
 						<p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
 							<strong>Dynamic Planner</strong> es una aplicación web progresiva (PWA) de <strong>time-blocking adaptativo y modular</strong>, diseñada bajo la arquitectura <em>Local-First</em>. Combina la flexibilidad de armar rutinas reutilizables con un tablero interactivo semanal donde cada tarea tiene un espacio temporal delimitado, sin rastreadores ni servidores externos.
 						</p>

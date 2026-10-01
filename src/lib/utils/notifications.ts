@@ -70,9 +70,9 @@ export async function sendPlannerNotification(
 		try {
 			new Notification(title, {
 				body: options?.body,
-				icon: options?.icon || '/favicon.svg',
+				icon: options?.icon || '/dynamic-planner.svg',
 				tag: options?.tag,
-				badge: '/favicon.svg'
+				badge: '/dynamic-planner.svg'
 			});
 		} catch (err) {
 			console.warn('Error al disparar notificación nativa:', err);

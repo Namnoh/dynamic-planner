@@ -7,7 +7,7 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import { onMount } from 'svelte';
 	import { requestNotificationPermission, toastStore } from '$lib/utils/notifications';
-	import { Wifi, WifiOff, Bell, Sun, Moon, CalendarDays, Settings, BookOpen } from 'lucide-svelte';
+	import { Wifi, WifiOff, Bell, Sun, Moon, Settings, BookOpen } from 'lucide-svelte';
 
 	let { children } = $props();
 
@@ -107,7 +107,7 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<link rel="icon" href="/dynamic-planner.svg" />
 	<title>Dynamic Planner - Time-blocking Modular Offline</title>
 </svelte:head>
 
@@ -121,11 +121,11 @@
 		<div class="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
 			<!-- Logo -->
 			<div class="flex items-center gap-3">
-				<div
-					class="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-tr from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30"
-				>
-					<CalendarDays class="h-5 w-5" />
-				</div>
+				<img
+					src="/dynamic-planner.svg"
+					alt="Dynamic Planner Logo"
+					class="h-9 w-9 rounded-xl shadow-md shadow-indigo-600/25 shrink-0"
+				/>
 				<div>
 					<h1
 						class="text-base font-extrabold tracking-tight bg-linear-to-r from-slate-900 via-indigo-950 to-indigo-600 dark:from-white dark:via-slate-200 dark:to-indigo-300 bg-clip-text text-transparent"

@@ -32,7 +32,7 @@ export default defineConfig({
 				start_url: '/',
 				icons: [
 					{
-						src: '/favicon.svg',
+						src: '/dynamic-planner.svg',
 						sizes: 'any',
 						type: 'image/svg+xml',
 						purpose: 'any'
