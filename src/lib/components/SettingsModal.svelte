@@ -3,9 +3,34 @@
 	import { toastStore } from '$lib/utils/notifications';
 	import { exportDatabaseToJson, importDatabaseFromJson } from '$lib/db';
 	import Modal from './Modal.svelte';
-	import { Settings, Palette, CheckCircle2, ShieldCheck, FileDown, FileUp } from 'lucide-svelte';
+	import {
+		Settings,
+		Palette,
+		CheckCircle2,
+		ShieldCheck,
+		FileDown,
+		FileUp,
+		Sun,
+		Moon,
+		Bell,
+		BookOpen
+	} from 'lucide-svelte';
 
-	let { isOpen = $bindable(false) }: { isOpen: boolean } = $props();
+	let {
+		isOpen = $bindable(false),
+		isDarkMode = false,
+		onToggleTheme,
+		notificationPermission = 'default',
+		onRequestNotifications,
+		onOpenAbout
+	}: {
+		isOpen: boolean;
+		isDarkMode?: boolean;
+		onToggleTheme?: () => void;
+		notificationPermission?: NotificationPermission;
+		onRequestNotifications?: () => void;
+		onOpenAbout?: () => void;
+	} = $props();
 
 	let currentStyle = $state<BlockColorStyle>(settingsStore.current);
 
@@ -75,6 +100,68 @@
 >
 	{#snippet children()}
 		<div class="space-y-6">
+
+			<!-- Mobile Quick Actions: Theme, Notifications, Guide -->
+			<div class="sm:hidden space-y-2.5 pb-5 border-b border-slate-200 dark:border-slate-800">
+				<h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+					Accesos Rápidos
+				</h4>
+
+				<div class="grid grid-cols-1 gap-2">
+					<!-- Dark / Light Mode Toggle -->
+					<button
+						type="button"
+						onclick={onToggleTheme}
+						class="flex items-center justify-between w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 p-3 text-left transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+					>
+						<div class="flex items-center gap-2.5">
+							{#if isDarkMode}
+								<Sun class="h-4 w-4 text-amber-400" />
+								<span class="text-xs font-medium text-slate-800 dark:text-slate-200">Tema Claro / Oscuro</span>
+							{:else}
+								<Moon class="h-4 w-4 text-indigo-600" />
+								<span class="text-xs font-medium text-slate-800 dark:text-slate-200">Tema Claro / Oscuro</span>
+							{/if}
+						</div>
+						<span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+							{isDarkMode ? 'Modo Oscuro' : 'Modo Claro'}
+						</span>
+					</button>
+
+					<!-- Notifications -->
+					<button
+						type="button"
+						onclick={onRequestNotifications}
+						class="flex items-center justify-between w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 p-3 text-left transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+					>
+						<div class="flex items-center gap-2.5">
+							<Bell class="h-4 w-4 {notificationPermission === 'granted' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}" />
+							<span class="text-xs font-medium text-slate-800 dark:text-slate-200">Notificaciones</span>
+						</div>
+						<span class="text-[11px] font-semibold {notificationPermission === 'granted' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}">
+							{notificationPermission === 'granted' ? 'Activadas' : 'Activar avisos'}
+						</span>
+					</button>
+
+					<!-- About / Guide -->
+					<button
+						type="button"
+						onclick={() => {
+							isOpen = false;
+							onOpenAbout?.();
+						}}
+						class="flex items-center justify-between w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 p-3 text-left transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+					>
+						<div class="flex items-center gap-2.5">
+							<BookOpen class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+							<span class="text-xs font-medium text-slate-800 dark:text-slate-200">Guía y Documentación</span>
+						</div>
+						<span class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
+							Ver Guía →
+						</span>
+					</button>
+				</div>
+			</div>
 
 			<!-- Setting: Block Color Style -->
 			<div class="space-y-3.5">

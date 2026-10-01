@@ -155,21 +155,21 @@
 					{/if}
 				</div>
 
-				<!-- Notifications Button -->
+				<!-- Notifications Button (Desktop only) -->
 				<button
 					type="button"
 					onclick={handleRequestNotifications}
-					class="rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
+					class="hidden sm:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
 					title="Activar notificaciones de escritorio"
 				>
 					<Bell class="h-4 w-4 {notificationPermission === 'granted' ? 'text-indigo-600 dark:text-indigo-400' : ''}" />
 				</button>
 
-				<!-- Dark / Light Mode Toggle -->
+				<!-- Dark / Light Mode Toggle (Desktop only) -->
 				<button
 					type="button"
 					onclick={toggleTheme}
-					class="rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
+					class="hidden sm:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
 					title={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
 					aria-label={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
 				>
@@ -180,11 +180,11 @@
 					{/if}
 				</button>
 
-				<!-- About / Guide Button -->
+				<!-- About / Guide Button (Desktop only) -->
 				<button
 					type="button"
 					onclick={() => openAbout('overview')}
-					class="rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
+					class="hidden sm:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
 					title="Guía del proyecto y funcionalidades"
 					aria-label="Acerca de Dynamic Planner"
 				>
@@ -222,7 +222,14 @@
 	<ToastContainer />
 
 	<!-- Settings Modal -->
-	<SettingsModal bind:isOpen={isSettingsOpen} />
+	<SettingsModal
+		bind:isOpen={isSettingsOpen}
+		{isDarkMode}
+		onToggleTheme={toggleTheme}
+		{notificationPermission}
+		onRequestNotifications={handleRequestNotifications}
+		onOpenAbout={() => openAbout('overview')}
+	/>
 
 	<!-- About & Project Guide Modal -->
 	<AboutModal bind:isOpen={isAboutOpen} initialTab={initialAboutTab} />

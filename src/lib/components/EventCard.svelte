@@ -6,12 +6,14 @@
 	let {
 		event,
 		blockColorStyle = 'border',
+		isReadOnly = false,
 		onEdit,
 		onToggleComplete,
 		onDelete
 	}: {
 		event: ScheduledEvent;
 		blockColorStyle?: BlockColorStyle;
+		isReadOnly?: boolean;
 		onEdit: (item: ScheduledEvent) => void;
 		onToggleComplete: (item: ScheduledEvent) => void;
 		onDelete: (id: string) => void;
@@ -31,22 +33,27 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <article
-	class="group relative flex flex-col gap-1 rounded-xl px-2.5 py-2 shadow-2xs transition-all duration-150 cursor-pointer {event.completed
+	class="group relative flex flex-col gap-1 rounded-xl px-2.5 py-2 shadow-2xs transition-all duration-150 {isReadOnly
+		? 'cursor-default'
+		: 'cursor-pointer'} {event.completed
 		? 'opacity-65 border-dashed'
 		: ''} {blockColorStyle === 'border'
 		? (event.completed
 			? 'border border-slate-200 dark:border-slate-800/90 bg-slate-100/70 dark:bg-slate-900/40'
-			: 'border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-800/90 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs')
+			: `border border-slate-200/90 dark:border-slate-800/90 bg-white dark:bg-slate-800/90 ${isReadOnly ? '' : 'hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs'}`)
 		: (event.completed
 			? 'border'
-			: 'border hover:shadow-xs hover:brightness-[1.02]')}"
+			: `border ${isReadOnly ? '' : 'hover:shadow-xs hover:brightness-[1.02]'}`)}"
 	style={getBlockStyle(event, blockColorStyle)}
-	onclick={() => onEdit(event)}
+	onclick={() => {
+		if (!isReadOnly) onEdit(event);
+	}}
 >
-	<!-- Floating Top Action Tab (Smooth Hover) -->
-	<div
-		class="no-export absolute -top-3 right-2 z-20 flex items-center gap-0.5 rounded-lg border border-slate-200/90 dark:border-slate-700/90 bg-white/95 dark:bg-slate-800/95 px-1 py-0.5 shadow-md backdrop-blur-md transition-all duration-150 ease-out opacity-0 -translate-y-1 scale-95 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 group-hover:pointer-events-auto"
-	>
+	<!-- Floating Top Action Tab (Smooth Hover, only in edit mode) -->
+	{#if !isReadOnly}
+		<div
+			class="no-export absolute -top-3 right-2 z-20 flex items-center gap-0.5 rounded-lg border border-slate-200/90 dark:border-slate-700/90 bg-white/95 dark:bg-slate-800/95 px-1 py-0.5 shadow-md backdrop-blur-md transition-all duration-150 ease-out opacity-0 -translate-y-1 scale-95 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 group-hover:pointer-events-auto"
+		>
 		<!-- Check / Complete Button -->
 		<button
 			type="button"
@@ -94,6 +101,7 @@
 			<Trash2 class="h-3 w-3 stroke-[2]" />
 		</button>
 	</div>
+	{/if}
 
 	<!-- Row 1: Time (clean typography) and Category -->
 	<div class="flex items-center justify-between gap-1 leading-none">

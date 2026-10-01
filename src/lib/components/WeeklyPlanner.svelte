@@ -10,11 +10,13 @@
 		importDatabaseFromJson
 	} from '$lib/db';
 	import { settingsStore, type BlockColorStyle } from '$lib/stores/settings';
+	import { readOnlyStore } from '$lib/stores/readOnly';
 	import type { ScheduledEvent, DayTemplate, ActivityTemplate } from '$lib/types';
 	import ExportModal from './ExportModal.svelte';
 	import EventCard from './EventCard.svelte';
 	import AddEventModal from './AddEventModal.svelte';
 	import EditEventModal from './EditEventModal.svelte';
+	import ReadOnlyFloatingPill from './ReadOnlyFloatingPill.svelte';
 	import { toastStore, sendPlannerNotification } from '$lib/utils/notifications';
 	import {
 		ChevronLeft,
@@ -37,10 +39,18 @@
 	let isExportModalOpen = $state(false);
 	let boardElement = $state<HTMLElement | null>(null);
 	let blockColorStyle = $state<BlockColorStyle>(settingsStore.current);
+	let isReadOnly = $state(readOnlyStore.current);
 
 	$effect(() => {
 		const unsubscribe = settingsStore.subscribe((val) => {
 			blockColorStyle = val;
+		});
+		return unsubscribe;
+	});
+
+	$effect(() => {
+		const unsubscribe = readOnlyStore.subscribe((val) => {
+			isReadOnly = val;
 		});
 		return unsubscribe;
 	});
@@ -382,8 +392,8 @@
 			<button
 				type="button"
 				onclick={handleApplyTemplate}
-				disabled={!selectedTemplateId}
-				class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-40 cursor-pointer shadow-xs"
+				disabled={!selectedTemplateId || isReadOnly}
+				class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
 			>
 				Aplicar
 			</button>
@@ -416,7 +426,8 @@
 			<button
 				type="button"
 				onclick={handleClearAll}
-				class="rounded-xl p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-500/20 dark:hover:text-rose-300 border border-slate-200 dark:border-slate-700/60 transition-colors cursor-pointer"
+				disabled={isReadOnly}
+				class="rounded-xl p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-500/20 dark:hover:text-rose-300 border border-slate-200 dark:border-slate-700/60 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
 				title="Limpiar todo (Lienzo en blanco)"
 			>
 				<Trash2 class="h-3.5 w-3.5" />
@@ -475,14 +486,16 @@
 						</div>
 					</div>
 
-					<button
-						type="button"
-						onclick={() => openAddModal(day.dateStr)}
-						class="no-export rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
-						title="Añadir bloque"
-					>
-						<Plus class="h-3.5 w-3.5" />
-					</button>
+					{#if !isReadOnly}
+						<button
+							type="button"
+							onclick={() => openAddModal(day.dateStr)}
+							class="no-export rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+							title="Añadir bloque"
+						>
+							<Plus class="h-3.5 w-3.5" />
+						</button>
+					{/if}
 				</div>
 
 				<!-- DnD Zone Column -->
@@ -490,6 +503,7 @@
 					use:dndzone={{
 						items: dayColumns[dayIndex] || [],
 						flipDurationMs: 200,
+						dragDisabled: isReadOnly,
 						dropTargetStyle: {
 							outline: '2px dashed rgba(99, 102, 241, 0.4)',
 							borderRadius: '0.75rem',
@@ -504,6 +518,7 @@
 						<EventCard
 							event={item}
 							{blockColorStyle}
+							{isReadOnly}
 							onEdit={openEditModal}
 							onToggleComplete={toggleCompleted}
 							onDelete={deleteEvent}
@@ -515,26 +530,30 @@
 							class="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-slate-300 dark:border-slate-800/80 rounded-xl text-slate-400 dark:text-slate-500 text-xs gap-1.5"
 						>
 							<span>Sin bloques</span>
-							<button
-								type="button"
-								onclick={() => openAddModal(day.dateStr)}
-								class="no-export text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-							>
-								+ Programar
-							</button>
+							{#if !isReadOnly}
+								<button
+									type="button"
+									onclick={() => openAddModal(day.dateStr)}
+									class="no-export text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+								>
+									+ Programar
+								</button>
+							{/if}
 						</div>
 					{/if}
 				</div>
 
 				<!-- Quick Add Footer -->
-				<button
-					type="button"
-					onclick={() => openAddModal(day.dateStr)}
-					class="no-export m-2 flex items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800/80 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200 transition-all cursor-pointer"
-				>
-					<Plus class="h-3 w-3" />
-					<span>Agregar</span>
-				</button>
+				{#if !isReadOnly}
+					<button
+						type="button"
+						onclick={() => openAddModal(day.dateStr)}
+						class="no-export m-2 flex items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800/80 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200 transition-all cursor-pointer"
+					>
+						<Plus class="h-3 w-3" />
+						<span>Agregar</span>
+					</button>
+				{/if}
 			</section>
 		{/each}
 	</div>
@@ -561,3 +580,7 @@
 	targetElement={boardElement}
 	defaultFilename={`dynamic-planner-${weekRangeLabel.replace(/[\s—]/g, '_')}`}
 />
+
+<!-- Floating Pill for Read-Only / Lock Mode -->
+<ReadOnlyFloatingPill />
+
