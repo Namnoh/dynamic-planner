@@ -55,7 +55,6 @@
 
 			if (currentCount === 0) {
 				document.body.classList.add('overflow-hidden');
-				document.documentElement.classList.add('overflow-hidden');
 			}
 
 			return () => {
@@ -63,7 +62,6 @@
 				if (activeCount === 0) {
 					delete document.body.dataset.activeModals;
 					document.body.classList.remove('overflow-hidden');
-					document.documentElement.classList.remove('overflow-hidden');
 				} else {
 					document.body.dataset.activeModals = String(activeCount);
 				}
@@ -76,7 +74,7 @@
 
 {#if isOpen}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150 overscroll-contain"
+		class="fixed -inset-4 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-8 overscroll-contain"
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
@@ -91,7 +89,7 @@
 		}}
 	>
 		<div
-			class="w-full {maxWidth} rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 text-slate-900 dark:text-slate-100 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto overscroll-contain transition-colors"
+			class="w-full {maxWidth} rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 text-slate-900 dark:text-slate-100 shadow-2xl space-y-4 max-h-[85vh] sm:max-h-[90vh] overflow-y-auto overscroll-contain transition-colors"
 		>
 			<!-- Header -->
 			{#if headerSnippet}

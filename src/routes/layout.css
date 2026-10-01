@@ -11,9 +11,6 @@
 		color-scheme: dark;
 		--card-bg-base: #1e293b;
 	}
-	html {
-		scrollbar-gutter: stable;
-	}
 	body {
 		@apply transition-colors duration-150;
 	}
