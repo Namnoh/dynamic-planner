@@ -90,6 +90,8 @@ pnpm preview
 
 ---
 
-## 📄 License
+## 📄 License & Author
 
-MIT
+Developed by **Fernando Muñoz** ([ferm.programmer@gmail.com](mailto:ferm.programmer@gmail.com)).
+
+Licensed under the [GNU General Public License v3.0](LICENSE).

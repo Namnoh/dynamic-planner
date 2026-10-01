@@ -8,17 +8,32 @@
 	let isInitializing = $state(true);
 	let plannerKey = $state(0);
 
-	onMount(async () => {
+	onMount(() => {
+		const handleSwitchTab = (e: Event) => {
+			const customEvent = e as CustomEvent<'planner' | 'templates'>;
+			if (customEvent.detail) {
+				activeTab = customEvent.detail;
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+			}
+		};
+
+		window.addEventListener('switch-tab', handleSwitchTab);
+
 		// Only seed demo data in local development mode (never in production)
 		if (import.meta.env.DEV) {
-			try {
-				const { seedDemoData } = await import('$lib/db/demoData');
-				await seedDemoData(false);
-			} catch (e) {
-				console.error('Error al inicializar datos de desarrollo:', e);
-			}
+			import('$lib/db/demoData')
+				.then(({ seedDemoData }) => seedDemoData(false))
+				.catch((e) => console.error('Error al inicializar datos de desarrollo:', e))
+				.finally(() => {
+					isInitializing = false;
+				});
+		} else {
+			isInitializing = false;
 		}
-		isInitializing = false;
+
+		return () => {
+			window.removeEventListener('switch-tab', handleSwitchTab);
+		};
 	});
 
 	function handleTemplatesUpdated() {
