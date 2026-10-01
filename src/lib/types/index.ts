@@ -12,7 +12,7 @@ export type ActivityCategory =
 export interface ActivityTemplate {
 	id: string;
 	title: string;
-	category: ActivityCategory;
+	category?: ActivityCategory;
 	defaultDuration: number; // In minutes
 	color: string; // HEX (e.g. #3b82f6) or Tailwind color token
 	notes?: string;
@@ -45,7 +45,7 @@ export interface ScheduledEvent {
 	startTime: string; // "HH:mm"
 	endTime: string; // "HH:mm"
 	title: string;
-	category: ActivityCategory;
+	category?: ActivityCategory;
 	completed: boolean;
 	sourceTemplateId?: string;
 	notes?: string;

@@ -22,10 +22,11 @@
 	let date = $state('');
 	let startTime = $state('09:00');
 	let endTime = $state('10:00');
-	let category = $state('work');
+	let category = $state('');
 	let color = $state('#3b82f6');
 	let notes = $state('');
 	let completed = $state(false);
+	let errors = $state<{ title?: string; date?: string; startTime?: string; endTime?: string }>({});
 
 	// Synchronize form when active event changes
 	$effect(() => {
@@ -34,15 +35,43 @@
 			date = event.date;
 			startTime = event.startTime;
 			endTime = event.endTime;
-			category = event.category;
+			category = event.category || '';
 			color = event.color || '#3b82f6';
 			notes = event.notes || '';
 			completed = event.completed;
+			errors = {};
 		}
 	});
 
 	function handleSubmit() {
-		if (!event || !title.trim()) return;
+		if (!event) return;
+		errors = {};
+		let hasError = false;
+
+		if (!title.trim()) {
+			errors.title = 'Este campo es requerido';
+			hasError = true;
+		}
+
+		if (!date) {
+			errors.date = 'Este campo es requerido';
+			hasError = true;
+		}
+
+		if (!startTime) {
+			errors.startTime = 'Este campo es requerido';
+			hasError = true;
+		}
+
+		if (!endTime) {
+			errors.endTime = 'Este campo es requerido';
+			hasError = true;
+		} else if (startTime && startTime > endTime) {
+			errors.endTime = 'La hora de fin debe ser posterior a la hora de inicio';
+			hasError = true;
+		}
+
+		if (hasError) return;
 
 		onSave({
 			...event,
@@ -50,7 +79,7 @@
 			date,
 			startTime,
 			endTime,
-			category,
+			category: category || undefined,
 			color,
 			notes: notes.trim() || undefined,
 			completed
@@ -77,68 +106,103 @@
 		<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-3.5 text-xs">
 			<div>
 				<label for="edit-event-title-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-					Título del Bloque
+					Título del Bloque <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
 				</label>
 				<input
 					id="edit-event-title-input"
 					type="text"
 					bind:value={title}
+					oninput={() => { if (errors.title) errors.title = ''; }}
 					placeholder="Ej: Deep Work, Gimnasio, Estudio..."
-					required
-					class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+					class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.title
+						? 'border-rose-500 focus:border-rose-500'
+						: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 				/>
+				{#if errors.title}
+					<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+						{errors.title}
+					</p>
+				{/if}
 			</div>
 
 			<!-- Day Selector -->
 			<div>
 				<label for="edit-event-date-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-					Día Asignado
+					Día Asignado <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
 				</label>
 				<select
 					id="edit-event-date-select"
 					bind:value={date}
-					class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+					onchange={() => { if (errors.date) errors.date = ''; }}
+					class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.date
+						? 'border-rose-500 focus:border-rose-500'
+						: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 				>
 					{#each weekDays as d}
 						<option value={d.dateStr}>{d.dayName} ({d.dayNumber}) - {d.dateStr}</option>
 					{/each}
 				</select>
+				{#if errors.date}
+					<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+						{errors.date}
+					</p>
+				{/if}
 			</div>
 
 			<div class="grid grid-cols-2 gap-2">
 				<div>
 					<label for="edit-event-start-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-						Hora Inicio
+						Hora Inicio <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
 					</label>
 					<input
 						id="edit-event-start-time"
 						type="time"
 						bind:value={startTime}
-						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+						oninput={() => { if (errors.startTime) errors.startTime = ''; }}
+						class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.startTime
+							? 'border-rose-500 focus:border-rose-500'
+							: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 					/>
+					{#if errors.startTime}
+						<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+							{errors.startTime}
+						</p>
+					{/if}
 				</div>
 				<div>
 					<label for="edit-event-end-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-						Hora Fin
+						Hora Fin <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
 					</label>
 					<input
 						id="edit-event-end-time"
 						type="time"
 						bind:value={endTime}
-						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+						oninput={() => { if (errors.endTime) errors.endTime = ''; }}
+						class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.endTime
+							? 'border-rose-500 focus:border-rose-500'
+							: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 					/>
+					{#if errors.endTime}
+						<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+							{errors.endTime}
+						</p>
+					{/if}
 				</div>
 			</div>
 
 			<div>
-				<label for="edit-event-category-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-					Categoría
-				</label>
+				<div class="flex items-center justify-between mb-1">
+					<label for="edit-event-category-select" class="block font-medium text-slate-700 dark:text-slate-300">
+						Categoría
+					</label>
+					<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+				</div>
 				<select
 					id="edit-event-category-select"
 					bind:value={category}
 					class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
 				>
+					<option value="">Sin categoría (Opcional)</option>
 					<option value="work">Trabajo (Work)</option>
 					<option value="study">Estudio (Study)</option>
 					<option value="sport">Deporte (Sport)</option>
@@ -152,9 +216,12 @@
 
 			<!-- Additional Notes -->
 			<div>
-				<label for="edit-event-notes-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-					Notas / Recordatorio (Opcional)
-				</label>
+				<div class="flex items-center justify-between mb-1">
+					<label for="edit-event-notes-input" class="block font-medium text-slate-700 dark:text-slate-300">
+						Notas / Recordatorio
+					</label>
+					<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+				</div>
 				<input
 					id="edit-event-notes-input"
 					type="text"

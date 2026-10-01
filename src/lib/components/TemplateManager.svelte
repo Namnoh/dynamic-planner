@@ -3,7 +3,7 @@
 	import type { ActivityTemplate, DayTemplate, DayTemplateBlock } from '$lib/types';
 	import { toastStore } from '$lib/utils/notifications';
 	import ColorPicker from './ColorPicker.svelte';
-	import { Plus, Trash2, Clock, Layers, Tag } from 'lucide-svelte';
+	import { Plus, Trash2, Clock, Layers, Tag, Pencil, ArrowUpDown } from 'lucide-svelte';
 
 	let { onTemplatesUpdated }: { onTemplatesUpdated?: () => void } = $props();
 
@@ -13,22 +13,27 @@
 	// New Activity Form State
 	let isCreatingActivity = $state(false);
 	let actTitle = $state('');
-	let actCategory = $state('work');
+	let actCategory = $state('');
 	let actDuration = $state(60);
 	let actColor = $state('#3b82f6');
 	let actNotes = $state('');
+	let activityErrors = $state<{ title?: string; duration?: string }>({});
 
-	// New Day Template Form State
+	// Day Template Form State (Creation & Editing)
 	let isCreatingDayTemplate = $state(false);
+	let editingDayTemplateId = $state<string | null>(null);
 	let tplName = $state('');
 	let tplDescription = $state('');
 	let tplBlocks = $state<DayTemplateBlock[]>([]);
+	let dayTemplateErrors = $state<{ name?: string }>({});
 
-	// Selected block to add into the new day template
+	// Block Form State (for inserting or updating a block within the template)
+	let editingBlockIndex = $state<number | null>(null);
 	let selectedActivityIdForBlock = $state('');
 	let blockStartTime = $state('09:00');
 	let blockDuration = $state(60);
 	let blockCustomTitle = $state('');
+	let blockErrors = $state<{ activityId?: string; startTime?: string; duration?: string }>({});
 
 	async function loadData() {
 		activities = await db.activityTemplates.toArray();
@@ -44,12 +49,26 @@
 	});
 
 	async function handleSaveActivity() {
-		if (!actTitle.trim()) return;
+		activityErrors = {};
+		let hasError = false;
+
+		if (!actTitle.trim()) {
+			activityErrors.title = 'Este campo es requerido';
+			hasError = true;
+		}
+
+		if (!actDuration || Number(actDuration) < 1) {
+			activityErrors.duration = 'Este campo es requerido';
+			hasError = true;
+		}
+
+		if (hasError) return;
+
 		const id = crypto.randomUUID ? crypto.randomUUID() : `act-${Date.now()}`;
 		const newAct: ActivityTemplate = {
 			id,
 			title: actTitle.trim(),
-			category: actCategory,
+			category: actCategory || undefined,
 			defaultDuration: Number(actDuration),
 			color: actColor,
 			notes: actNotes.trim() || undefined
@@ -62,7 +81,9 @@
 		});
 		isCreatingActivity = false;
 		actTitle = '';
+		actCategory = '';
 		actNotes = '';
+		activityErrors = {};
 		await loadData();
 		onTemplatesUpdated?.();
 	}
@@ -74,61 +95,204 @@
 		onTemplatesUpdated?.();
 	}
 
-	function handleAddBlockToTemplate() {
-		if (!selectedActivityIdForBlock) return;
-		tplBlocks.push({
+	function handleStartCreateDayTemplate() {
+		editingDayTemplateId = null;
+		tplName = '';
+		tplDescription = '';
+		tplBlocks = [];
+		editingBlockIndex = null;
+		blockCustomTitle = '';
+		dayTemplateErrors = {};
+		blockErrors = {};
+		isCreatingDayTemplate = true;
+	}
+
+	function handleStartEditDayTemplate(tpl: DayTemplate) {
+		editingDayTemplateId = tpl.id;
+		tplName = tpl.name;
+		tplDescription = tpl.description || '';
+		tplBlocks = tpl.blocks.map((b) => ({ ...b }));
+		editingBlockIndex = null;
+		blockCustomTitle = '';
+		dayTemplateErrors = {};
+		blockErrors = {};
+		isCreatingDayTemplate = true;
+
+		if (typeof window !== 'undefined') {
+			setTimeout(() => {
+				const builderElem = document.getElementById('day-template-builder');
+				if (builderElem) {
+					builderElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			}, 50);
+		}
+	}
+
+	function handleToggleDayTemplateBuilder() {
+		if (isCreatingDayTemplate) {
+			isCreatingDayTemplate = false;
+			editingDayTemplateId = null;
+			tplName = '';
+			tplDescription = '';
+			tplBlocks = [];
+			editingBlockIndex = null;
+			blockCustomTitle = '';
+			dayTemplateErrors = {};
+			blockErrors = {};
+		} else {
+			handleStartCreateDayTemplate();
+		}
+	}
+
+	function handleAddOrUpdateBlock() {
+		blockErrors = {};
+		let hasError = false;
+
+		if (!selectedActivityIdForBlock) {
+			blockErrors.activityId = 'Este campo es requerido';
+			hasError = true;
+		}
+
+		if (!blockStartTime) {
+			blockErrors.startTime = 'Este campo es requerido';
+			hasError = true;
+		}
+
+		if (!blockDuration || Number(blockDuration) < 1) {
+			blockErrors.duration = 'Este campo es requerido';
+			hasError = true;
+		}
+
+		if (hasError) return;
+
+		const blockData: DayTemplateBlock = {
 			activityId: selectedActivityIdForBlock,
 			startTime: blockStartTime,
 			duration: Number(blockDuration),
 			customTitle: blockCustomTitle.trim() || undefined
-		});
-		// Auto increment start time for convenience
-		const [h, m] = blockStartTime.split(':').map(Number);
-		const totalMin = h * 60 + m + Number(blockDuration);
-		const nextH = Math.floor(totalMin / 60) % 24;
-		const nextM = totalMin % 60;
-		blockStartTime = `${String(nextH).padStart(2, '0')}:${String(nextM).padStart(2, '0')}`;
+		};
+
+		if (editingBlockIndex !== null && editingBlockIndex >= 0 && editingBlockIndex < tplBlocks.length) {
+			tplBlocks[editingBlockIndex] = blockData;
+			editingBlockIndex = null;
+			toastStore.show({ title: 'Bloque actualizado en la secuencia', type: 'info' });
+		} else {
+			tplBlocks.push(blockData);
+			// Auto increment start time for convenience
+			const [h, m] = blockStartTime.split(':').map(Number);
+			const totalMin = h * 60 + m + Number(blockDuration);
+			const nextH = Math.floor(totalMin / 60) % 24;
+			const nextM = totalMin % 60;
+			blockStartTime = `${String(nextH).padStart(2, '0')}:${String(nextM).padStart(2, '0')}`;
+		}
+
 		blockCustomTitle = '';
+		blockErrors = {};
+	}
+
+	function handleStartEditBlock(index: number) {
+		const blk = tplBlocks[index];
+		if (!blk) return;
+		editingBlockIndex = index;
+		selectedActivityIdForBlock = blk.activityId;
+		blockStartTime = blk.startTime;
+		blockDuration = blk.duration;
+		blockCustomTitle = blk.customTitle || '';
+		blockErrors = {};
+	}
+
+	function handleCancelEditBlock() {
+		editingBlockIndex = null;
+		blockCustomTitle = '';
+		blockErrors = {};
 	}
 
 	function handleRemoveBlockFromTemplate(index: number) {
+		if (editingBlockIndex === index) {
+			editingBlockIndex = null;
+			blockCustomTitle = '';
+		} else if (editingBlockIndex !== null && editingBlockIndex > index) {
+			editingBlockIndex -= 1;
+		}
 		tplBlocks = tplBlocks.filter((_, i) => i !== index);
 	}
 
+	function handleSortBlocksByTime() {
+		tplBlocks = [...tplBlocks].sort((a, b) => a.startTime.localeCompare(b.startTime));
+		editingBlockIndex = null;
+	}
+
 	async function handleSaveDayTemplate() {
-		if (!tplName.trim()) return;
+		dayTemplateErrors = {};
+		let hasError = false;
+
+		if (!tplName.trim()) {
+			dayTemplateErrors.name = 'Este campo es requerido';
+			hasError = true;
+		}
 		if (tplBlocks.length === 0) {
 			toastStore.show({
 				title: 'Agrega al menos un bloque a la plantilla',
 				type: 'error'
 			});
-			return;
+			hasError = true;
 		}
 
-		const id = crypto.randomUUID ? crypto.randomUUID() : `tpl-${Date.now()}`;
-		const newTpl: DayTemplate = {
-			id,
-			name: tplName.trim(),
-			description: tplDescription.trim() || undefined,
-			blocks: [...tplBlocks]
-		};
+		if (hasError) return;
 
-		await db.dayTemplates.add(newTpl);
-		toastStore.show({
-			title: 'Plantilla de Día creada con éxito',
-			type: 'success'
-		});
+		if (editingDayTemplateId) {
+			const updatedTpl: DayTemplate = {
+				id: editingDayTemplateId,
+				name: tplName.trim(),
+				description: tplDescription.trim() || undefined,
+				blocks: [...tplBlocks]
+			};
+			await db.dayTemplates.put(updatedTpl);
+			toastStore.show({
+				title: 'Plantilla de Día actualizada con éxito',
+				type: 'success'
+			});
+		} else {
+			const id = crypto.randomUUID ? crypto.randomUUID() : `tpl-${Date.now()}`;
+			const newTpl: DayTemplate = {
+				id,
+				name: tplName.trim(),
+				description: tplDescription.trim() || undefined,
+				blocks: [...tplBlocks]
+			};
+			await db.dayTemplates.add(newTpl);
+			toastStore.show({
+				title: 'Plantilla de Día creada con éxito',
+				type: 'success'
+			});
+		}
 
 		isCreatingDayTemplate = false;
+		editingDayTemplateId = null;
 		tplName = '';
 		tplDescription = '';
 		tplBlocks = [];
+		editingBlockIndex = null;
+		blockCustomTitle = '';
+		dayTemplateErrors = {};
+		blockErrors = {};
 		await loadData();
 		onTemplatesUpdated?.();
 	}
 
 	async function handleDeleteDayTemplate(id: string) {
 		await db.dayTemplates.delete(id);
+		if (editingDayTemplateId === id) {
+			isCreatingDayTemplate = false;
+			editingDayTemplateId = null;
+			tplName = '';
+			tplDescription = '';
+			tplBlocks = [];
+			editingBlockIndex = null;
+			blockCustomTitle = '';
+			dayTemplateErrors = {};
+			blockErrors = {};
+		}
 		toastStore.show({ title: 'Plantilla eliminada', type: 'info' });
 		await loadData();
 		onTemplatesUpdated?.();
@@ -153,32 +317,68 @@
 
 			<button
 				type="button"
-				onclick={() => (isCreatingDayTemplate = !isCreatingDayTemplate)}
+				onclick={handleToggleDayTemplateBuilder}
 				class="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3.5 py-2 text-xs font-semibold text-white transition-all shadow-md cursor-pointer"
 			>
 				<Plus class="h-4 w-4" />
-				<span>{isCreatingDayTemplate ? 'Cerrar Creador' : 'Nueva Plantilla de Día'}</span>
+				<span>
+					{#if isCreatingDayTemplate}
+						{editingDayTemplateId ? 'Cancelar Edición' : 'Cerrar Creador'}
+					{:else}
+						Nueva Plantilla de Día
+					{/if}
+				</span>
 			</button>
 		</div>
 
 		<!-- Visual Day Template Builder -->
 		{#if isCreatingDayTemplate}
-			<div class="rounded-2xl border border-indigo-300 dark:border-indigo-500/40 bg-indigo-50/40 dark:bg-slate-900/90 p-5 space-y-5 animate-in fade-in duration-200">
-				<h4 class="text-sm font-bold text-indigo-700 dark:text-indigo-300">Constructor de Rutina Diaria</h4>
+			<div
+				id="day-template-builder"
+				class="rounded-2xl border border-indigo-300 dark:border-indigo-500/40 bg-indigo-50/40 dark:bg-slate-900/90 p-5 space-y-5 animate-in fade-in duration-200"
+			>
+				<div class="flex items-center justify-between">
+					<h4 class="text-sm font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
+						{#if editingDayTemplateId}
+							<Pencil class="h-4 w-4" />
+							<span>Editar Rutina Diaria</span>
+						{:else}
+							<Layers class="h-4 w-4" />
+							<span>Constructor de Rutina Diaria</span>
+						{/if}
+					</h4>
+					{#if editingDayTemplateId}
+						<span class="text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700/60 rounded-lg px-2.5 py-0.5">
+							Modo Edición
+						</span>
+					{/if}
+				</div>
 
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
 					<div>
-						<label for="tpl-name-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Nombre de la Plantilla</label>
+						<label for="tpl-name-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+							Nombre de la Plantilla <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
+						</label>
 						<input
 							id="tpl-name-input"
 							type="text"
 							bind:value={tplName}
+							oninput={() => { if (dayTemplateErrors.name) dayTemplateErrors.name = ''; }}
 							placeholder="Ej: Día Enfoque Remoto"
-							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+							class="w-full rounded-xl border bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {dayTemplateErrors.name
+								? 'border-rose-500 focus:border-rose-500'
+								: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 						/>
+						{#if dayTemplateErrors.name}
+							<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+								{dayTemplateErrors.name}
+							</p>
+						{/if}
 					</div>
 					<div>
-						<label for="tpl-desc-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Descripción (Opcional)</label>
+						<label for="tpl-desc-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+							Descripción <span class="text-slate-400 dark:text-slate-500 font-normal text-[10px] ml-1">(Opcional)</span>
+						</label>
 						<input
 							id="tpl-desc-input"
 							type="text"
@@ -189,76 +389,162 @@
 					</div>
 				</div>
 
-				<!-- Add Block to Template -->
+				<!-- Add/Edit Block in Template -->
 				<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-950/60 p-4 space-y-3">
-					<h5 class="text-xs font-semibold text-slate-700 dark:text-slate-300">Añadir Bloque de Tiempo a la Secuencia</h5>
-					<div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
-						<div>
-							<label for="block-act-select" class="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">Actividad Base</label>
+					<div class="flex items-center justify-between">
+						<h5 class="text-xs font-semibold text-slate-700 dark:text-slate-300">
+							{editingBlockIndex !== null ? 'Modificar Bloque en la Secuencia' : 'Añadir Bloque de Tiempo a la Secuencia'}
+						</h5>
+						{#if editingBlockIndex !== null}
+							<button
+								type="button"
+								onclick={handleCancelEditBlock}
+								class="text-[11px] text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
+							>
+								Cancelar modificación de bloque
+							</button>
+						{/if}
+					</div>
+
+					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 items-start">
+						<div class="lg:col-span-2">
+							<label for="block-act-select" class="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">
+								Actividad Base <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
+							</label>
 							<select
 								id="block-act-select"
 								bind:value={selectedActivityIdForBlock}
-								class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200"
+								onchange={() => {
+									if (blockErrors.activityId) blockErrors.activityId = '';
+									const found = activities.find((a) => a.id === selectedActivityIdForBlock);
+									if (found && editingBlockIndex === null) {
+										blockDuration = found.defaultDuration;
+									}
+								}}
+								class="w-full rounded-lg border bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden transition-colors {blockErrors.activityId
+									? 'border-rose-500 focus:border-rose-500'
+									: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 							>
 								{#each activities as act}
 									<option value={act.id}>{act.title}</option>
 								{/each}
 							</select>
+							{#if blockErrors.activityId}
+								<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+									{blockErrors.activityId}
+								</p>
+							{/if}
 						</div>
 						<div>
-							<label for="block-start-input" class="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">Hora Inicio</label>
+							<label for="block-start-input" class="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">
+								Hora Inicio <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
+							</label>
 							<input
 								id="block-start-input"
 								type="time"
 								bind:value={blockStartTime}
-								class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200"
+								oninput={() => { if (blockErrors.startTime) blockErrors.startTime = ''; }}
+								class="w-full rounded-lg border bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden transition-colors {blockErrors.startTime
+									? 'border-rose-500 focus:border-rose-500'
+									: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 							/>
+							{#if blockErrors.startTime}
+								<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+									{blockErrors.startTime}
+								</p>
+							{/if}
 						</div>
 						<div>
-							<label for="block-dur-input" class="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">Duración (minutos)</label>
+							<label for="block-dur-input" class="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">
+								Duración (min) <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
+							</label>
 							<input
 								id="block-dur-input"
 								type="number"
 								min="15"
 								step="15"
 								bind:value={blockDuration}
-								class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200"
+								oninput={() => { if (blockErrors.duration) blockErrors.duration = ''; }}
+								class="w-full rounded-lg border bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden transition-colors {blockErrors.duration
+									? 'border-rose-500 focus:border-rose-500'
+									: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 							/>
+							{#if blockErrors.duration}
+								<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+									{blockErrors.duration}
+								</p>
+							{/if}
 						</div>
-						<div class="flex items-end">
+						<div class="flex items-center pt-5 sm:pt-5.5">
 							<button
 								type="button"
-								onclick={handleAddBlockToTemplate}
-								class="w-full rounded-lg bg-indigo-600 hover:bg-indigo-500 py-1.5 text-xs font-medium text-white transition-all cursor-pointer shadow-xs"
+								onclick={handleAddOrUpdateBlock}
+								class="w-full rounded-lg {editingBlockIndex !== null ? 'bg-amber-600 hover:bg-amber-500' : 'bg-indigo-600 hover:bg-indigo-500'} py-1.5 text-xs font-medium text-white transition-all cursor-pointer shadow-xs"
 							>
-								+ Insertar Bloque
+								{editingBlockIndex !== null ? 'Guardar Bloque' : '+ Insertar Bloque'}
 							</button>
 						</div>
+					</div>
+
+					<div>
+						<label for="block-custom-title-input" class="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">
+							Título específico del bloque <span class="text-slate-400 dark:text-slate-500 font-normal text-[10px] ml-1">(Opcional, sobreescribe el nombre base)</span>
+						</label>
+						<input
+							id="block-custom-title-input"
+							type="text"
+							bind:value={blockCustomTitle}
+							placeholder="Ej: Sprint de backend prioritario, Clase de matemáticas..."
+							class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+						/>
 					</div>
 				</div>
 
 				<!-- Assembled Blocks List -->
 				{#if tplBlocks.length > 0}
 					<div class="space-y-2">
-						<span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Secuencia Ensamblada:</span>
+						<div class="flex items-center justify-between">
+							<span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Secuencia Ensamblada ({tplBlocks.length} bloques):</span>
+							<button
+								type="button"
+								onclick={handleSortBlocksByTime}
+								class="flex items-center gap-1 text-[11px] text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 cursor-pointer"
+								title="Ordenar bloques cronológicamente"
+							>
+								<ArrowUpDown class="h-3 w-3" />
+								<span>Ordenar por hora</span>
+							</button>
+						</div>
 						<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
 							{#each tplBlocks as blk, idx}
-								<div class="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 p-2.5 text-xs shadow-xs">
-									<div>
+								<div class="flex items-center justify-between rounded-xl border bg-white dark:bg-slate-800/80 p-2.5 text-xs shadow-xs transition-all {editingBlockIndex === idx
+									? 'border-amber-500 ring-2 ring-amber-500/30'
+									: 'border-slate-200 dark:border-slate-800'}">
+									<div class="min-w-0 pr-2">
 										<span class="font-sans tabular-nums font-semibold text-indigo-600 dark:text-indigo-400 tracking-tight">{blk.startTime}</span>
 										<span class="text-slate-500 dark:text-slate-400 text-[10px]">({blk.duration}m)</span>
-										<p class="font-medium text-slate-800 dark:text-slate-200 mt-0.5">
+										<p class="font-medium text-slate-800 dark:text-slate-200 mt-0.5 truncate">
 											{blk.customTitle || activities.find((a) => a.id === blk.activityId)?.title || 'Bloque'}
 										</p>
 									</div>
-									<button
-										type="button"
-										onclick={() => handleRemoveBlockFromTemplate(idx)}
-										class="p-1 text-slate-400 hover:text-rose-500 cursor-pointer"
-										title="Quitar bloque"
-									>
-										<Trash2 class="h-3.5 w-3.5" />
-									</button>
+									<div class="flex items-center gap-0.5 shrink-0">
+										<button
+											type="button"
+											onclick={() => handleStartEditBlock(idx)}
+											class="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer transition-colors"
+											title="Modificar este bloque"
+										>
+											<Pencil class="h-3.5 w-3.5" />
+										</button>
+										<button
+											type="button"
+											onclick={() => handleRemoveBlockFromTemplate(idx)}
+											class="p-1 text-slate-400 hover:text-rose-500 cursor-pointer transition-colors"
+											title="Quitar bloque"
+										>
+											<Trash2 class="h-3.5 w-3.5" />
+										</button>
+									</div>
 								</div>
 							{/each}
 						</div>
@@ -268,8 +554,18 @@
 				<div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
 					<button
 						type="button"
-						onclick={() => (isCreatingDayTemplate = false)}
-						class="px-4 py-2 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+						onclick={() => {
+							isCreatingDayTemplate = false;
+							editingDayTemplateId = null;
+							tplName = '';
+							tplDescription = '';
+							tplBlocks = [];
+							editingBlockIndex = null;
+							blockCustomTitle = '';
+							dayTemplateErrors = {};
+							blockErrors = {};
+						}}
+						class="px-4 py-2 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
 					>
 						Cancelar
 					</button>
@@ -278,7 +574,7 @@
 						onclick={handleSaveDayTemplate}
 						class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-5 py-2 text-xs font-semibold text-white shadow-md cursor-pointer"
 					>
-						Guardar Plantilla de Día
+						{editingDayTemplateId ? 'Actualizar Plantilla de Día' : 'Guardar Plantilla de Día'}
 					</button>
 				</div>
 			</div>
@@ -287,18 +583,37 @@
 		<!-- Grid of Existing Day Templates -->
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 			{#each dayTemplates as tpl}
-				<div class="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 p-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs">
+				<div class="flex flex-col justify-between rounded-2xl border bg-slate-50/70 dark:bg-slate-900/40 p-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs {editingDayTemplateId === tpl.id
+					? 'border-indigo-500 ring-2 ring-indigo-500/20'
+					: 'border-slate-200 dark:border-slate-800'}">
 					<div class="space-y-2">
-						<div class="flex items-start justify-between">
-							<h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">{tpl.name}</h4>
-							<button
-								type="button"
-								onclick={() => handleDeleteDayTemplate(tpl.id)}
-								class="text-slate-400 hover:text-rose-500 p-1 cursor-pointer"
-								title="Eliminar plantilla"
-							>
-								<Trash2 class="h-4 w-4" />
-							</button>
+						<div class="flex items-start justify-between gap-2">
+							<div>
+								<h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">{tpl.name}</h4>
+								{#if editingDayTemplateId === tpl.id}
+									<span class="inline-block mt-0.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 rounded px-1.5 py-0.5">
+										En edición
+									</span>
+								{/if}
+							</div>
+							<div class="flex items-center gap-1">
+								<button
+									type="button"
+									onclick={() => handleStartEditDayTemplate(tpl)}
+									class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 cursor-pointer transition-colors"
+									title="Editar plantilla"
+								>
+									<Pencil class="h-4 w-4" />
+								</button>
+								<button
+									type="button"
+									onclick={() => handleDeleteDayTemplate(tpl.id)}
+									class="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition-colors"
+									title="Eliminar plantilla"
+								>
+									<Trash2 class="h-4 w-4" />
+								</button>
+							</div>
 						</div>
 						{#if tpl.description}
 							<p class="text-xs text-slate-600 dark:text-slate-400">{tpl.description}</p>
@@ -343,7 +658,10 @@
 
 			<button
 				type="button"
-				onclick={() => (isCreatingActivity = !isCreatingActivity)}
+				onclick={() => {
+					isCreatingActivity = !isCreatingActivity;
+					activityErrors = {};
+				}}
 				class="flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 px-3.5 py-2 text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all cursor-pointer"
 			>
 				<Plus class="h-4 w-4" />
@@ -354,24 +672,40 @@
 		{#if isCreatingActivity}
 			<div class="rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/90 p-5 space-y-4 animate-in fade-in duration-200">
 				<h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">Nuevo Bloque Base</h4>
-				<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+				<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
 					<div>
-						<label for="act-title-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Título</label>
+						<label for="act-title-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+							Título <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
+						</label>
 						<input
 							id="act-title-input"
 							type="text"
 							bind:value={actTitle}
+							oninput={() => { if (activityErrors.title) activityErrors.title = ''; }}
 							placeholder="Ej: Sprint de Programación"
-							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+							class="w-full rounded-xl border bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {activityErrors.title
+								? 'border-rose-500 focus:border-rose-500'
+								: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 						/>
+						{#if activityErrors.title}
+							<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+								{activityErrors.title}
+							</p>
+						{/if}
 					</div>
 					<div>
-						<label for="act-cat-select" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Categoría</label>
+						<div class="flex items-center justify-between mb-1">
+							<label for="act-cat-select" class="block text-xs font-medium text-slate-700 dark:text-slate-300">
+								Categoría
+							</label>
+							<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+						</div>
 						<select
 							id="act-cat-select"
 							bind:value={actCategory}
 							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
 						>
+							<option value="">Sin categoría (Opcional)</option>
 							<option value="work">Trabajo (Work)</option>
 							<option value="study">Estudio (Study)</option>
 							<option value="sport">Deporte (Sport)</option>
@@ -381,15 +715,25 @@
 						</select>
 					</div>
 					<div>
-						<label for="act-dur-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Duración habitual (min)</label>
+						<label for="act-dur-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+							Duración habitual (min) <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
+						</label>
 						<input
 							id="act-dur-input"
 							type="number"
 							step="15"
 							min="15"
 							bind:value={actDuration}
-							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100"
+							oninput={() => { if (activityErrors.duration) activityErrors.duration = ''; }}
+							class="w-full rounded-xl border bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {activityErrors.duration
+								? 'border-rose-500 focus:border-rose-500'
+								: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 						/>
+						{#if activityErrors.duration}
+							<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+								{activityErrors.duration}
+							</p>
+						{/if}
 					</div>
 				</div>
 
@@ -398,7 +742,10 @@
 				<div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
 					<button
 						type="button"
-						onclick={() => (isCreatingActivity = false)}
+						onclick={() => {
+							isCreatingActivity = false;
+							activityErrors = {};
+						}}
 						class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
 					>
 						Cancelar
@@ -423,8 +770,10 @@
 					<div class="space-y-0.5">
 						<h5 class="text-xs font-semibold text-slate-900 dark:text-slate-100">{act.title}</h5>
 						<div class="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
-							<span class="uppercase tracking-wider font-bold">{act.category}</span>
-							<span>•</span>
+							{#if act.category}
+								<span class="uppercase tracking-wider font-bold">{act.category}</span>
+								<span>•</span>
+							{/if}
 							<span>{act.defaultDuration} min</span>
 						</div>
 					</div>

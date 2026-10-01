@@ -104,13 +104,15 @@
 			<span>{event.startTime} – {event.endTime}</span>
 		</span>
 
-		<span
-			class="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider {blockColorStyle === 'full'
-				? 'bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200'
-				: 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-transparent'}"
-		>
-			{event.category}
-		</span>
+		{#if event.category}
+			<span
+				class="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider {blockColorStyle === 'full'
+					? 'bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200'
+					: 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-transparent'}"
+			>
+				{event.category}
+			</span>
+		{/if}
 	</div>
 
 	<!-- Row 2: Block Title -->
