@@ -462,7 +462,7 @@
 	>
 		{#each weekDays as day, dayIndex}
 			<section
-				class="flex flex-col min-h-[460px] rounded-2xl border transition-all duration-200 {day.isToday
+				class="flex flex-col min-h-[170px] md:min-h-[460px] rounded-2xl border transition-all duration-200 {day.isToday
 					? 'border-indigo-500 bg-white dark:bg-slate-900/90 shadow-md ring-1 ring-indigo-500/30 dark:shadow-indigo-950/30 dark:ring-indigo-500/20'
 					: 'border-slate-200 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/50 shadow-xs'}"
 			>
@@ -498,47 +498,42 @@
 					{/if}
 				</div>
 
-				<!-- DnD Zone Column -->
-				<div
-					use:dndzone={{
-						items: dayColumns[dayIndex] || [],
-						flipDurationMs: 200,
-						dragDisabled: isReadOnly,
-						dropTargetStyle: {
-							outline: '2px dashed rgba(99, 102, 241, 0.4)',
-							borderRadius: '0.75rem',
-							backgroundColor: 'rgba(99, 102, 241, 0.05)'
-						}
-					}}
-					onconsider={(e) => handleDndConsider(dayIndex, e)}
-					onfinalize={(e) => handleDndFinalize(dayIndex, e)}
-					class="flex-1 flex flex-col gap-2 p-2.5 pt-3.5 overflow-y-auto"
-				>
-					{#each dayColumns[dayIndex] || [] as item (item.id)}
-						<EventCard
-							event={item}
-							{blockColorStyle}
-							{isReadOnly}
-							onEdit={openEditModal}
-							onToggleComplete={toggleCompleted}
-							onDelete={deleteEvent}
-						/>
-					{/each}
+				<!-- Column Body Area -->
+				<div class="relative flex-1 flex flex-col min-h-[90px] md:min-h-[220px]">
+					<!-- DnD Zone Column (Strictly contains only draggable items to avoid touch drag bugs) -->
+					<div
+						use:dndzone={{
+							items: dayColumns[dayIndex] || [],
+							flipDurationMs: 200,
+							dragDisabled: isReadOnly,
+							dropTargetStyle: {
+								outline: '2px dashed rgba(99, 102, 241, 0.4)',
+								borderRadius: '0.75rem',
+								backgroundColor: 'rgba(99, 102, 241, 0.05)'
+							}
+						}}
+						onconsider={(e) => handleDndConsider(dayIndex, e)}
+						onfinalize={(e) => handleDndFinalize(dayIndex, e)}
+						class="flex-1 flex flex-col gap-2 p-2.5 pt-3.5 overflow-y-auto z-10 min-h-[80px] md:min-h-[200px]"
+					>
+						{#each dayColumns[dayIndex] || [] as item (item.id)}
+							<EventCard
+								event={item}
+								{blockColorStyle}
+								{isReadOnly}
+								onEdit={openEditModal}
+								onToggleComplete={toggleCompleted}
+								onDelete={deleteEvent}
+							/>
+						{/each}
+					</div>
 
+					<!-- Visual Empty Placeholder (Sibling outside dndzone, pointer-events-none prevents touch capture) -->
 					{#if (dayColumns[dayIndex] || []).length === 0}
 						<div
-							class="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-slate-300 dark:border-slate-800/80 rounded-xl text-slate-400 dark:text-slate-500 text-xs gap-1.5"
+							class="absolute inset-2.5 flex items-center justify-center text-center p-3 border border-dashed border-slate-300 dark:border-slate-800/80 rounded-xl text-slate-400 dark:text-slate-500 text-xs pointer-events-none select-none"
 						>
 							<span>Sin bloques</span>
-							{#if !isReadOnly}
-								<button
-									type="button"
-									onclick={() => openAddModal(day.dateStr)}
-									class="no-export text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-								>
-									+ Programar
-								</button>
-							{/if}
 						</div>
 					{/if}
 				</div>
