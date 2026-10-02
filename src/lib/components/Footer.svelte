@@ -9,10 +9,12 @@
 
 	let {
 		onOpenAbout,
-		onOpenSettings
+		onOpenSettings,
+		onOpenInstall
 	}: {
 		onOpenAbout?: (tab?: 'overview' | 'features' | 'usecases' | 'examples' | 'privacy') => void;
 		onOpenSettings?: () => void;
+		onOpenInstall?: () => void;
 	} = $props();
 
 	const currentYear = new Date().getFullYear();
@@ -139,6 +141,15 @@
 							class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left cursor-pointer flex items-center gap-1"
 						>
 							<span>Ajustes & Paletas de Colores</span>
+						</button>
+					</li>
+					<li>
+						<button
+							type="button"
+							onclick={() => onOpenInstall?.()}
+							class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left cursor-pointer flex items-center gap-1 font-medium text-indigo-600 dark:text-indigo-400"
+						>
+							<span>Descargar / Instalar App</span>
 						</button>
 					</li>
 					<li>

@@ -31,16 +31,10 @@ export default defineConfig({
 				orientation: 'any',
 				scope: '/',
 				start_url: '/',
-				id: 'https://mydynamicplanner.com/',
+				id: '/',
 				lang: 'es',
 				categories: ['productivity', 'utilities'],
 				icons: [
-					{
-						src: '/dynamic-planner.svg',
-						sizes: 'any',
-						type: 'image/svg+xml',
-						purpose: 'any'
-					},
 					{
 						src: '/pwa-192x192.png',
 						sizes: '192x192',
@@ -60,10 +54,25 @@ export default defineConfig({
 						purpose: 'maskable'
 					},
 					{
+						src: '/dynamic-planner.svg',
+						sizes: 'any',
+						type: 'image/svg+xml',
+						purpose: 'any'
+					},
+					{
 						src: '/apple-touch-icon.png',
 						sizes: '180x180',
 						type: 'image/png',
 						purpose: 'any'
+					}
+				],
+				screenshots: [
+					{
+						src: '/og-image.png',
+						sizes: '1200x630',
+						type: 'image/png',
+						form_factor: 'wide',
+						label: 'Tablero semanal interactivo'
 					}
 				]
 			},

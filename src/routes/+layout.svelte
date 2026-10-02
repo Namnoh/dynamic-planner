@@ -3,10 +3,12 @@
 	import ToastContainer from '$lib/components/ToastContainer.svelte';
 	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import AboutModal from '$lib/components/AboutModal.svelte';
+	import InstallModal from '$lib/components/InstallModal.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import { onMount } from 'svelte';
 	import { requestNotificationPermission, toastStore } from '$lib/utils/notifications';
-	import { Wifi, WifiOff, Bell, Sun, Moon, Settings, BookOpen } from 'lucide-svelte';
+	import { pwaInstallStore } from '$lib/stores/pwaInstall';
+	import { Wifi, WifiOff, Bell, Sun, Moon, Settings, BookOpen, Download } from 'lucide-svelte';
 
 	let { children } = $props();
 
@@ -14,12 +16,34 @@
 	let isDarkMode = $state(true);
 	let isSettingsOpen = $state(false);
 	let isAboutOpen = $state(false);
+	let isInstallOpen = $state(false);
 	let initialAboutTab = $state<'overview' | 'features' | 'usecases' | 'examples' | 'privacy'>('overview');
 	let notificationPermission = $state<NotificationPermission>('default');
+	let installState = $state($pwaInstallStore);
+
+	$effect(() => {
+		const unsubscribe = pwaInstallStore.subscribe((val) => {
+			installState = val;
+		});
+		return unsubscribe;
+	});
 
 	function openAbout(tab: 'overview' | 'features' | 'usecases' | 'examples' | 'privacy' = 'overview') {
 		initialAboutTab = tab;
 		isAboutOpen = true;
+	}
+
+	async function handleInstallClick() {
+		const res = await pwaInstallStore.promptInstall();
+		if (res === 'show-instructions') {
+			isInstallOpen = true;
+		} else if (res === 'already-installed') {
+			toastStore.show({
+				title: 'Aplicación ya instalada',
+				message: 'Ya estás usando la aplicación en modo nativo en este dispositivo.',
+				type: 'info'
+			});
+		}
 	}
 
 	function handleOnline() {
@@ -49,6 +73,9 @@
 		const isDark = document.documentElement.classList.contains('dark');
 		isDarkMode = isDark;
 
+		// Initialize PWA installation detection
+		pwaInstallStore.init();
+
 		// Register PWA Service Worker
 		if ('serviceWorker' in navigator) {
 			import('virtual:pwa-register')
@@ -65,7 +92,10 @@
 					});
 				})
 				.catch(() => {
-					console.info('PWA Service worker registration skipped in current environment.');
+					// Direct fallback registration for standard PWA support
+					navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
+						console.info('PWA Service worker registration skipped in current environment.');
+					});
 				});
 		}
 
@@ -155,6 +185,20 @@
 					{/if}
 				</div>
 
+				<!-- Download / Install App Button -->
+				{#if !installState.isStandalone}
+					<button
+						type="button"
+						onclick={handleInstallClick}
+						class="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:hover:bg-indigo-900/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer shadow-xs"
+						title="Descargar o instalar app"
+						aria-label="Descargar o instalar app"
+					>
+						<Download class="h-3.5 w-3.5" />
+						<span class="hidden sm:inline">Descargar App</span>
+					</button>
+				{/if}
+
 				<!-- Notifications Button (Desktop only) -->
 				<button
 					type="button"
@@ -228,6 +272,7 @@
 	<Footer
 		onOpenAbout={(tab) => openAbout(tab)}
 		onOpenSettings={() => (isSettingsOpen = true)}
+		onOpenInstall={handleInstallClick}
 	/>
 
 	<!-- In-app Toasts -->
@@ -241,8 +286,12 @@
 		{notificationPermission}
 		onRequestNotifications={handleRequestNotifications}
 		onOpenAbout={() => openAbout('overview')}
+		onOpenInstall={handleInstallClick}
 	/>
 
 	<!-- About & Project Guide Modal -->
 	<AboutModal bind:isOpen={isAboutOpen} initialTab={initialAboutTab} />
+
+	<!-- Install PWA Modal -->
+	<InstallModal bind:isOpen={isInstallOpen} />
 </div>

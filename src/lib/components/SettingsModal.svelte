@@ -13,7 +13,8 @@
 		Sun,
 		Moon,
 		Bell,
-		BookOpen
+		BookOpen,
+		Download
 	} from 'lucide-svelte';
 
 	let {
@@ -22,7 +23,8 @@
 		onToggleTheme,
 		notificationPermission = 'default',
 		onRequestNotifications,
-		onOpenAbout
+		onOpenAbout,
+		onOpenInstall
 	}: {
 		isOpen: boolean;
 		isDarkMode?: boolean;
@@ -30,6 +32,7 @@
 		notificationPermission?: NotificationPermission;
 		onRequestNotifications?: () => void;
 		onOpenAbout?: () => void;
+		onOpenInstall?: () => void;
 	} = $props();
 
 	let currentStyle = $state<BlockColorStyle>(settingsStore.current);
@@ -246,6 +249,31 @@
 					</button>
 				</div>
 			</div>
+
+			<!-- Install Application Option -->
+			{#if onOpenInstall}
+				<div class="rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/50 dark:bg-indigo-950/30 p-3.5 flex items-center justify-between gap-3">
+					<div>
+						<h5 class="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+							<Download class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+							<span>Instalar aplicación en tu dispositivo</span>
+						</h5>
+						<p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+							Úsala a pantalla completa y con acceso directo sin conexión.
+						</p>
+					</div>
+					<button
+						type="button"
+						onclick={() => {
+							isOpen = false;
+							onOpenInstall?.();
+						}}
+						class="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 text-xs font-semibold shadow-sm transition-all cursor-pointer shrink-0"
+					>
+						<span>Instalar</span>
+					</button>
+				</div>
+			{/if}
 
 			<!-- Local-First Privacy Section (Obsidian-Style) -->
 			<div class="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
