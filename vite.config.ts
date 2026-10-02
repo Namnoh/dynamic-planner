@@ -22,19 +22,47 @@ export default defineConfig({
 			strategies: 'generateSW',
 			registerType: 'autoUpdate',
 			manifest: {
-				name: 'Dynamic Planner',
-				short_name: 'DynamicPlanner',
-				description: 'Sistema modular de time-blocking y planificación adaptable offline-first',
+				name: 'Planificador Dinámico (Dynamic Planner)',
+				short_name: 'Planificador',
+				description: 'Organización semanal por bloques de tiempo y planificación adaptable offline-first',
 				theme_color: '#090d16',
 				background_color: '#090d16',
 				display: 'standalone',
 				orientation: 'any',
+				scope: '/',
 				start_url: '/',
+				id: 'https://mydynamicplanner.com/',
+				lang: 'es',
+				categories: ['productivity', 'utilities'],
 				icons: [
 					{
 						src: '/dynamic-planner.svg',
 						sizes: 'any',
 						type: 'image/svg+xml',
+						purpose: 'any'
+					},
+					{
+						src: '/pwa-192x192.png',
+						sizes: '192x192',
+						type: 'image/png',
+						purpose: 'any'
+					},
+					{
+						src: '/pwa-512x512.png',
+						sizes: '512x512',
+						type: 'image/png',
+						purpose: 'any'
+					},
+					{
+						src: '/pwa-maskable-512x512.png',
+						sizes: '512x512',
+						type: 'image/png',
+						purpose: 'maskable'
+					},
+					{
+						src: '/apple-touch-icon.png',
+						sizes: '180x180',
+						type: 'image/png',
 						purpose: 'any'
 					}
 				]

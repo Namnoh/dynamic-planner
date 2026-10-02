@@ -37,26 +37,26 @@
 						class="h-8 w-8 rounded-xl shadow-md shadow-indigo-600/25 shrink-0"
 					/>
 					<span class="text-base font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-						Dynamic Planner
+						Planificador Dinámico
 					</span>
 				</div>
 
 				<p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-					Sistema de time-blocking inteligente, modular y adaptativo. Diseñado bajo la filosofía <em>Local-First</em> para una productividad personal sin distracciones ni pérdida de privacidad.
+					Organización personal y semanal por bloques de tiempo. Diseñado para ofrecer máxima concentración y privacidad, guardando tus datos directamente en tu navegador sin depender de servidores ni cuentas.
 				</p>
 
-				<!-- Privacy & Arch Badges -->
+				<!-- Privacy & Storage Badges -->
 				<div class="flex flex-wrap gap-1.5 pt-1">
 					<span class="inline-flex items-center gap-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
 						<ShieldCheck class="h-3 w-3" />
-						100% Local-First
+						100% Privado
 					</span>
 					<span class="inline-flex items-center gap-1 rounded-md bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:text-indigo-300">
 						<Database class="h-3 w-3" />
-						IndexedDB
+						Guardado en tu equipo
 					</span>
 					<span class="inline-flex items-center gap-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
-						PWA Offline
+						Funciona sin internet
 					</span>
 				</div>
 			</div>
@@ -101,7 +101,7 @@
 							onclick={() => onOpenAbout?.('privacy')}
 							class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left cursor-pointer flex items-center gap-1"
 						>
-							<span>Soberanía de datos & Seguridad</span>
+							<span>Privacidad y Seguridad</span>
 						</button>
 					</li>
 				</ul>
@@ -120,7 +120,7 @@
 							onclick={() => handleSwitchTab('planner')}
 							class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left cursor-pointer"
 						>
-							Planificador Semanal interactivo
+							Planificador Semanal
 						</button>
 					</li>
 					<li>
@@ -129,7 +129,7 @@
 							onclick={() => handleSwitchTab('templates')}
 							class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left cursor-pointer"
 						>
-							Gestor de Plantillas & Rutinas
+							Plantillas y Rutinas
 						</button>
 					</li>
 					<li>
@@ -157,7 +157,9 @@
 		<!-- Bottom Bar -->
 		<div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
 			<div class="flex flex-wrap items-center gap-1.5 text-center sm:text-left justify-center sm:justify-start">
-				<span>© {currentYear} <strong>Dynamic Planner</strong>.</span>
+				<span>© {currentYear} <strong>Planificador Dinámico</strong> (Dynamic Planner).</span>
+				<span class="hidden sm:inline">•</span>
+				<a href="https://mydynamicplanner.com" class="font-medium hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">mydynamicplanner.com</a>
 				<span class="hidden sm:inline">•</span>
 				<span>Creado por <span class="font-medium text-slate-700 dark:text-slate-300">Fernando Muñoz</span>.</span>
 				<span class="hidden sm:inline">•</span>
@@ -165,6 +167,17 @@
 			</div>
 
 			<div class="flex items-center gap-3">
+				<a
+					href="https://github.com/Namnoh/dynamic-planner"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+					title="Repositorio en GitHub"
+				>
+					<svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+					<span>GitHub</span>
+				</a>
+				<span>•</span>
 				<button
 					type="button"
 					onclick={() => onOpenAbout?.('overview')}

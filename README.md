@@ -1,5 +1,7 @@
 # Dynamic Planner
 
+> **Official Website:** [mydynamicplanner.com](https://mydynamicplanner.com)
+
 A modular, privacy-first, and offline-capable time-blocking system built with **SvelteKit**, **TypeScript**, **Tailwind CSS**, and **Dexie (IndexedDB)**.
 
 Inspired by the local-first philosophy of tools like Obsidian, **Dynamic Planner** keeps all your data strictly on your device with zero cloud tracking, zero telemetry, and an air-gapped design.
@@ -92,6 +94,6 @@ pnpm preview
 
 ## 📄 License & Author
 
-Developed by **Fernando Muñoz** ([ferm.programmer@gmail.com](mailto:ferm.programmer@gmail.com)).
+Developed by **Fernando Muñoz** ([ferm.programmer@gmail.com](mailto:ferm.programmer@gmail.com)) • GitHub: [@Namnoh](https://github.com/Namnoh) ([dynamic-planner](https://github.com/Namnoh/dynamic-planner)).
 
 Licensed under the [GNU General Public License v3.0](LICENSE).

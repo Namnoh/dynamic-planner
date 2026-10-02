@@ -55,7 +55,7 @@
 					: 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'}"
 			>
 				<Calendar class="h-4 w-4" />
-				<span>Planificador Semanal (DnD)</span>
+				<span>Planificador Semanal</span>
 			</button>
 
 			<button
@@ -67,7 +67,7 @@
 					: 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'}"
 			>
 				<Layers class="h-4 w-4" />
-				<span>Gestor de Plantillas & Bloques</span>
+				<span>Plantillas y Rutinas</span>
 			</button>
 		</div>
 	</div>
@@ -75,7 +75,7 @@
 	<!-- Content -->
 	{#if isInitializing}
 		<div class="flex h-64 items-center justify-center text-slate-500 text-sm">
-			Cargando planificador offline...
+			Cargando tu planificador...
 		</div>
 	{:else if activeTab === 'planner'}
 		{#key plannerKey}

@@ -2,14 +2,104 @@
 <html lang="es" class="dark">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/dynamic-planner.svg" />
+		<title>Planificador Dinámico (Dynamic Planner) - Planificador Semanal & Time-Blocking</title>
+		<meta name="description" content="Planificador Dinámico (Dynamic Planner): Organiza tu semana con bloques de tiempo interactivos (time-blocking), plantillas de rutinas y modo 100% offline. Privacidad total sin registro ni anuncios." />
+		<meta name="keywords" content="planificador dinamico, dynamic planner, planificador semanal, time blocking, time-blocking app, organizador de tareas, agenda semanal, organizador semanal, bloques de tiempo, pwa offline, productividad personal, habit tracker, rutinas diarias" />
+		<meta name="author" content="Fernando Muñoz" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-		<meta name="referrer" content="no-referrer" />
+		<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+		<meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+		<link rel="canonical" href="https://mydynamicplanner.com/" />
+
+		<!-- Open Graph (Metadatos Web) -->
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content="https://mydynamicplanner.com/" />
+		<meta property="og:site_name" content="Planificador Dinámico | Dynamic Planner" />
+		<meta property="og:locale" content="es_ES" />
+		<meta property="og:title" content="Planificador Dinámico (Dynamic Planner) - Planificación Semanal y Time-Blocking" />
+		<meta property="og:description" content="Planificador Dinámico (Dynamic Planner): Organiza tu semana visualmente con bloques de tiempo, plantillas de rutinas y modo offline. Privacidad total en tu dispositivo." />
+		<meta property="og:image" content="https://mydynamicplanner.com/og-image.png" />
+		<meta property="og:image:secure_url" content="https://mydynamicplanner.com/og-image.png" />
+		<meta property="og:image:type" content="image/png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="Planificador Dinámico (Dynamic Planner) - Time-blocking y Planificación Semanal" />
+
+		<!-- App & PWA Icons -->
+		<link rel="icon" type="image/svg+xml" href="/dynamic-planner.svg" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+		<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+		<link rel="manifest" href="/manifest.webmanifest" />
+
+		<!-- Mobile & WebApp Configuration -->
+		<meta name="application-name" content="Planificador Dinámico" />
+		<meta name="apple-mobile-web-app-title" content="Planificador Dinámico" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<meta name="theme-color" content="#090d16" media="(prefers-color-scheme: dark)" />
+		<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+		<meta name="format-detection" content="telephone=no" />
+
+		<!-- Security & Privacy Policies -->
+		<meta name="referrer" content="strict-origin-when-cross-origin" />
 		<meta http-equiv="Permissions-Policy" content="accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()" />
 		<meta
 			http-equiv="Content-Security-Policy"
-			content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self';"
+			content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://mydynamicplanner.com; font-src 'self' data:; connect-src 'self' ws: wss:; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self';"
 		/>
+
+		<!-- Structured Data (Schema.org JSON-LD) -->
+		<script type="application/ld+json">
+		{
+			"@context": "https://schema.org",
+			"@graph": [
+				{
+					"@type": "WebApplication",
+					"@id": "https://mydynamicplanner.com/#webapp",
+					"url": "https://mydynamicplanner.com/",
+					"name": "Planificador Dinámico",
+					"alternateName": "Dynamic Planner",
+					"description": "Herramienta moderna de time-blocking y planificación semanal interactiva offline-first. Organiza tareas, eventos y hábitos con bloques de tiempo y total soberanía de datos.",
+					"applicationCategory": "ProductivityApplication",
+					"operatingSystem": "All",
+					"browserRequirements": "Requires JavaScript. Requires HTML5.",
+					"softwareVersion": "1.0.0",
+					"offers": {
+						"@type": "Offer",
+						"price": "0",
+						"priceCurrency": "USD"
+					},
+					"featureList": [
+						"Planificación semanal visual con Time-Blocking interactivo (Drag and Drop)",
+						"Arquitectura 100% Local-First y Offline con IndexedDB",
+						"PWA instalable en escritorio y dispositivos móviles",
+						"Gestor de plantillas y rutinas reutilizables",
+						"Exportación a imagen PNG de alta resolución",
+						"Copia de seguridad y restauración en JSON local",
+						"Modo oscuro y claro adaptativo",
+						"Total privacidad sin cuentas ni rastreadores"
+					],
+					"author": {
+						"@type": "Person",
+						"name": "Fernando Muñoz",
+						"email": "ferm.programmer@gmail.com"
+					},
+					"codeRepository": "https://github.com/Namnoh/dynamic-planner",
+					"screenshot": "https://mydynamicplanner.com/og-image.png"
+				},
+				{
+					"@type": "WebSite",
+					"@id": "https://mydynamicplanner.com/#website",
+					"url": "https://mydynamicplanner.com/",
+					"name": "Planificador Dinámico (Dynamic Planner)",
+					"description": "Sistema modular de time-blocking y planificación adaptable offline-first",
+					"inLanguage": "es"
+				}
+			]
+		}
+		</script>
+
 		<script>
 			try {
 				const theme = localStorage.getItem('theme');
@@ -23,6 +113,21 @@
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover" class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+		<noscript>
+			<div style="padding: 2.5rem 1.5rem; max-width: 800px; margin: 0 auto; font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: #1e293b;">
+				<h1 style="font-size: 1.75rem; font-weight: 800; margin-bottom: 1rem; color: #312e81;">Planificador Dinámico (Dynamic Planner) - Planificador Semanal & Time-Blocking</h1>
+				<p>El Planificador Dinámico (Dynamic Planner) es una aplicación web y PWA diseñada para organizar tu semana mediante bloques de tiempo visuales (time-blocking), plantillas de rutinas y almacenamiento local seguro en tu navegador.</p>
+				<h2 style="font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.5rem;">Características Principales</h2>
+				<ul style="padding-left: 1.25rem; margin-bottom: 1.5rem;">
+					<li><strong>100% Privado y Seguro:</strong> Tus datos se almacenan exclusivamente en tu navegador. Sin cuentas ni servidores externos.</li>
+					<li><strong>Plantillas y Rutinas Reutilizables:</strong> Diseña tus días tipo (&quot;Día de Enfoque&quot;, &quot;Rutina Matutina&quot;) y aplícalos fácilmente.</li>
+					<li><strong>Tablero Semanal Interactivo:</strong> Reorganiza tus bloques arrastrándolos con fluidez entre días y horas.</li>
+					<li><strong>Exportación en Imagen HD:</strong> Descarga tu horario semanal en formato PNG para imprimir o guardar.</li>
+					<li><strong>Modo sin conexión (PWA):</strong> Funciona completamente sin conexión a internet una vez cargada.</li>
+				</ul>
+				<p><em>Para utilizar la interfaz interactiva del Planificador Dinámico, por favor activa JavaScript en tu navegador.</em></p>
+			</div>
+		</noscript>
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

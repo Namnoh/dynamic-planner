@@ -15,6 +15,19 @@
 /manifest.webmanifest
   Cache-Control: no-cache, no-store, must-revalidate
 
+# Static brand images and icons
+/*.png
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+/*.svg
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+/sitemap.xml
+  Cache-Control: public, max-age=86400
+
+/robots.txt
+  Cache-Control: public, max-age=86400
+
 # Immutable Vite/SvelteKit bundled assets with content hashes
 /_app/immutable/*
   Cache-Control: public, max-age=31536000, immutable

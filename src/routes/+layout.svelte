@@ -1,6 +1,5 @@
 <script lang="ts">
 	import './layout.css';
-	import favicon from '$lib/assets/favicon.svg';
 	import ToastContainer from '$lib/components/ToastContainer.svelte';
 	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import AboutModal from '$lib/components/AboutModal.svelte';
@@ -107,8 +106,9 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href="/dynamic-planner.svg" />
-	<title>Dynamic Planner - Time-blocking Modular Offline</title>
+	<title>Planificador Dinámico (Dynamic Planner) - Planificador Semanal & Time-Blocking</title>
+	<meta name="description" content="Planificador Dinámico (Dynamic Planner): Organiza tu semana con bloques de tiempo interactivos (time-blocking), plantillas de rutinas y modo 100% offline. Privacidad total sin registro." />
+	<link rel="canonical" href="https://mydynamicplanner.com/" />
 </svelte:head>
 
 <div
@@ -123,17 +123,17 @@
 			<div class="flex items-center gap-3">
 				<img
 					src="/dynamic-planner.svg"
-					alt="Dynamic Planner Logo"
+					alt="Planificador Dinámico (Dynamic Planner)"
 					class="h-9 w-9 rounded-xl shadow-md shadow-indigo-600/25 shrink-0"
 				/>
 				<div>
 					<h1
 						class="text-base font-extrabold tracking-tight bg-linear-to-r from-slate-900 via-indigo-950 to-indigo-600 dark:from-white dark:via-slate-200 dark:to-indigo-300 bg-clip-text text-transparent"
 					>
-						Dynamic Planner
+						Planificador Dinámico
 					</h1>
 					<p class="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">
-						Planificación modular & Time-blocking Offline
+						Dynamic Planner • Organización semanal por bloques
 					</p>
 				</div>
 			</div>
@@ -148,10 +148,10 @@
 				>
 					{#if isOnline}
 						<Wifi class="h-3 w-3" />
-						<span class="hidden md:inline">Online / PWA Cache</span>
+						<span class="hidden md:inline">En línea / Guardado local</span>
 					{:else}
 						<WifiOff class="h-3 w-3" />
-						<span>Offline</span>
+						<span>Modo Local (Sin conexión)</span>
 					{/if}
 				</div>
 
@@ -185,11 +185,23 @@
 					type="button"
 					onclick={() => openAbout('overview')}
 					class="hidden sm:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
-					title="Guía del proyecto y funcionalidades"
-					aria-label="Acerca de Dynamic Planner"
+					title="Guía y funcionalidades"
+					aria-label="Acerca del Planificador Dinámico"
 				>
 					<BookOpen class="h-4 w-4" />
 				</button>
+
+				<!-- GitHub Repository Link (Desktop only) -->
+				<a
+					href="https://github.com/Namnoh/dynamic-planner"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="hidden sm:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
+					title="Repositorio en GitHub"
+					aria-label="Ver código en GitHub"
+				>
+					<svg class="h-4 w-4 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+				</a>
 
 				<!-- Settings Button -->
 				<button

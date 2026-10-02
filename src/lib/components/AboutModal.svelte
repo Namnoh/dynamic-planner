@@ -41,13 +41,13 @@
 		{ id: 'features', label: 'Funcionalidades', icon: Layers },
 		{ id: 'usecases', label: 'Casos de Uso', icon: Briefcase },
 		{ id: 'examples', label: 'Ejemplos Prácticos', icon: Clock },
-		{ id: 'privacy', label: 'Privacidad Local-First', icon: ShieldCheck }
+		{ id: 'privacy', label: 'Privacidad y Seguridad', icon: ShieldCheck }
 	];
 </script>
 
 <Modal
 	bind:isOpen
-	title="Acerca de Dynamic Planner"
+	title="Acerca del Planificador Dinámico"
 	description="Guía completa del proyecto, filosofía de time-blocking y funcionalidades"
 	icon={BookOpen}
 	maxWidth="max-w-4xl"
@@ -79,7 +79,7 @@
 						<div class="flex items-center gap-3">
 							<img
 								src="/dynamic-planner.svg"
-								alt="Dynamic Planner Logo"
+								alt="Planificador Dinámico Logo"
 								class="h-11 w-11 rounded-2xl shadow-md shadow-indigo-600/25 shrink-0"
 							/>
 							<div>
@@ -88,12 +88,12 @@
 									<span>Productividad con Propósito</span>
 								</div>
 								<h4 class="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 leading-snug mt-1">
-									¿Qué es Dynamic Planner?
+									¿Qué es el Planificador Dinámico?
 								</h4>
 							</div>
 						</div>
 						<p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-							<strong>Dynamic Planner</strong> es una aplicación web progresiva (PWA) de <strong>time-blocking adaptativo y modular</strong>, diseñada bajo la arquitectura <em>Local-First</em>. Combina la flexibilidad de armar rutinas reutilizables con un tablero interactivo semanal donde cada tarea tiene un espacio temporal delimitado, sin rastreadores ni servidores externos.
+							<strong>Planificador Dinámico</strong> (Dynamic Planner) es una aplicación para organizar tu semana dividiendo tu tiempo en bloques claros y manejables (<em>time-blocking</em>). Combina la facilidad de armar rutinas reutilizables con un tablero interactivo donde puedes mover tus actividades con total libertad, manteniendo tu información segura en tu dispositivo y sin servidores externos.
 						</p>
 					</div>
 
@@ -112,12 +112,12 @@
 
 						<div class="rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 space-y-2">
 							<h5 class="font-bold text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm flex items-center gap-1.5">
-								<span>✅ La Solución de Dynamic Planner</span>
+								<span>✅ La Solución del Planificador Dinámico</span>
 							</h5>
 							<ul class="space-y-1.5 text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
-								<li>• <strong>Time-blocking visual:</strong> Si tiene hora de inicio y fin, es realizable; si no cabe en el día, se prioriza.</li>
-								<li>• <strong>Plantillas de Día Modulares:</strong> Arma un "Día Enfoque" o "Día Deporte" una sola vez y aplícalo con un clic.</li>
-								<li>• <strong>Soberanía total:</strong> Los datos viven en el IndexedDB de tu propio navegador. Nada sale a la nube.</li>
+								<li>• <strong>Bloques visuales:</strong> Si una actividad tiene hora de inicio y fin, es realizable; si no cabe en el día, se prioriza.</li>
+								<li>• <strong>Plantillas y Rutinas:</strong> Arma un "Día de Enfoque" o "Día de Ejercicio" una sola vez y aplícalo con un clic.</li>
+								<li>• <strong>Privacidad total:</strong> Los datos se guardan directamente en tu propio navegador. Nada sale a la nube.</li>
 							</ul>
 						</div>
 					</div>
@@ -364,45 +364,45 @@
 					</div>
 				</div>
 
-			<!-- Tab 5: Privacy & Local-First (Privacidad) -->
+			<!-- Tab 5: Privacy & Security (Privacidad) -->
 			{:else if activeTab === 'privacy'}
 				<div class="space-y-4 animate-in fade-in duration-200">
 					<div class="rounded-2xl border border-emerald-300 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 space-y-2.5">
 						<div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
 							<ShieldCheck class="h-5 w-5" />
-							<h5 class="font-bold text-sm sm:text-base">Arquitectura Air-Gapped y Soberanía Total</h5>
+							<h5 class="font-bold text-sm sm:text-base">Privacidad Total y Control de tus Datos</h5>
 						</div>
 						<p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-							Al igual que herramientas de culto como <strong>Obsidian</strong>, Dynamic Planner asume que tus notas, horarios y hábitos son <strong>estrictamente personales</strong>.
+							El <strong>Planificador Dinámico</strong> asume que tus notas, horarios y hábitos son <strong>estrictamente personales</strong>. No necesitas crear usuarios, no hay contraseñas y tus actividades nunca salen de tu ordenador.
 						</p>
 					</div>
 
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
 						<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-3 space-y-1.5">
-							<span class="font-bold text-slate-900 dark:text-slate-100">🔒 IndexedDB en el Navegador</span>
+							<span class="font-bold text-slate-900 dark:text-slate-100">🔒 Guardado local en tu navegador</span>
 							<p class="text-slate-600 dark:text-slate-400 leading-normal">
-								Todos los eventos, plantillas y configuraciones se guardan localmente en la base de datos de tu navegador.
+								Todos los eventos, plantillas y configuraciones se guardan localmente en la base de datos de tu propio navegador (IndexedDB).
 							</p>
 						</div>
 
 						<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-3 space-y-1.5">
-							<span class="font-bold text-slate-900 dark:text-slate-100">🚫 Cero Telemetría o Rastreo</span>
+							<span class="font-bold text-slate-900 dark:text-slate-100">🚫 Cero rastreadores o publicidad</span>
 							<p class="text-slate-600 dark:text-slate-400 leading-normal">
-								No hay Google Analytics, ni Mixpanel, ni cookies de rastreo, ni llamadas a APIs secretas en segundo plano.
+								Sin analíticas externas, sin cookies de rastreo ni llamadas a servidores ocultos en segundo plano.
 							</p>
 						</div>
 
 						<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-3 space-y-1.5">
-							<span class="font-bold text-slate-900 dark:text-slate-100">🛡️ Content Security Policy Estricto</span>
+							<span class="font-bold text-slate-900 dark:text-slate-100">🛡️ Seguridad en tu navegación</span>
 							<p class="text-slate-600 dark:text-slate-400 leading-normal">
-								Las cabeceras CSP bloquean cualquier envío de datos fuera de la aplicación.
+								Reglas de seguridad estrictas (CSP) impiden que cualquier dato sea enviado a páginas o servicios de terceros.
 							</p>
 						</div>
 
 						<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-3 space-y-1.5">
-							<span class="font-bold text-slate-900 dark:text-slate-100">💾 Portabilidad JSON Abierta</span>
+							<span class="font-bold text-slate-900 dark:text-slate-100">💾 Copia de respaldo en JSON</span>
 							<p class="text-slate-600 dark:text-slate-400 leading-normal">
-								Tus datos nunca quedan secuestrados (no vendor lock-in). Puedes exportar e importar en formato JSON estándar.
+								Tus datos siempre te pertenecen. Puedes guardar un archivo de respaldo o restaurarlo cuando quieras con un solo clic.
 							</p>
 						</div>
 					</div>
@@ -414,7 +414,7 @@
 	{#snippet footerSnippet()}
 		<div class="flex items-center justify-between w-full">
 			<span class="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:inline">
-				Dynamic Planner • Creado por Fernando Muñoz
+				Dynamic Planner • <a href="https://mydynamicplanner.com" class="hover:text-indigo-600 dark:hover:text-indigo-400 underline transition-colors">mydynamicplanner.com</a> • <a href="https://github.com/Namnoh/dynamic-planner" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-600 dark:hover:text-indigo-400 underline transition-colors">GitHub</a> • Creado por Fernando Muñoz
 			</span>
 			<button
 				type="button"
