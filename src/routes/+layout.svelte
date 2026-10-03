@@ -172,7 +172,7 @@
 			<div class="flex items-center gap-2">
 				<!-- Offline / Online Badge -->
 				<div
-					class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border {isOnline
+					class="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium border h-8 {isOnline
 						? 'border-emerald-500/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30'
 						: 'border-amber-500/30 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'}"
 				>
@@ -190,7 +190,7 @@
 					<button
 						type="button"
 						onclick={handleInstallClick}
-						class="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:hover:bg-indigo-900/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer shadow-xs"
+						class="inline-flex items-center gap-1.5 h-8 rounded-xl px-2.5 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:hover:bg-indigo-900/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer shadow-xs"
 						title="Descargar o instalar app"
 						aria-label="Descargar o instalar app"
 					>
@@ -203,7 +203,7 @@
 				<button
 					type="button"
 					onclick={handleRequestNotifications}
-					class="hidden sm:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
+					class="hidden md:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
 					title="Activar notificaciones de escritorio"
 				>
 					<Bell class="h-4 w-4 {notificationPermission === 'granted' ? 'text-indigo-600 dark:text-indigo-400' : ''}" />
@@ -213,7 +213,7 @@
 				<button
 					type="button"
 					onclick={toggleTheme}
-					class="hidden sm:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
+					class="hidden md:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
 					title={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
 					aria-label={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
 				>
@@ -228,7 +228,7 @@
 				<button
 					type="button"
 					onclick={() => openAbout('overview')}
-					class="hidden sm:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
+					class="hidden md:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
 					title="Guía y funcionalidades"
 					aria-label="Acerca del Planificador Dinámico"
 				>
@@ -240,7 +240,7 @@
 					href="https://github.com/Namnoh/dynamic-planner"
 					target="_blank"
 					rel="noopener noreferrer"
-					class="hidden sm:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
+					class="hidden md:inline-flex rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-200 dark:border-slate-800 cursor-pointer"
 					title="Repositorio en GitHub"
 					aria-label="Ver código en GitHub"
 				>

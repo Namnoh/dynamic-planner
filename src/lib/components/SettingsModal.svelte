@@ -105,7 +105,7 @@
 		<div class="space-y-6">
 
 			<!-- Mobile Quick Actions: Theme, Notifications, Guide -->
-			<div class="sm:hidden space-y-2.5 pb-5 border-b border-slate-200 dark:border-slate-800">
+			<div class="md:hidden space-y-2.5 pb-5 border-b border-slate-200 dark:border-slate-800">
 				<h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
 					Accesos Rápidos
 				</h4>
