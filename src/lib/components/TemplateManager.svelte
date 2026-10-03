@@ -108,13 +108,13 @@
 		if (hasError) return;
 
 		if (editingActivityId) {
-			await db.activityTemplates.update(editingActivityId, {
+			await db.activityTemplates.update(editingActivityId, $state.snapshot({
 				title: actTitle.trim(),
 				category: actCategory || undefined,
 				defaultDuration: Number(actDuration),
 				color: actColor,
 				notes: actNotes.trim() || undefined
-			});
+			}));
 			toastStore.show({
 				title: 'Bloque de actividad actualizado',
 				type: 'success'
@@ -130,7 +130,7 @@
 				notes: actNotes.trim() || undefined
 			};
 
-			await db.activityTemplates.add(newAct);
+			await db.activityTemplates.add($state.snapshot(newAct));
 			toastStore.show({
 				title: 'Bloque base creado',
 				type: 'success'
@@ -305,16 +305,21 @@
 			hasError = true;
 		}
 
-		if (hasError) return;
+		const cleanBlocks: DayTemplateBlock[] = $state.snapshot(tplBlocks).map((b) => ({
+			activityId: b.activityId,
+			startTime: b.startTime,
+			duration: Number(b.duration),
+			customTitle: b.customTitle ? b.customTitle.trim() : undefined
+		}));
 
 		if (editingDayTemplateId) {
 			const updatedTpl: DayTemplate = {
 				id: editingDayTemplateId,
 				name: tplName.trim(),
 				description: tplDescription.trim() || undefined,
-				blocks: [...tplBlocks]
+				blocks: cleanBlocks
 			};
-			await db.dayTemplates.put(updatedTpl);
+			await db.dayTemplates.put($state.snapshot(updatedTpl));
 			toastStore.show({
 				title: 'Plantilla de Día actualizada con éxito',
 				type: 'success'
@@ -325,9 +330,9 @@
 				id,
 				name: tplName.trim(),
 				description: tplDescription.trim() || undefined,
-				blocks: [...tplBlocks]
+				blocks: cleanBlocks
 			};
-			await db.dayTemplates.add(newTpl);
+			await db.dayTemplates.add($state.snapshot(newTpl));
 			toastStore.show({
 				title: 'Plantilla de Día creada con éxito',
 				type: 'success'

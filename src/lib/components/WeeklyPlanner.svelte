@@ -272,10 +272,10 @@
 		const id = crypto.randomUUID ? crypto.randomUUID() : `event-${Date.now()}`;
 		const newEvt: ScheduledEvent = {
 			id,
-			...eventData
+			...$state.snapshot(eventData)
 		};
 
-		await db.scheduledEvents.add(newEvt);
+		await db.scheduledEvents.add($state.snapshot(newEvt));
 		toastStore.show({
 			title: 'Bloque programado',
 			message: `"${newEvt.title}" añadido con éxito.`,
