@@ -37,7 +37,7 @@ export const db = new DynamicPlannerDatabase();
 /**
  * Calculates start and end times helper
  */
-function addMinutesToTime(timeStr: string, minutes: number): string {
+export function addMinutesToTime(timeStr: string, minutes: number): string {
 	const [h, m] = timeStr.split(':').map(Number);
 	const totalMin = h * 60 + m + minutes;
 	const hours = Math.floor(totalMin / 60) % 24;

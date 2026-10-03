@@ -61,13 +61,15 @@
 	// Quick Add Modal State
 	let isAddModalOpen = $state(false);
 	let targetDateForNewEvent = $state('');
+	let initialStartTimeForNewEvent = $state('09:00');
 
 	// Edit Modal State
 	let isEditModalOpen = $state(false);
 	let selectedEventForEdit = $state<ScheduledEvent | null>(null);
 
-	function openAddModal(dateStr: string) {
+	function openAddModal(dateStr: string, suggestedStartTime = '09:00') {
 		targetDateForNewEvent = dateStr;
+		initialStartTimeForNewEvent = suggestedStartTime;
 		isAddModalOpen = true;
 	}
 
@@ -599,7 +601,11 @@
 				{#if !isReadOnly}
 					<button
 						type="button"
-						onclick={() => openAddModal(day.dateStr)}
+						onclick={() => {
+							const dayEvts = dayColumns[dayIndex] || [];
+							const lastEvt = dayEvts[dayEvts.length - 1];
+							openAddModal(day.dateStr, lastEvt ? lastEvt.endTime : '09:00');
+						}}
 						class="no-export m-2 flex items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800/80 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200 transition-all cursor-pointer"
 					>
 						<Plus class="h-3 w-3" />
@@ -615,6 +621,8 @@
 <AddEventModal
 	bind:isOpen={isAddModalOpen}
 	targetDate={targetDateForNewEvent}
+	initialStartTime={initialStartTimeForNewEvent}
+	{activityTemplates}
 	onSave={handleCreateEvent}
 />
 

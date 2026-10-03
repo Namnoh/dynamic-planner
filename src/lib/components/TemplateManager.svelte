@@ -10,8 +10,9 @@
 	let activities = $state<ActivityTemplate[]>([]);
 	let dayTemplates = $state<DayTemplate[]>([]);
 
-	// New Activity Form State
+	// Activity Form State (Creation & Editing)
 	let isCreatingActivity = $state(false);
+	let editingActivityId = $state<string | null>(null);
 	let actTitle = $state('');
 	let actCategory = $state('');
 	let actDuration = $state(60);
@@ -48,6 +49,48 @@
 		loadData();
 	});
 
+	function handleStartCreateActivity() {
+		editingActivityId = null;
+		actTitle = '';
+		actCategory = '';
+		actDuration = 60;
+		actColor = '#3b82f6';
+		actNotes = '';
+		activityErrors = {};
+		isCreatingActivity = true;
+	}
+
+	function handleStartEditActivity(act: ActivityTemplate) {
+		editingActivityId = act.id;
+		actTitle = act.title;
+		actCategory = act.category || '';
+		actDuration = act.defaultDuration;
+		actColor = act.color;
+		actNotes = act.notes || '';
+		activityErrors = {};
+		isCreatingActivity = true;
+
+		if (typeof document !== 'undefined') {
+			setTimeout(() => {
+				const formEl = document.getElementById('activity-template-form');
+				formEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+			}, 50);
+		}
+	}
+
+	function handleToggleActivityForm() {
+		if (isCreatingActivity) {
+			isCreatingActivity = false;
+			editingActivityId = null;
+			actTitle = '';
+			actCategory = '';
+			actNotes = '';
+			activityErrors = {};
+		} else {
+			handleStartCreateActivity();
+		}
+	}
+
 	async function handleSaveActivity() {
 		activityErrors = {};
 		let hasError = false;
@@ -64,22 +107,38 @@
 
 		if (hasError) return;
 
-		const id = crypto.randomUUID ? crypto.randomUUID() : `act-${Date.now()}`;
-		const newAct: ActivityTemplate = {
-			id,
-			title: actTitle.trim(),
-			category: actCategory || undefined,
-			defaultDuration: Number(actDuration),
-			color: actColor,
-			notes: actNotes.trim() || undefined
-		};
+		if (editingActivityId) {
+			await db.activityTemplates.update(editingActivityId, {
+				title: actTitle.trim(),
+				category: actCategory || undefined,
+				defaultDuration: Number(actDuration),
+				color: actColor,
+				notes: actNotes.trim() || undefined
+			});
+			toastStore.show({
+				title: 'Bloque de actividad actualizado',
+				type: 'success'
+			});
+		} else {
+			const id = crypto.randomUUID ? crypto.randomUUID() : `act-${Date.now()}`;
+			const newAct: ActivityTemplate = {
+				id,
+				title: actTitle.trim(),
+				category: actCategory || undefined,
+				defaultDuration: Number(actDuration),
+				color: actColor,
+				notes: actNotes.trim() || undefined
+			};
 
-		await db.activityTemplates.add(newAct);
-		toastStore.show({
-			title: 'Bloque base creado',
-			type: 'success'
-		});
+			await db.activityTemplates.add(newAct);
+			toastStore.show({
+				title: 'Bloque base creado',
+				type: 'success'
+			});
+		}
+
 		isCreatingActivity = false;
+		editingActivityId = null;
 		actTitle = '';
 		actCategory = '';
 		actNotes = '';
@@ -90,6 +149,14 @@
 
 	async function handleDeleteActivity(id: string) {
 		await db.activityTemplates.delete(id);
+		if (editingActivityId === id) {
+			isCreatingActivity = false;
+			editingActivityId = null;
+			actTitle = '';
+			actCategory = '';
+			actNotes = '';
+			activityErrors = {};
+		}
 		toastStore.show({ title: 'Actividad eliminada', type: 'info' });
 		await loadData();
 		onTemplatesUpdated?.();
@@ -321,7 +388,7 @@
 				class="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3.5 py-2 text-xs font-semibold text-white transition-all shadow-md cursor-pointer"
 			>
 				<Plus class="h-4 w-4" />
-				<span>
+				<span class="hidden sm:inline-block">
 					{#if isCreatingDayTemplate}
 						{editingDayTemplateId ? 'Cancelar Edición' : 'Cerrar Creador'}
 					{:else}
@@ -649,29 +716,53 @@
 			<div>
 				<h3 class="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
 					<Tag class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-					Catálogo de Bloques de Actividad
+					Bloques de Actividad
 				</h3>
 				<p class="text-xs text-slate-500 dark:text-slate-400">
-					Bloques atómicos personalizables (categoría, duración habitual, color) para reutilizar en cualquier día.
+					Bloques personalizables (categoría, duración habitual, color) para reutilizar en cualquier día.
 				</p>
 			</div>
 
 			<button
 				type="button"
-				onclick={() => {
-					isCreatingActivity = !isCreatingActivity;
-					activityErrors = {};
-				}}
+				onclick={handleToggleActivityForm}
 				class="flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 px-3.5 py-2 text-xs font-semibold text-slate-800 dark:text-slate-200 transition-all cursor-pointer"
 			>
 				<Plus class="h-4 w-4" />
-				<span>{isCreatingActivity ? 'Cerrar' : 'Crear Bloque'}</span>
+				<span class="hidden sm:inline-block">
+					{#if isCreatingActivity}
+						{editingActivityId ? 'Cancelar Edición' : 'Cerrar'}
+					{:else}
+						Crear Bloque
+					{/if}
+				</span>
 			</button>
 		</div>
 
 		{#if isCreatingActivity}
-			<div class="rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/90 p-5 space-y-4 animate-in fade-in duration-200">
-				<h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">Nuevo Bloque Base</h4>
+			<div
+				id="activity-template-form"
+				class="rounded-2xl border {editingActivityId
+					? 'border-indigo-400 dark:border-indigo-500/50 bg-indigo-50/30 dark:bg-slate-900/90'
+					: 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/90'} p-5 space-y-4 animate-in fade-in duration-200"
+			>
+				<div class="flex items-center justify-between">
+					<h4 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+						{#if editingActivityId}
+							<Pencil class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+							<span>Editar Bloque de Actividad</span>
+						{:else}
+							<Plus class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+							<span>Nuevo Bloque Base</span>
+						{/if}
+					</h4>
+					{#if editingActivityId}
+						<span class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full">
+							Modo Edición
+						</span>
+					{/if}
+				</div>
+
 				<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
 					<div>
 						<label for="act-title-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -737,6 +828,22 @@
 					</div>
 				</div>
 
+				<div>
+					<div class="flex items-center justify-between mb-1">
+						<label for="act-notes-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300">
+							Notas o descripción del bloque
+						</label>
+						<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+					</div>
+					<input
+						id="act-notes-input"
+						type="text"
+						bind:value={actNotes}
+						placeholder="Ej: Preparar apuntes, modo avión, hidratación..."
+						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden transition-colors"
+					/>
+				</div>
+
 				<ColorPicker bind:selectedColor={actColor} label="Color de la Actividad" />
 
 				<div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
@@ -744,6 +851,10 @@
 						type="button"
 						onclick={() => {
 							isCreatingActivity = false;
+							editingActivityId = null;
+							actTitle = '';
+							actCategory = '';
+							actNotes = '';
 							activityErrors = {};
 						}}
 						class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
@@ -753,9 +864,9 @@
 					<button
 						type="button"
 						onclick={handleSaveActivity}
-						class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white shadow-md cursor-pointer"
+						class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white shadow-md cursor-pointer transition-colors"
 					>
-						Guardar Bloque
+						{editingActivityId ? 'Actualizar Bloque' : 'Guardar Bloque'}
 					</button>
 				</div>
 			</div>
@@ -764,11 +875,13 @@
 		<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
 			{#each activities as act}
 				<div
-					class="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 p-3 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs"
+					class="flex items-center justify-between rounded-xl border p-3 transition-all shadow-xs {editingActivityId === act.id
+						? 'border-indigo-400 dark:border-indigo-500 ring-2 ring-indigo-500/40 bg-indigo-50/50 dark:bg-indigo-950/40'
+						: 'border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'}"
 					style="border-left: 4px solid {act.color};"
 				>
-					<div class="space-y-0.5">
-						<h5 class="text-xs font-semibold text-slate-900 dark:text-slate-100">{act.title}</h5>
+					<div class="space-y-0.5 min-w-0 pr-2">
+						<h5 class="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">{act.title}</h5>
 						<div class="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
 							{#if act.category}
 								<span class="uppercase tracking-wider font-bold">{act.category}</span>
@@ -776,15 +889,28 @@
 							{/if}
 							<span>{act.defaultDuration} min</span>
 						</div>
+						{#if act.notes}
+							<p class="text-[10px] text-slate-400 dark:text-slate-500 truncate">{act.notes}</p>
+						{/if}
 					</div>
-					<button
-						type="button"
-						onclick={() => handleDeleteActivity(act.id)}
-						class="text-slate-400 hover:text-rose-500 p-1 cursor-pointer"
-						title="Eliminar bloque base"
-					>
-						<Trash2 class="h-3.5 w-3.5" />
-					</button>
+					<div class="flex items-center gap-0.5 shrink-0">
+						<button
+							type="button"
+							onclick={() => handleStartEditActivity(act)}
+							class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 cursor-pointer transition-colors"
+							title="Editar bloque de actividad"
+						>
+							<Pencil class="h-3.5 w-3.5" />
+						</button>
+						<button
+							type="button"
+							onclick={() => handleDeleteActivity(act.id)}
+							class="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition-colors"
+							title="Eliminar bloque base"
+						>
+							<Trash2 class="h-3.5 w-3.5" />
+						</button>
+					</div>
 				</div>
 			{/each}
 		</div>

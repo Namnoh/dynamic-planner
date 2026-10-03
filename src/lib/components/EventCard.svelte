@@ -84,7 +84,7 @@
 			title="Editar bloque"
 			aria-label="Editar bloque"
 		>
-			<Pencil class="h-3 w-3 stroke-[2]" />
+			<Pencil class="h-3 w-3 stroke-2" />
 		</button>
 
 		<!-- Delete Button -->
@@ -98,7 +98,7 @@
 			title="Eliminar bloque"
 			aria-label="Eliminar bloque"
 		>
-			<Trash2 class="h-3 w-3 stroke-[2]" />
+			<Trash2 class="h-3 w-3 stroke-2" />
 		</button>
 	</div>
 	{/if}
@@ -136,7 +136,7 @@
 	{#if (event.subtasks && event.subtasks.length > 0) || event.notes}
 		<div class="flex items-center justify-between gap-2 pt-0.5 text-[10px] text-slate-400 dark:text-slate-500">
 			{#if event.notes}
-				<span class="truncate italic max-w-[130px]" title={event.notes}>
+				<span class="truncate italic max-w-32.5" title={event.notes}>
 					{event.notes}
 				</span>
 			{/if}
