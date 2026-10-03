@@ -17,10 +17,12 @@
 	import AddEventModal from './AddEventModal.svelte';
 	import EditEventModal from './EditEventModal.svelte';
 	import ReadOnlyFloatingPill from './ReadOnlyFloatingPill.svelte';
+	import WeekPickerCalendar from './WeekPickerCalendar.svelte';
 	import { toastStore, sendPlannerNotification } from '$lib/utils/notifications';
 	import {
 		ChevronLeft,
 		ChevronRight,
+		ChevronDown,
 		Calendar,
 		Camera,
 		Sparkles,
@@ -37,6 +39,7 @@
 	let dayTemplates = $state<DayTemplate[]>([]);
 	let activityTemplates = $state<ActivityTemplate[]>([]);
 	let isExportModalOpen = $state(false);
+	let isWeekPickerOpen = $state(false);
 	let boardElement = $state<HTMLElement | null>(null);
 	let blockColorStyle = $state<BlockColorStyle>(settingsStore.current);
 	let isReadOnly = $state(readOnlyStore.current);
@@ -156,11 +159,21 @@
 		refreshData();
 	});
 
+	const isCurrentWeek = $derived.by(() => {
+		const todayMonday = getMondayOfCurrentWeek();
+		return (
+			currentMonday.getFullYear() === todayMonday.getFullYear() &&
+			currentMonday.getMonth() === todayMonday.getMonth() &&
+			currentMonday.getDate() === todayMonday.getDate()
+		);
+	});
+
 	// Navigation handlers
 	function prevWeek() {
 		const next = new Date(currentMonday);
 		next.setDate(next.getDate() - 7);
 		currentMonday = next;
+		isWeekPickerOpen = false;
 		setTimeout(rebuildDayColumns, 0);
 	}
 
@@ -168,11 +181,19 @@
 		const next = new Date(currentMonday);
 		next.setDate(next.getDate() + 7);
 		currentMonday = next;
+		isWeekPickerOpen = false;
 		setTimeout(rebuildDayColumns, 0);
 	}
 
 	function goToCurrentWeek() {
 		currentMonday = getMondayOfCurrentWeek();
+		isWeekPickerOpen = false;
+		setTimeout(rebuildDayColumns, 0);
+	}
+
+	function handleSelectWeek(monday: Date) {
+		currentMonday = monday;
+		isWeekPickerOpen = false;
 		setTimeout(rebuildDayColumns, 0);
 	}
 
@@ -327,129 +348,165 @@
 
 <div class="flex flex-col gap-5 w-full">
 	<!-- Top Control Bar -->
-	<header
-		class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 p-4 shadow-md dark:shadow-xl backdrop-blur-md transition-colors"
-	>
-		<!-- Left: Week Navigation -->
-		<div class="flex items-center gap-2">
-			<div class="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 border border-slate-200 dark:border-slate-700/60 shadow-inner">
+	<header class="flex flex-col md:flex-row items-center justify-between gap-1">
+		<!-- Left: Export, Demo and Data Controls -->
+		<div class="relative z-30 mt-auto flex w-full items-center justify-center md:h-30 lg:h-20 md:w-fit rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-md dark:shadow-xl transition-colors">
+			<div class="flex justify-around gap-2 flex-nowrap md:flex-wrap lg:flex-nowrap">
 				<button
 					type="button"
-					onclick={prevWeek}
-					class="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white transition-colors cursor-pointer"
-					title="Semana anterior"
+					onclick={() => (isExportModalOpen = true)}
+					class="text-nowrap flex items-center gap-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-600/20 border border-emerald-300 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-600/30 px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer shadow-xs"
+					title="Exportar horario en PNG, JPEG o WebP"
 				>
-					<ChevronLeft class="h-4 w-4" />
+					<Camera class="h-3.5 w-3.5" />
+					<span>Exportar Horario</span>
 				</button>
+
+				{#if import.meta.env.DEV}
+					<button
+						type="button"
+						onclick={handleSeedDemo}
+						class="text-nowrap flex items-center gap-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 px-2.5 py-1.5 text-xs font-medium transition-all cursor-pointer"
+						title="Cargar rutina de ejemplo (Solo disponible en desarrollo local)"
+					>
+						<Sparkles class="h-3.5 w-3.5" />
+						<span class="hidden md:inline">Cargar Demo</span>
+					</button>
+				{/if}
+
 				<button
+					type="button"
+					onclick={handleClearAll}
+					disabled={isReadOnly}
+					class="rounded-xl p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-500/20 dark:hover:text-rose-300 border border-slate-200 dark:border-slate-700/60 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+					title="Limpiar todo (Lienzo en blanco)"
+				>
+					<Trash2 class="h-3.5 w-3.5 text-red-500" />
+				</button>
+
+				<!-- Backup JSON Menu -->
+				<div class="flex items-center rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-800/60 p-0.5">
+					<button
+						type="button"
+						onclick={handleExportJson}
+						class="p-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+						title="Exportar respaldo JSON local"
+					>
+						<FileDown class="h-3.5 w-3.5" />
+					</button>
+					<label
+						class="p-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
+						title="Importar respaldo JSON"
+					>
+						<FileUp class="h-3.5 w-3.5" />
+						<input type="file" accept=".json" onchange={handleImportJson} class="hidden" />
+					</label>
+				</div>
+			</div>
+		</div>
+
+
+		<!-- Rigth: Week Navigation & Quick Apply Template -->
+		<div class="relative z-30 w-full md:h-30 lg:h-20 flex flex-wrap lg:flex-nowrap items-center justify-around gap-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-md dark:shadow-xl transition-colors">
+			<div class="relative flex items-center gap-2">
+				<div class="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 border border-slate-200 dark:border-slate-700/60 shadow-inner">
+					<button
+						type="button"
+						onclick={prevWeek}
+						class="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white transition-colors cursor-pointer"
+						title="Semana anterior"
+						aria-label="Semana anterior"
+					>
+						<ChevronLeft class="h-4 w-4" />
+					</button>
+	
+					<!-- Middle button: now weekRangeLabel, triggers calendar picker -->
+					<button
+						type="button"
+						onclick={() => (isWeekPickerOpen = !isWeekPickerOpen)}
+						class="inline-flex items-center gap-2 px-3 py-1 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200/70 dark:hover:bg-slate-700/70 rounded-lg transition-colors cursor-pointer"
+						title="Abrir calendario para seleccionar semana"
+						aria-label="Seleccionar semana: {weekRangeLabel}"
+						aria-expanded={isWeekPickerOpen}
+					>
+						<Calendar class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+						<span>{weekRangeLabel}</span>
+						<ChevronDown class="h-3.5 w-3.5 text-slate-400 transition-transform duration-200 {isWeekPickerOpen ? 'rotate-180 text-indigo-600 dark:text-indigo-400' : ''}" />
+					</button>
+	
+					<button
+						type="button"
+						onclick={nextWeek}
+						class="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white transition-colors cursor-pointer"
+						title="Semana siguiente"
+						aria-label="Semana siguiente"
+					>
+						<ChevronRight class="h-4 w-4" />
+					</button>
+				</div>
+	
+				<!-- "Today" button now to the right -->
+				<!-- For now, we'll keep it hidden -->
+				<!-- <button
 					type="button"
 					onclick={goToCurrentWeek}
-					class="px-3 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white transition-colors cursor-pointer"
+					class="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold border transition-all cursor-pointer shadow-xs {isCurrentWeek
+						? 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-500 dark:border-slate-800/60'
+						: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 dark:text-indigo-300 dark:border-indigo-800 font-bold'}"
+					title="Ir a la semana actual (Hoy)"
+					aria-label="Ir a la semana actual (Hoy)"
 				>
 					Hoy
-				</button>
-				<button
-					type="button"
-					onclick={nextWeek}
-					class="rounded-lg p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white transition-colors cursor-pointer"
-					title="Semana siguiente"
-				>
-					<ChevronRight class="h-4 w-4" />
-				</button>
+				</button> -->
+	
+				<!-- Calendar Week Picker Popover -->
+				{#if isWeekPickerOpen}
+					<WeekPickerCalendar
+						{currentMonday}
+						isOpen={isWeekPickerOpen}
+						onSelectWeek={handleSelectWeek}
+						onClose={() => (isWeekPickerOpen = false)}
+					/>
+				{/if}
 			</div>
-
-			<div class="flex items-center gap-2 pl-2">
-				<Calendar class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-				<span class="text-sm font-bold tracking-tight text-slate-800 dark:text-slate-100">
-					{weekRangeLabel}
-				</span>
-			</div>
-		</div>
-
-		<!-- Center: Quick Apply Template -->
-		<div class="flex items-center gap-2 flex-wrap">
-			<div class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-				<Layers class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-				<span class="hidden sm:inline">Plantilla:</span>
-			</div>
-			<select
-				bind:value={selectedTemplateId}
-				class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
-			>
-				<option value="">Seleccionar plantilla...</option>
-				{#each dayTemplates as tpl}
-					<option value={tpl.id}>{tpl.name}</option>
-				{/each}
-			</select>
-			<select
-				bind:value={targetDayOffset}
-				class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
-			>
-				{#each weekDays as d, idx}
-					<option value={idx}>{d.dayName} ({d.dayNumber})</option>
-				{/each}
-			</select>
-			<button
-				type="button"
-				onclick={handleApplyTemplate}
-				disabled={!selectedTemplateId || isReadOnly}
-				class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
-			>
-				Aplicar
-			</button>
-		</div>
-
-		<!-- Right: Export, Demo and Data Controls -->
-		<div class="flex items-center gap-2 flex-wrap">
-			<button
-				type="button"
-				onclick={() => (isExportModalOpen = true)}
-				class="flex items-center gap-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-600/20 border border-emerald-300 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-600/30 px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer shadow-xs"
-				title="Exportar horario en PNG, JPEG o WebP"
-			>
-				<Camera class="h-3.5 w-3.5" />
-				<span>Exportar Horario</span>
-			</button>
-
-			{#if import.meta.env.DEV}
+	
+			<!-- Quick Apply Template -->
+			<div class="flex justify-center items-center gap-2 flex-wrap md:flex-nowrap lg:flex-1 lg:min-w-0">
+				<div class="flex items-center overflow-hidden rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-800 lg:flex-1 lg:min-w-0">
+					<label
+						for="template-select"
+						class="flex shrink-0 items-center gap-1.5 border-r border-slate-300 px-2.5 py-1.5 text-nowrap text-xs text-slate-600 dark:border-slate-700 dark:text-slate-400"
+					>
+						<Layers class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+						<span class="hidden sm:inline">Plantilla:</span>
+					</label>
+					<select
+						id="template-select"
+						bind:value={selectedTemplateId}
+						class="min-w-0 flex-1 border-0 bg-transparent px-2.5 py-1.5 text-xs text-slate-800 focus:border-0 focus:outline-hidden focus:ring-0 dark:text-slate-200 text-center"
+					>
+						<option value="">Seleccionar plantilla...</option>
+						{#each dayTemplates as tpl}
+							<option value={tpl.id}>{tpl.name}</option>
+						{/each}
+					</select>
+				</div>
+				<select
+					bind:value={targetDayOffset}
+					class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden text-center"
+				>
+					{#each weekDays as d, idx}
+						<option value={idx}>{d.dayName} ({d.dayNumber})</option>
+					{/each}
+				</select>
 				<button
-					type="button"
-					onclick={handleSeedDemo}
-					class="flex items-center gap-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 px-2.5 py-1.5 text-xs font-medium transition-all cursor-pointer"
-					title="Cargar rutina de ejemplo (Solo disponible en desarrollo local)"
-				>
-					<Sparkles class="h-3.5 w-3.5" />
-					<span class="hidden md:inline">Cargar Demo</span>
-				</button>
-			{/if}
-
-			<button
-				type="button"
-				onclick={handleClearAll}
-				disabled={isReadOnly}
-				class="rounded-xl p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-500/20 dark:hover:text-rose-300 border border-slate-200 dark:border-slate-700/60 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-				title="Limpiar todo (Lienzo en blanco)"
-			>
-				<Trash2 class="h-3.5 w-3.5" />
-			</button>
-
-			<!-- Backup JSON Menu -->
-			<div class="flex items-center rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-800/60 p-0.5">
-				<button
-					type="button"
-					onclick={handleExportJson}
-					class="p-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
-					title="Exportar respaldo JSON local"
-				>
-					<FileDown class="h-3.5 w-3.5" />
-				</button>
-				<label
-					class="p-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
-					title="Importar respaldo JSON"
-				>
-					<FileUp class="h-3.5 w-3.5" />
-					<input type="file" accept=".json" onchange={handleImportJson} class="hidden" />
-				</label>
+						type="button"
+						onclick={handleApplyTemplate}
+						disabled={!selectedTemplateId || isReadOnly}
+						class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+					>
+						Aplicar
+					</button>
 			</div>
 		</div>
 	</header>
