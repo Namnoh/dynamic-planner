@@ -1,7 +1,8 @@
 <script lang="ts">
-	import type { ScheduledEvent } from '$lib/types';
+	import { CATEGORY_OPTIONS, type ScheduledEvent } from '$lib/types';
 	import Modal from './Modal.svelte';
 	import ColorPicker from './ColorPicker.svelte';
+	import SearchableSelect from './SearchableSelect.svelte';
 	import { Pencil, Trash2 } from 'lucide-svelte';
 
 	let {
@@ -27,6 +28,13 @@
 	let notes = $state('');
 	let completed = $state(false);
 	let errors = $state<{ title?: string; date?: string; startTime?: string; endTime?: string }>({});
+
+	const dayOptions = $derived.by(() =>
+		weekDays.map((d) => ({
+			value: d.dateStr,
+			label: `${d.dayName} (${d.dayNumber}) - ${d.dateStr}`
+		}))
+	);
 
 	// Synchronize form when active event changes
 	$effect(() => {
@@ -130,18 +138,17 @@
 				<label for="edit-event-date-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
 					Día Asignado <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
 				</label>
-				<select
+				<SearchableSelect
 					id="edit-event-date-select"
 					bind:value={date}
-					onchange={() => { if (errors.date) errors.date = ''; }}
-					class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.date
-						? 'border-rose-500 focus:border-rose-500'
-						: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
-				>
-					{#each weekDays as d}
-						<option value={d.dateStr}>{d.dayName} ({d.dayNumber}) - {d.dateStr}</option>
-					{/each}
-				</select>
+					options={dayOptions}
+					placeholder="Selecciona el día..."
+					searchPlaceholder="Buscar día..."
+					buttonClass={errors.date ? 'border-rose-500 focus:border-rose-500' : ''}
+					onchange={() => {
+						if (errors.date) errors.date = '';
+					}}
+				/>
 				{#if errors.date}
 					<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
 						{errors.date}
@@ -197,19 +204,13 @@
 					</label>
 					<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
 				</div>
-				<select
+				<SearchableSelect
 					id="edit-event-category-select"
 					bind:value={category}
-					class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-				>
-					<option value="">Sin categoría (Opcional)</option>
-					<option value="work">Trabajo (Work)</option>
-					<option value="study">Estudio (Study)</option>
-					<option value="sport">Deporte (Sport)</option>
-					<option value="social">Social</option>
-					<option value="hobby">Hobby / Creativo</option>
-					<option value="rest">Descanso (Rest)</option>
-				</select>
+					options={CATEGORY_OPTIONS}
+					placeholder="Sin categoría (Opcional)"
+					searchPlaceholder="Buscar categoría..."
+				/>
 			</div>
 
 			<ColorPicker bind:selectedColor={color} label="Color del Bloque" />

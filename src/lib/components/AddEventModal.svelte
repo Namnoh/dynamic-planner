@@ -1,8 +1,9 @@
 <script lang="ts">
-	import type { ScheduledEvent, ActivityTemplate } from '$lib/types';
+	import { CATEGORY_OPTIONS, type ScheduledEvent, type ActivityTemplate } from '$lib/types';
 	import { addMinutesToTime } from '$lib/db';
 	import Modal from './Modal.svelte';
 	import ColorPicker from './ColorPicker.svelte';
+	import SearchableSelect from './SearchableSelect.svelte';
 	import { Plus, Tag } from 'lucide-svelte';
 
 	let {
@@ -58,11 +59,20 @@
 		if (errors.endTime) errors.endTime = '';
 	}
 
-	function handleActivitySelectChange(e: Event) {
-		const target = e.target as HTMLSelectElement;
-		const actId = target.value;
+	const activityOptions = $derived.by(() => [
+		{ value: '', label: '-- Elige un bloque de actividad base --' },
+		...activityTemplates.map((act) => ({
+			value: act.id,
+			label: act.title,
+			sublabel: `${act.defaultDuration} min${act.category ? ` • ${act.category}` : ''}`,
+			color: act.color
+		}))
+	]);
+
+	function handleActivityChosen(actId: string) {
+		selectedActivityId = actId;
 		if (!actId) {
-			selectedActivityId = '';
+			handleClearSelection();
 			return;
 		}
 		const found = activityTemplates.find((a) => a.id === actId);
@@ -159,19 +169,15 @@
 						{/if}
 					</div>
 
-					<select
+					<SearchableSelect
 						id="base-activity-select"
 						value={selectedActivityId}
-						onchange={handleActivitySelectChange}
-						class="w-full rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden cursor-pointer shadow-xs"
-					>
-						<option value="">-- Elige un bloque de actividad base --</option>
-						{#each activityTemplates as act}
-							<option value={act.id}>
-								{act.title} ({act.defaultDuration} min){act.category ? ` • ${act.category}` : ''}
-							</option>
-						{/each}
-					</select>
+						options={activityOptions}
+						placeholder="-- Elige un bloque de actividad base --"
+						searchPlaceholder="Buscar bloque de actividad..."
+						buttonClass="border-indigo-200 dark:border-indigo-800"
+						onchange={(val) => handleActivityChosen(String(val))}
+					/>
 
 					<!-- Quick Chips for 1-Click Pick -->
 					<div class="flex flex-wrap gap-1.5 pt-0.5">
@@ -262,19 +268,13 @@
 					</label>
 					<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
 				</div>
-				<select
+				<SearchableSelect
 					id="new-event-category-select"
 					bind:value={category}
-					class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden cursor-pointer"
-				>
-					<option value="">Sin categoría (Opcional)</option>
-					<option value="work">Trabajo (Work)</option>
-					<option value="study">Estudio (Study)</option>
-					<option value="sport">Deporte (Sport)</option>
-					<option value="social">Social</option>
-					<option value="hobby">Hobby / Creativo</option>
-					<option value="rest">Descanso (Rest)</option>
-				</select>
+					options={CATEGORY_OPTIONS}
+					placeholder="Sin categoría (Opcional)"
+					searchPlaceholder="Buscar categoría..."
+				/>
 			</div>
 
 			<div>

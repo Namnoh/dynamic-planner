@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { db } from '$lib/db';
-	import type { ActivityTemplate, DayTemplate, DayTemplateBlock } from '$lib/types';
+	import { CATEGORY_OPTIONS, type ActivityTemplate, type DayTemplate, type DayTemplateBlock } from '$lib/types';
 	import { toastStore } from '$lib/utils/notifications';
 	import ColorPicker from './ColorPicker.svelte';
+	import SearchableSelect from './SearchableSelect.svelte';
 	import { Plus, Trash2, Clock, Layers, Tag, Pencil, ArrowUpDown } from 'lucide-svelte';
 
 	let { onTemplatesUpdated }: { onTemplatesUpdated?: () => void } = $props();
@@ -35,6 +36,15 @@
 	let blockDuration = $state(60);
 	let blockCustomTitle = $state('');
 	let blockErrors = $state<{ activityId?: string; startTime?: string; duration?: string }>({});
+
+	const blockActivityOptions = $derived.by(() =>
+		activities.map((act) => ({
+			value: act.id,
+			label: act.title,
+			sublabel: `${act.defaultDuration} min${act.category ? ` • ${act.category}` : ''}`,
+			color: act.color
+		}))
+	);
 
 	async function loadData() {
 		activities = await db.activityTemplates.toArray();
@@ -483,24 +493,21 @@
 							<label for="block-act-select" class="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">
 								Actividad Base <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
 							</label>
-							<select
+							<SearchableSelect
 								id="block-act-select"
 								bind:value={selectedActivityIdForBlock}
-								onchange={() => {
+								options={blockActivityOptions}
+								placeholder="Seleccionar actividad..."
+								searchPlaceholder="Buscar actividad..."
+								buttonClass={blockErrors.activityId ? 'border-rose-500 focus:border-rose-500' : ''}
+								onchange={(val) => {
 									if (blockErrors.activityId) blockErrors.activityId = '';
-									const found = activities.find((a) => a.id === selectedActivityIdForBlock);
+									const found = activities.find((a) => a.id === val);
 									if (found && editingBlockIndex === null) {
 										blockDuration = found.defaultDuration;
 									}
 								}}
-								class="w-full rounded-lg border bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden transition-colors {blockErrors.activityId
-									? 'border-rose-500 focus:border-rose-500'
-									: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
-							>
-								{#each activities as act}
-									<option value={act.id}>{act.title}</option>
-								{/each}
-							</select>
+							/>
 							{#if blockErrors.activityId}
 								<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
 									{blockErrors.activityId}
@@ -796,19 +803,13 @@
 							</label>
 							<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
 						</div>
-						<select
+						<SearchableSelect
 							id="act-cat-select"
 							bind:value={actCategory}
-							class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-800 dark:text-slate-200"
-						>
-							<option value="">Sin categoría (Opcional)</option>
-							<option value="work">Trabajo (Work)</option>
-							<option value="study">Estudio (Study)</option>
-							<option value="sport">Deporte (Sport)</option>
-							<option value="social">Social</option>
-							<option value="hobby">Hobby / Creativo</option>
-							<option value="rest">Descanso (Rest)</option>
-						</select>
+							options={CATEGORY_OPTIONS}
+							placeholder="Sin categoría (Opcional)"
+							searchPlaceholder="Buscar categoría..."
+						/>
 					</div>
 					<div>
 						<label for="act-dur-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">

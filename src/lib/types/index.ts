@@ -9,6 +9,22 @@ export type ActivityCategory =
 	| 'chores'
 	| string;
 
+export interface CategoryOption {
+	value: ActivityCategory | '';
+	label: string;
+	color?: string;
+}
+
+export const CATEGORY_OPTIONS: CategoryOption[] = [
+	{ value: '', label: 'Sin categoría (Opcional)' },
+	{ value: 'work', label: 'Trabajo (Work)', color: '#3b82f6' },
+	{ value: 'study', label: 'Estudio (Study)', color: '#6366f1' },
+	{ value: 'sport', label: 'Deporte (Sport)', color: '#f59e0b' },
+	{ value: 'social', label: 'Social', color: '#ec4899' },
+	{ value: 'hobby', label: 'Hobby / Creativo', color: '#10b981' },
+	{ value: 'rest', label: 'Descanso (Rest)', color: '#8b5cf6' }
+];
+
 export interface ActivityTemplate {
 	id: string;
 	title: string;

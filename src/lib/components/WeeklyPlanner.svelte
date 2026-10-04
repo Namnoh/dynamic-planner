@@ -18,6 +18,7 @@
 	import EditEventModal from './EditEventModal.svelte';
 	import ReadOnlyFloatingPill from './ReadOnlyFloatingPill.svelte';
 	import WeekPickerCalendar from './WeekPickerCalendar.svelte';
+	import SearchableSelect from './SearchableSelect.svelte';
 	import { toastStore, sendPlannerNotification } from '$lib/utils/notifications';
 	import {
 		ChevronLeft,
@@ -135,6 +136,23 @@
 		const endStr = end.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 		return `${startStr} — ${endStr}`;
 	});
+
+	// Select options for applying day template
+	const templateOptions = $derived.by(() => [
+		{ value: '', label: 'Seleccionar plantilla...' },
+		...dayTemplates.map((tpl) => ({
+			value: tpl.id,
+			label: tpl.name,
+			sublabel: `${tpl.blocks.length} bloque${tpl.blocks.length === 1 ? '' : 's'}`
+		}))
+	]);
+
+	const dayOptions = $derived.by(() =>
+		weekDays.map((d, idx) => ({
+			value: idx,
+			label: `${d.dayName} (${d.dayNumber})`
+		}))
+	);
 
 	// Load DB data
 	async function refreshData() {
@@ -474,41 +492,40 @@
 	
 			<!-- Quick Apply Template -->
 			<div class="flex justify-center items-center gap-2 flex-wrap md:flex-nowrap lg:flex-1 lg:min-w-0">
-				<div class="flex items-center overflow-hidden rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-800 lg:flex-1 lg:min-w-0">
-					<label
-						for="template-select"
-						class="flex shrink-0 items-center gap-1.5 border-r border-slate-300 px-2.5 py-1.5 text-nowrap text-xs text-slate-600 dark:border-slate-700 dark:text-slate-400"
+				<div class="flex items-center rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-800 lg:flex-1 lg:min-w-0 relative">
+					<span
+						class="flex shrink-0 items-center gap-1.5 border-r border-slate-300 dark:border-slate-700 px-2.5 py-1.5 text-nowrap text-xs text-slate-600 dark:text-slate-400"
 					>
 						<Layers class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
 						<span class="hidden sm:inline">Plantilla:</span>
-					</label>
-					<select
+					</span>
+					<SearchableSelect
 						id="template-select"
 						bind:value={selectedTemplateId}
-						class="min-w-0 flex-1 border-0 bg-transparent px-2.5 py-1.5 text-xs text-slate-800 focus:border-0 focus:outline-hidden focus:ring-0 dark:text-slate-200 text-center"
-					>
-						<option value="">Seleccionar plantilla...</option>
-						{#each dayTemplates as tpl}
-							<option value={tpl.id}>{tpl.name}</option>
-						{/each}
-					</select>
+						options={templateOptions}
+						placeholder="Seleccionar plantilla..."
+						searchPlaceholder="Buscar plantilla..."
+						class="flex-1 min-w-0"
+						buttonClass="border-0 shadow-none bg-transparent rounded-l-none text-xs py-1.5"
+						disabled={isReadOnly}
+					/>
 				</div>
-				<select
+				<SearchableSelect
 					bind:value={targetDayOffset}
-					class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden text-center"
-				>
-					{#each weekDays as d, idx}
-						<option value={idx}>{d.dayName} ({d.dayNumber})</option>
-					{/each}
-				</select>
+					options={dayOptions}
+					class="w-auto shrink-0"
+					buttonClass="text-xs py-1.5 min-w-[130px]"
+					searchPlaceholder="Buscar día..."
+					disabled={isReadOnly}
+				/>
 				<button
-						type="button"
-						onclick={handleApplyTemplate}
-						disabled={!selectedTemplateId || isReadOnly}
-						class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
-					>
-						Aplicar
-					</button>
+					type="button"
+					onclick={handleApplyTemplate}
+					disabled={!selectedTemplateId || isReadOnly}
+					class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs shrink-0"
+				>
+					Aplicar
+				</button>
 			</div>
 		</div>
 	</header>

@@ -5,6 +5,7 @@
 		RotateCcw
 	} from 'lucide-svelte';
 	import { getMondayOfCurrentWeek } from '$lib/db';
+	import SearchableSelect, { type SelectOption } from './SearchableSelect.svelte';
 
 	let {
 		currentMonday,
@@ -60,6 +61,18 @@
 		}
 		return years;
 	});
+
+	const monthOptions: SelectOption[] = MONTH_NAMES.map((name, idx) => ({
+		value: idx,
+		label: name
+	}));
+
+	const yearOptions: SelectOption[] = $derived.by(() =>
+		availableYears.map((y) => ({
+			value: y,
+			label: String(y)
+		}))
+	);
 
 	function prevMonth() {
 		if (viewMonth === 0) {
@@ -211,26 +224,27 @@
 
 		<div class="flex items-center gap-1.5">
 			<!-- Month Selector -->
-			<select
+			<SearchableSelect
 				bind:value={viewMonth}
-				class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-2 py-1 text-xs font-bold text-slate-800 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden cursor-pointer"
-				aria-label="Seleccionar mes"
-			>
-				{#each MONTH_NAMES as monthName, idx}
-					<option value={idx}>{monthName}</option>
-				{/each}
-			</select>
+				options={monthOptions}
+				class="w-auto"
+				buttonClass="py-1 px-2.5 text-xs font-bold min-w-[110px]"
+				searchPlaceholder="Buscar mes..."
+				ariaLabel="Seleccionar mes"
+				onchange={(val) => (viewMonth = Number(val))}
+			/>
 
 			<!-- Year Selector -->
-			<select
+			<SearchableSelect
 				bind:value={viewYear}
-				class="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-2 py-1 text-xs font-bold text-slate-800 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden cursor-pointer"
-				aria-label="Seleccionar año"
-			>
-				{#each availableYears as year}
-					<option value={year}>{year}</option>
-				{/each}
-			</select>
+				options={yearOptions}
+				class="w-auto"
+				buttonClass="py-1 px-2.5 text-xs font-bold min-w-[85px]"
+				searchPlaceholder="Año..."
+				ariaLabel="Seleccionar año"
+				align="right"
+				onchange={(val) => (viewYear = Number(val))}
+			/>
 		</div>
 
 		<button
