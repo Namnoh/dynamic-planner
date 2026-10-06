@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { CATEGORY_OPTIONS, type ScheduledEvent, type ActivityTemplate } from '$lib/types';
+	import { CATEGORY_OPTIONS, type ScheduledEvent, type ActivityTemplate, type ScheduledEventSubtask } from '$lib/types';
 	import { addMinutesToTime } from '$lib/db';
 	import Modal from './Modal.svelte';
 	import ColorPicker from './ColorPicker.svelte';
 	import SearchableSelect from './SearchableSelect.svelte';
+	import ChecklistEditor from './ChecklistEditor.svelte';
 	import { Plus, Tag } from 'lucide-svelte';
 
 	let {
@@ -28,6 +29,7 @@
 	let category = $state('');
 	let color = $state('#3b82f6');
 	let notes = $state('');
+	let subtasks = $state<ScheduledEventSubtask[]>([]);
 	let currentDuration = $state(60);
 	let errors = $state<{ title?: string; startTime?: string; endTime?: string }>({});
 
@@ -42,6 +44,7 @@
 		category = '';
 		color = '#3b82f6';
 		notes = '';
+		subtasks = [];
 		errors = {};
 	}
 
@@ -65,6 +68,15 @@
 		endTime = addMinutesToTime(startTime, currentDuration);
 		if (act.notes) {
 			notes = act.notes;
+		}
+		if (act.subtasks && act.subtasks.length > 0) {
+			subtasks = act.subtasks.map((st, i) => ({
+				id: crypto.randomUUID ? crypto.randomUUID() : `st-${Date.now()}-${i}`,
+				title: st,
+				completed: false
+			}));
+		} else {
+			subtasks = [];
 		}
 		if (errors.title) errors.title = '';
 		if (errors.endTime) errors.endTime = '';
@@ -98,6 +110,7 @@
 		category = '';
 		color = '#3b82f6';
 		notes = '';
+		subtasks = [];
 		currentDuration = 60;
 		endTime = addMinutesToTime(startTime, currentDuration);
 	}
@@ -162,6 +175,7 @@
 			category: category || undefined,
 			color,
 			notes: notes.trim() || undefined,
+			subtasks: subtasks.length > 0 ? $state.snapshot(subtasks) : undefined,
 			sourceTemplateId: selectedActivityId || undefined,
 			completed: false
 		});
@@ -323,6 +337,13 @@
 					class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden transition-colors"
 				/>
 			</div>
+
+			<ChecklistEditor
+				bind:items={subtasks}
+				allowCompletion={true}
+				label="Checklist / Tareas"
+				placeholder="Añadir tarea a este bloque..."
+			/>
 
 			<ColorPicker bind:selectedColor={color} label="Color del Bloque" />
 		</form>

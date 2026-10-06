@@ -88,6 +88,7 @@
 			category: updatedEvent.category,
 			color: updatedEvent.color,
 			notes: updatedEvent.notes,
+			subtasks: updatedEvent.subtasks ? $state.snapshot(updatedEvent.subtasks) : undefined,
 			completed: updatedEvent.completed
 		});
 

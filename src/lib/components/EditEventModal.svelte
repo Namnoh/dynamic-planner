@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { CATEGORY_OPTIONS, type ScheduledEvent } from '$lib/types';
+	import { CATEGORY_OPTIONS, type ScheduledEvent, type ScheduledEventSubtask } from '$lib/types';
 	import Modal from './Modal.svelte';
 	import ColorPicker from './ColorPicker.svelte';
 	import SearchableSelect from './SearchableSelect.svelte';
+	import ChecklistEditor from './ChecklistEditor.svelte';
 	import { Pencil, Trash2 } from 'lucide-svelte';
 
 	let {
@@ -27,6 +28,7 @@
 	let category = $state('');
 	let color = $state('#3b82f6');
 	let notes = $state('');
+	let subtasks = $state<ScheduledEventSubtask[]>([]);
 	let completed = $state(false);
 	let errors = $state<{ title?: string; date?: string; startTime?: string; endTime?: string }>({});
 
@@ -55,6 +57,7 @@
 					category = event.category || '';
 					color = event.color || '#3b82f6';
 					notes = event.notes || '';
+					subtasks = event.subtasks ? JSON.parse(JSON.stringify(event.subtasks)) : [];
 					completed = event.completed;
 					errors = {};
 				}
@@ -103,6 +106,7 @@
 			category: category || undefined,
 			color,
 			notes: notes.trim() || undefined,
+			subtasks: subtasks.length > 0 ? $state.snapshot(subtasks) : undefined,
 			completed
 		});
 
@@ -246,6 +250,13 @@
 					class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
 				/>
 			</div>
+
+			<ChecklistEditor
+				bind:items={subtasks}
+				allowCompletion={true}
+				label="Checklist / Tareas"
+				placeholder="Añadir tarea a este bloque..."
+			/>
 
 			<!-- Completed Status Toggle -->
 			<label class="flex items-center gap-2 cursor-pointer pt-1">

@@ -141,9 +141,29 @@
 				</span>
 			{/if}
 			{#if event.subtasks && event.subtasks.length > 0}
-				<span class="ml-auto font-sans tabular-nums text-[9.5px]">
-					✓ {event.subtasks.filter((s) => s.completed).length}/{event.subtasks.length}
-				</span>
+				{@const completedCount = event.subtasks.filter((s) => s.completed).length}
+				{@const totalCount = event.subtasks.length}
+				{@const percent = Math.round((completedCount / totalCount) * 100)}
+				<div
+					class="ml-auto flex items-center gap-1.5 shrink-0"
+					title={`Checklist: ${completedCount}/${totalCount} tareas completadas (${percent}%)`}
+				>
+					<span
+						class="font-sans tabular-nums text-[9.5px] font-medium {completedCount === totalCount
+							? 'text-emerald-600 dark:text-emerald-400 font-semibold'
+							: 'text-slate-500 dark:text-slate-400'}"
+					>
+						✓ {completedCount}/{totalCount}
+					</span>
+					<div class="w-8 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700/80 overflow-hidden">
+						<div
+							class="h-full rounded-full transition-all duration-300 {completedCount === totalCount
+								? 'bg-emerald-500'
+								: 'bg-indigo-500'}"
+							style="width: {percent}%"
+						></div>
+					</div>
+				</div>
 			{/if}
 		</div>
 	{/if}

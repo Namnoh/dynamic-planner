@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { db } from '$lib/db';
-	import { CATEGORY_OPTIONS, type ActivityTemplate, type DayTemplate, type DayTemplateBlock } from '$lib/types';
+	import { CATEGORY_OPTIONS, type ActivityTemplate, type DayTemplate, type DayTemplateBlock, type ScheduledEventSubtask } from '$lib/types';
 	import { toastStore } from '$lib/utils/notifications';
 	import ColorPicker from './ColorPicker.svelte';
 	import SearchableSelect from './SearchableSelect.svelte';
-	import { Plus, Trash2, Clock, Layers, Tag, Pencil, ArrowUpDown } from 'lucide-svelte';
+	import ChecklistEditor from './ChecklistEditor.svelte';
+	import { Plus, Trash2, Clock, Layers, Tag, Pencil, ArrowUpDown, ListChecks } from 'lucide-svelte';
 
 	let { onTemplatesUpdated }: { onTemplatesUpdated?: () => void } = $props();
 
@@ -19,6 +20,7 @@
 	let actDuration = $state(60);
 	let actColor = $state('#3b82f6');
 	let actNotes = $state('');
+	let actSubtasks = $state<ScheduledEventSubtask[]>([]);
 	let activityErrors = $state<{ title?: string; duration?: string }>({});
 
 	// Day Template Form State (Creation & Editing)
@@ -66,6 +68,7 @@
 		actDuration = 60;
 		actColor = '#3b82f6';
 		actNotes = '';
+		actSubtasks = [];
 		activityErrors = {};
 		isCreatingActivity = true;
 	}
@@ -77,6 +80,11 @@
 		actDuration = act.defaultDuration;
 		actColor = act.color;
 		actNotes = act.notes || '';
+		actSubtasks = (act.subtasks || []).map((st, i) => ({
+			id: `act-st-${i}`,
+			title: st,
+			completed: false
+		}));
 		activityErrors = {};
 		isCreatingActivity = true;
 
@@ -95,6 +103,7 @@
 			actTitle = '';
 			actCategory = '';
 			actNotes = '';
+			actSubtasks = [];
 			activityErrors = {};
 		} else {
 			handleStartCreateActivity();
@@ -117,13 +126,16 @@
 
 		if (hasError) return;
 
+		const cleanSubtasks = actSubtasks.map((s) => s.title.trim()).filter(Boolean);
+
 		if (editingActivityId) {
 			await db.activityTemplates.update(editingActivityId, $state.snapshot({
 				title: actTitle.trim(),
 				category: actCategory || undefined,
 				defaultDuration: Number(actDuration),
 				color: actColor,
-				notes: actNotes.trim() || undefined
+				notes: actNotes.trim() || undefined,
+				subtasks: cleanSubtasks.length > 0 ? cleanSubtasks : undefined
 			}));
 			toastStore.show({
 				title: 'Bloque de actividad actualizado',
@@ -137,7 +149,8 @@
 				category: actCategory || undefined,
 				defaultDuration: Number(actDuration),
 				color: actColor,
-				notes: actNotes.trim() || undefined
+				notes: actNotes.trim() || undefined,
+				subtasks: cleanSubtasks.length > 0 ? cleanSubtasks : undefined
 			};
 
 			await db.activityTemplates.add($state.snapshot(newAct));
@@ -152,6 +165,7 @@
 		actTitle = '';
 		actCategory = '';
 		actNotes = '';
+		actSubtasks = [];
 		activityErrors = {};
 		await loadData();
 		onTemplatesUpdated?.();
@@ -880,6 +894,13 @@
 					/>
 				</div>
 
+				<ChecklistEditor
+					bind:items={actSubtasks}
+					allowCompletion={false}
+					label="Checklist / Tareas base"
+					placeholder="Ej: Calentamiento 10 min, Práctica..."
+				/>
+
 				<ColorPicker bind:selectedColor={actColor} label="Color de la Actividad" />
 
 				<div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
@@ -891,6 +912,7 @@
 							actTitle = '';
 							actCategory = '';
 							actNotes = '';
+							actSubtasks = [];
 							activityErrors = {};
 						}}
 						class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
@@ -927,6 +949,12 @@
 						</div>
 						{#if act.notes}
 							<p class="text-[10px] text-slate-400 dark:text-slate-500 truncate">{act.notes}</p>
+						{/if}
+						{#if act.subtasks && act.subtasks.length > 0}
+							<div class="flex items-center gap-1 text-[9.5px] text-indigo-600 dark:text-indigo-400 font-medium pt-0.5">
+								<ListChecks class="h-3 w-3" />
+								<span>{act.subtasks.length} {act.subtasks.length === 1 ? 'tarea' : 'tareas'}</span>
+							</div>
 						{/if}
 					</div>
 					<div class="flex items-center gap-0.5 shrink-0">
