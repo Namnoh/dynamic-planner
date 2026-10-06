@@ -27,7 +27,7 @@
 	let tplName = $state('');
 	let tplDescription = $state('');
 	let tplBlocks = $state<DayTemplateBlock[]>([]);
-	let dayTemplateErrors = $state<{ name?: string }>({});
+	let dayTemplateErrors = $state<{ name?: string; blocks?: string }>({});
 
 	// Block Form State (for inserting or updating a block within the template)
 	let editingBlockIndex = $state<number | null>(null);
@@ -265,6 +265,7 @@
 
 		blockCustomTitle = '';
 		blockErrors = {};
+		if (dayTemplateErrors.blocks) dayTemplateErrors.blocks = '';
 	}
 
 	function handleStartEditBlock(index: number) {
@@ -308,12 +309,16 @@
 			hasError = true;
 		}
 		if (tplBlocks.length === 0) {
+			dayTemplateErrors.blocks = 'Debes agregar al menos un bloque a la plantilla';
 			toastStore.show({
 				title: 'Agrega al menos un bloque a la plantilla',
+				message: 'No puedes guardar una plantilla de día sin bloques.',
 				type: 'error'
 			});
 			hasError = true;
 		}
+
+		if (hasError) return;
 
 		const cleanBlocks: DayTemplateBlock[] = $state.snapshot(tplBlocks).map((b) => ({
 			activityId: b.activityId,
@@ -628,33 +633,58 @@
 							{/each}
 						</div>
 					</div>
+				{:else}
+					<div class="rounded-xl border border-dashed p-4 text-center transition-colors {dayTemplateErrors.blocks
+						? 'border-rose-400 dark:border-rose-700 bg-rose-50/50 dark:bg-rose-950/20'
+						: 'border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30'}">
+						<p class="text-xs font-medium {dayTemplateErrors.blocks ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'}">
+							{dayTemplateErrors.blocks || 'Aún no has agregado bloques a esta plantilla. Configura los datos arriba y presiona "+ Insertar Bloque".'}
+						</p>
+					</div>
 				{/if}
 
-				<div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-					<button
-						type="button"
-						onclick={() => {
-							isCreatingDayTemplate = false;
-							editingDayTemplateId = null;
-							tplName = '';
-							tplDescription = '';
-							tplBlocks = [];
-							editingBlockIndex = null;
-							blockCustomTitle = '';
-							dayTemplateErrors = {};
-							blockErrors = {};
-						}}
-						class="px-4 py-2 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
-					>
-						Cancelar
-					</button>
-					<button
-						type="button"
-						onclick={handleSaveDayTemplate}
-						class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-5 py-2 text-xs font-semibold text-white shadow-md cursor-pointer"
-					>
-						{editingDayTemplateId ? 'Actualizar Plantilla de Día' : 'Guardar Plantilla de Día'}
-					</button>
+				<div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+					<div class="text-[11px]">
+						{#if tplBlocks.length === 0}
+							<span class="text-amber-600 dark:text-amber-400 font-medium">
+								⚠️ Agrega al menos 1 bloque para poder guardar
+							</span>
+						{:else}
+							<span class="text-slate-500 dark:text-slate-400">
+								{tplBlocks.length} bloque{tplBlocks.length === 1 ? '' : 's'} en la plantilla
+							</span>
+						{/if}
+					</div>
+					<div class="flex items-center gap-2">
+						<button
+							type="button"
+							onclick={() => {
+								isCreatingDayTemplate = false;
+								editingDayTemplateId = null;
+								tplName = '';
+								tplDescription = '';
+								tplBlocks = [];
+								editingBlockIndex = null;
+								blockCustomTitle = '';
+								dayTemplateErrors = {};
+								blockErrors = {};
+							}}
+							class="px-4 py-2 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
+						>
+							Cancelar
+						</button>
+						<button
+							type="button"
+							onclick={handleSaveDayTemplate}
+							disabled={tplBlocks.length === 0}
+							class="rounded-xl px-5 py-2 text-xs font-semibold text-white shadow-md transition-all {tplBlocks.length === 0
+								? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed shadow-none'
+								: 'bg-indigo-600 hover:bg-indigo-500 cursor-pointer'}"
+							title={tplBlocks.length === 0 ? 'Debes agregar al menos un bloque a la plantilla' : undefined}
+						>
+							{editingDayTemplateId ? 'Actualizar Plantilla de Día' : 'Guardar Plantilla de Día'}
+						</button>
+					</div>
 				</div>
 			</div>
 		{/if}
