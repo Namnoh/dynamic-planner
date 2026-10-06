@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { CATEGORY_OPTIONS, type ScheduledEvent, type ActivityTemplate, type ScheduledEventSubtask } from '$lib/types';
+	import { type ScheduledEvent, type ActivityTemplate, type ScheduledEventSubtask, type CategoryOption } from '$lib/types';
 	import { addMinutesToTime } from '$lib/db';
+	import { categoriesStore } from '$lib/stores/categories';
 	import Modal from './Modal.svelte';
 	import ColorPicker from './ColorPicker.svelte';
 	import SearchableSelect from './SearchableSelect.svelte';
 	import ChecklistEditor from './ChecklistEditor.svelte';
+	import CategoryManagerModal from './CategoryManagerModal.svelte';
 	import { Plus, Tag } from 'lucide-svelte';
 
 	let {
@@ -21,6 +23,16 @@
 		activityTemplates?: ActivityTemplate[];
 		onSave: (newEvent: Omit<ScheduledEvent, 'id'>) => void;
 	} = $props();
+
+	let isCategoryModalOpen = $state(false);
+	let categoryOptions = $state<CategoryOption[]>(categoriesStore.options);
+
+	$effect(() => {
+		const unsubscribe = categoriesStore.subscribe(() => {
+			categoryOptions = categoriesStore.options;
+		});
+		return unsubscribe;
+	});
 
 	let selectedActivityId = $state('');
 	let title = $state('');
@@ -311,12 +323,22 @@
 					<label for="new-event-category-select" class="block font-medium text-slate-700 dark:text-slate-300">
 						Categoría
 					</label>
-					<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+					<div class="flex items-center gap-1.5">
+						<button
+							type="button"
+							onclick={() => (isCategoryModalOpen = true)}
+							class="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-medium"
+						>
+							+ Gestionar
+						</button>
+						<span class="text-slate-300 dark:text-slate-700">•</span>
+						<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+					</div>
 				</div>
 				<SearchableSelect
 					id="new-event-category-select"
 					bind:value={category}
-					options={CATEGORY_OPTIONS}
+					options={categoryOptions}
 					placeholder="Sin categoría (Opcional)"
 					searchPlaceholder="Buscar categoría..."
 				/>
@@ -366,3 +388,10 @@
 		</button>
 	{/snippet}
 </Modal>
+
+<CategoryManagerModal
+	bind:isOpen={isCategoryModalOpen}
+	onCategoryCreated={(newCat) => {
+		category = newCat.id;
+	}}
+/>

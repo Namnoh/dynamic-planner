@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ScheduledEvent } from '$lib/types';
 	import type { BlockColorStyle } from '$lib/stores/settings';
+	import { categoriesStore } from '$lib/stores/categories';
 	import { Check, Pencil, Trash2 } from 'lucide-svelte';
 
 	let {
@@ -113,12 +114,16 @@
 		</span>
 
 		{#if event.category}
+			{@const cat = categoriesStore.getCategory(event.category)}
 			<span
-				class="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider {blockColorStyle === 'full'
+				class="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider transition-colors {blockColorStyle === 'full'
 					? 'bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200'
 					: 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-transparent'}"
+				style={cat?.color
+					? `border-left: 2px solid ${cat.color};`
+					: ''}
 			>
-				{event.category}
+				{cat?.name || event.category}
 			</span>
 		{/if}
 	</div>

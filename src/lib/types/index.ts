@@ -15,14 +15,30 @@ export interface CategoryOption {
 	color?: string;
 }
 
+export interface CustomCategory {
+	id: string;
+	name: string;
+	color: string;
+}
+
+export const DEFAULT_CATEGORIES: CustomCategory[] = [
+	{ id: 'work', name: 'Trabajo', color: '#3b82f6' },
+	{ id: 'study', name: 'Estudio', color: '#6366f1' },
+	{ id: 'sport', name: 'Deporte', color: '#f59e0b' },
+	{ id: 'social', name: 'Social', color: '#ec4899' },
+	{ id: 'hobby', name: 'Hobby', color: '#10b981' },
+	{ id: 'rest', name: 'Descanso', color: '#8b5cf6' },
+	{ id: 'health', name: 'Salud', color: '#ef4444' },
+	{ id: 'chores', name: 'Hogar / Tareas', color: '#64748b' }
+];
+
 export const CATEGORY_OPTIONS: CategoryOption[] = [
 	{ value: '', label: 'Sin categoría (Opcional)' },
-	{ value: 'work', label: 'Trabajo (Work)', color: '#3b82f6' },
-	{ value: 'study', label: 'Estudio (Study)', color: '#6366f1' },
-	{ value: 'sport', label: 'Deporte (Sport)', color: '#f59e0b' },
-	{ value: 'social', label: 'Social', color: '#ec4899' },
-	{ value: 'hobby', label: 'Hobby / Creativo', color: '#10b981' },
-	{ value: 'rest', label: 'Descanso (Rest)', color: '#8b5cf6' }
+	...DEFAULT_CATEGORIES.map((c) => ({
+		value: c.id,
+		label: c.name,
+		color: c.color
+	}))
 ];
 
 export interface ActivityTemplate {

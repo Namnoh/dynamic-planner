@@ -3,6 +3,7 @@
 	import { toastStore } from '$lib/utils/notifications';
 	import { exportDatabaseToJson, importDatabaseFromJson } from '$lib/db';
 	import Modal from './Modal.svelte';
+	import CategoryManagerModal from './CategoryManagerModal.svelte';
 	import {
 		Settings,
 		Palette,
@@ -15,8 +16,11 @@
 		Bell,
 		BookOpen,
 		Download,
-		Sparkles
+		Sparkles,
+		Tag
 	} from 'lucide-svelte';
+
+	let isCategoryModalOpen = $state(false);
 
 	let {
 		isOpen = $bindable(false),
@@ -313,6 +317,26 @@
 				</div>
 			{/if}
 
+			<!-- Custom Categories Quick Access -->
+			<div class="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
+				<div class="space-y-0.5">
+					<div class="flex items-center gap-2">
+						<Tag class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+						<span class="text-xs font-semibold text-slate-800 dark:text-slate-200">Categorías y Colores</span>
+					</div>
+					<p class="text-[11px] text-slate-500 dark:text-slate-400">
+						Personaliza nombres y colores de las etiquetas de tus actividades.
+					</p>
+				</div>
+				<button
+					type="button"
+					onclick={() => (isCategoryModalOpen = true)}
+					class="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 text-xs font-semibold shadow-xs transition-all cursor-pointer shrink-0"
+				>
+					<span>Gestionar</span>
+				</button>
+			</div>
+
 			<!-- Local-First Privacy Section (Obsidian-Style) -->
 			<div class="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
 				<div class="flex items-center gap-2">
@@ -379,3 +403,5 @@
 		</button>
 	{/snippet}
 </Modal>
+
+<CategoryManagerModal bind:isOpen={isCategoryModalOpen} />

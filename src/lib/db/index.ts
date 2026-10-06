@@ -1,10 +1,12 @@
 import Dexie, { type Table } from 'dexie';
-import type {
-	ActivityTemplate,
-	DayTemplate,
-	ScheduledEvent,
-	SpecialEvent,
-	AppSetting
+import {
+	DEFAULT_CATEGORIES,
+	type ActivityTemplate,
+	type DayTemplate,
+	type ScheduledEvent,
+	type SpecialEvent,
+	type AppSetting,
+	type CustomCategory
 } from '$lib/types';
 
 export class DynamicPlannerDatabase extends Dexie {
@@ -13,6 +15,7 @@ export class DynamicPlannerDatabase extends Dexie {
 	scheduledEvents!: Table<ScheduledEvent, string>;
 	specialEvents!: Table<SpecialEvent, string>;
 	settings!: Table<AppSetting, string>;
+	categories!: Table<CustomCategory, string>;
 
 	constructor() {
 		super('DynamicPlannerDB');
@@ -24,6 +27,11 @@ export class DynamicPlannerDatabase extends Dexie {
 			scheduledEvents: 'id, date, startTime, endTime, category, completed',
 			specialEvents: 'id, date, type',
 			settings: 'key'
+		});
+
+		// Version 2: Custom Categories
+		this.version(2).stores({
+			categories: 'id, name'
 		});
 	}
 }
@@ -129,15 +137,31 @@ export async function applyDayTemplateToDate(templateId: string, targetDateStr: 
 }
 
 /**
+ * Ensures initial default categories exist in the database
+ */
+export async function ensureDefaultCategories(): Promise<void> {
+	try {
+		const count = await db.categories.count();
+		if (count === 0) {
+			await db.categories.bulkAdd(DEFAULT_CATEGORIES);
+		}
+	} catch (e) {
+		console.error('Error al inicializar categorías por defecto:', e);
+	}
+}
+
+/**
  * Exports all database tables to a structured JSON string.
  */
 export async function exportDatabaseToJson(): Promise<string> {
-	const [activities, dayTemplates, events, specialEvents, settings] = await Promise.all([
+	await ensureDefaultCategories();
+	const [activities, dayTemplates, events, specialEvents, settings, categories] = await Promise.all([
 		db.activityTemplates.toArray(),
 		db.dayTemplates.toArray(),
 		db.scheduledEvents.toArray(),
 		db.specialEvents.toArray(),
-		db.settings.toArray()
+		db.settings.toArray(),
+		db.categories.toArray()
 	]);
 
 	const backup = {
@@ -149,7 +173,8 @@ export async function exportDatabaseToJson(): Promise<string> {
 			dayTemplates,
 			events,
 			specialEvents,
-			settings
+			settings,
+			categories
 		}
 	};
 
@@ -166,7 +191,14 @@ export async function importDatabaseFromJson(jsonContent: string): Promise<boole
 		throw new Error('Formato de archivo inválido. No es un respaldo compatible con dynamic-planner.');
 	}
 
-	const { activities = [], dayTemplates = [], events = [], specialEvents = [], settings = [] } = parsed.data;
+	const {
+		activities = [],
+		dayTemplates = [],
+		events = [],
+		specialEvents = [],
+		settings = [],
+		categories = []
+	} = parsed.data;
 
 	await db.transaction(
 		'rw',
@@ -175,7 +207,8 @@ export async function importDatabaseFromJson(jsonContent: string): Promise<boole
 			db.dayTemplates,
 			db.scheduledEvents,
 			db.specialEvents,
-			db.settings
+			db.settings,
+			db.categories
 		],
 		async () => {
 			await db.activityTemplates.clear();
@@ -183,12 +216,18 @@ export async function importDatabaseFromJson(jsonContent: string): Promise<boole
 			await db.scheduledEvents.clear();
 			await db.specialEvents.clear();
 			await db.settings.clear();
+			await db.categories.clear();
 
 			if (activities.length) await db.activityTemplates.bulkAdd(activities);
 			if (dayTemplates.length) await db.dayTemplates.bulkAdd(dayTemplates);
 			if (events.length) await db.scheduledEvents.bulkAdd(events);
 			if (specialEvents.length) await db.specialEvents.bulkAdd(specialEvents);
 			if (settings.length) await db.settings.bulkAdd(settings);
+			if (categories.length) {
+				await db.categories.bulkAdd(categories);
+			} else {
+				await db.categories.bulkAdd(DEFAULT_CATEGORIES);
+			}
 		}
 	);
 

@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { CATEGORY_OPTIONS, type ScheduledEvent, type ScheduledEventSubtask } from '$lib/types';
+	import { type ScheduledEvent, type ScheduledEventSubtask, type CategoryOption } from '$lib/types';
+	import { categoriesStore } from '$lib/stores/categories';
 	import Modal from './Modal.svelte';
 	import ColorPicker from './ColorPicker.svelte';
 	import SearchableSelect from './SearchableSelect.svelte';
 	import ChecklistEditor from './ChecklistEditor.svelte';
+	import CategoryManagerModal from './CategoryManagerModal.svelte';
 	import { Pencil, Trash2 } from 'lucide-svelte';
 
 	let {
@@ -20,6 +22,16 @@
 		onSave: (updatedEvent: ScheduledEvent) => void;
 		onDelete: (id: string) => void;
 	} = $props();
+
+	let isCategoryModalOpen = $state(false);
+	let categoryOptions = $state<CategoryOption[]>(categoriesStore.options);
+
+	$effect(() => {
+		const unsubscribe = categoriesStore.subscribe(() => {
+			categoryOptions = categoriesStore.options;
+		});
+		return unsubscribe;
+	});
 
 	let title = $state('');
 	let date = $state('');
@@ -221,12 +233,22 @@
 					<label for="edit-event-category-select" class="block font-medium text-slate-700 dark:text-slate-300">
 						Categoría
 					</label>
-					<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+					<div class="flex items-center gap-1.5">
+						<button
+							type="button"
+							onclick={() => (isCategoryModalOpen = true)}
+							class="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-medium"
+						>
+							+ Gestionar
+						</button>
+						<span class="text-slate-300 dark:text-slate-700">•</span>
+						<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+					</div>
 				</div>
 				<SearchableSelect
 					id="edit-event-category-select"
 					bind:value={category}
-					options={CATEGORY_OPTIONS}
+					options={categoryOptions}
 					placeholder="Sin categoría (Opcional)"
 					searchPlaceholder="Buscar categoría..."
 				/>
@@ -300,3 +322,10 @@
 		</div>
 	{/snippet}
 </Modal>
+
+<CategoryManagerModal
+	bind:isOpen={isCategoryModalOpen}
+	onCategoryCreated={(newCat) => {
+		category = newCat.id;
+	}}
+/>

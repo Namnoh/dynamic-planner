@@ -1,16 +1,29 @@
 <script lang="ts">
 	import { db } from '$lib/db';
-	import { CATEGORY_OPTIONS, type ActivityTemplate, type DayTemplate, type DayTemplateBlock, type ScheduledEventSubtask } from '$lib/types';
+	import { type ActivityTemplate, type DayTemplate, type DayTemplateBlock, type ScheduledEventSubtask, type CategoryOption, type CustomCategory } from '$lib/types';
+	import { categoriesStore } from '$lib/stores/categories';
 	import { toastStore } from '$lib/utils/notifications';
 	import ColorPicker from './ColorPicker.svelte';
 	import SearchableSelect from './SearchableSelect.svelte';
 	import ChecklistEditor from './ChecklistEditor.svelte';
+	import CategoryManagerModal from './CategoryManagerModal.svelte';
 	import { Plus, Trash2, Clock, Layers, Tag, Pencil, ArrowUpDown, ListChecks } from 'lucide-svelte';
 
 	let { onTemplatesUpdated }: { onTemplatesUpdated?: () => void } = $props();
 
 	let activities = $state<ActivityTemplate[]>([]);
 	let dayTemplates = $state<DayTemplate[]>([]);
+	let isCategoryModalOpen = $state(false);
+	let categoryOptions = $state<CategoryOption[]>(categoriesStore.options);
+	let categoriesList = $state<CustomCategory[]>(categoriesStore.current);
+
+	$effect(() => {
+		const unsubscribe = categoriesStore.subscribe((cats) => {
+			categoriesList = cats;
+			categoryOptions = categoriesStore.options;
+		});
+		return unsubscribe;
+	});
 
 	// Activity Form State (Creation & Editing)
 	let isCreatingActivity = $state(false);
@@ -845,12 +858,22 @@
 							<label for="act-cat-select" class="block text-xs font-medium text-slate-700 dark:text-slate-300">
 								Categoría
 							</label>
-							<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+							<div class="flex items-center gap-1.5">
+								<button
+									type="button"
+									onclick={() => (isCategoryModalOpen = true)}
+									class="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-medium"
+								>
+									+ Gestionar
+								</button>
+								<span class="text-slate-300 dark:text-slate-700">•</span>
+								<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+							</div>
 						</div>
 						<SearchableSelect
 							id="act-cat-select"
 							bind:value={actCategory}
-							options={CATEGORY_OPTIONS}
+							options={categoryOptions}
 							placeholder="Sin categoría (Opcional)"
 							searchPlaceholder="Buscar categoría..."
 						/>
@@ -942,7 +965,15 @@
 						<h5 class="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">{act.title}</h5>
 						<div class="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
 							{#if act.category}
-								<span class="uppercase tracking-wider font-bold">{act.category}</span>
+								{@const cat = categoriesStore.getCategory(act.category)}
+								<span
+									class="uppercase tracking-wider font-bold text-[9px] px-1.5 py-0.5 rounded"
+									style={cat?.color
+										? `color: ${cat.color}; background-color: color-mix(in srgb, ${cat.color} 15%, transparent);`
+										: ''}
+								>
+									{cat?.name || act.category}
+								</span>
 								<span>•</span>
 							{/if}
 							<span>{act.defaultDuration} min</span>
@@ -979,4 +1010,52 @@
 			{/each}
 		</div>
 	</section>
+
+	<!-- Section 3: Custom Categories Management -->
+	<section class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-3">
+		<div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+			<div class="space-y-0.5">
+				<div class="flex items-center gap-2">
+					<Tag class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+					<h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Categorías Personalizadas</h3>
+				</div>
+				<p class="text-xs text-slate-500 dark:text-slate-400">
+					Etiquetas y colores asignados a tus bloques de tiempo y actividades.
+				</p>
+			</div>
+
+			<button
+				type="button"
+				onclick={() => (isCategoryModalOpen = true)}
+				class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors cursor-pointer"
+			>
+				<Tag class="h-3.5 w-3.5" />
+				<span>Gestionar Categorías ({categoriesList.length})</span>
+			</button>
+		</div>
+
+		<!-- Chips of current categories -->
+		<div class="flex flex-wrap gap-2 pt-1">
+			{#each categoriesList as cat}
+				<div
+					class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 shadow-2xs"
+				>
+					<span
+						class="h-3 w-3 rounded-full shrink-0 shadow-2xs"
+						style="background-color: {cat.color};"
+					></span>
+					<span class="text-slate-800 dark:text-slate-200 font-semibold">{cat.name}</span>
+				</div>
+			{/each}
+		</div>
+	</section>
 </div>
+
+<CategoryManagerModal
+	bind:isOpen={isCategoryModalOpen}
+	onCategoryCreated={(newCat) => {
+		if (isCreatingActivity) {
+			actCategory = newCat.id;
+		}
+	}}
+/>
