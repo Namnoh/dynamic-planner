@@ -4,11 +4,13 @@
 	import SettingsModal from '$lib/components/SettingsModal.svelte';
 	import AboutModal from '$lib/components/AboutModal.svelte';
 	import InstallModal from '$lib/components/InstallModal.svelte';
+	import ChangelogModal from '$lib/components/ChangelogModal.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import { onMount } from 'svelte';
 	import { requestNotificationPermission, toastStore } from '$lib/utils/notifications';
 	import { pwaInstallStore } from '$lib/stores/pwaInstall';
-	import { Wifi, WifiOff, Bell, Sun, Moon, Settings, BookOpen, Download } from 'lucide-svelte';
+	import { changelogStore } from '$lib/stores/changelog';
+	import { Wifi, WifiOff, Bell, Sun, Moon, Settings, BookOpen, Download, Sparkles } from 'lucide-svelte';
 
 	let { children } = $props();
 
@@ -17,9 +19,18 @@
 	let isSettingsOpen = $state(false);
 	let isAboutOpen = $state(false);
 	let isInstallOpen = $state(false);
+	let isChangelogOpen = $state(false);
+	let hasUnreadChangelog = $state(false);
 	let initialAboutTab = $state<'overview' | 'features' | 'usecases' | 'examples' | 'privacy'>('overview');
 	let notificationPermission = $state<NotificationPermission>('default');
 	let installState = $state($pwaInstallStore);
+
+	$effect(() => {
+		const unsubscribe = changelogStore.subscribe((val) => {
+			hasUnreadChangelog = val;
+		});
+		return unsubscribe;
+	});
 
 	$effect(() => {
 		const unsubscribe = pwaInstallStore.subscribe((val) => {
@@ -75,6 +86,9 @@
 
 		// Initialize PWA installation detection
 		pwaInstallStore.init();
+
+		// Check unread changelog updates
+		changelogStore.checkUnread();
 
 		// Register PWA Service Worker
 		if ('serviceWorker' in navigator) {
@@ -247,6 +261,25 @@
 					<svg class="h-4 w-4 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
 				</a>
 
+				<!-- Changelog / Novedades Button (Dynamic on mobile: appears with red dot when unread, hides into settings when read) -->
+				<button
+					type="button"
+					onclick={() => (isChangelogOpen = true)}
+					class="relative rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-all border border-slate-200 dark:border-slate-800 cursor-pointer {hasUnreadChangelog
+						? 'inline-flex bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-800/80 shadow-xs'
+						: 'hidden md:inline-flex'}"
+					title="Novedades y Registro de Cambios (v1.0.0)"
+					aria-label="Ver novedades y cambios"
+				>
+					<Sparkles class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+					{#if hasUnreadChangelog}
+						<span class="absolute -top-1 -right-1 flex h-2.5 w-2.5" title="¡Novedades disponibles!">
+							<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+							<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-white dark:ring-slate-950"></span>
+						</span>
+					{/if}
+				</button>
+
 				<!-- Settings Button -->
 				<button
 					type="button"
@@ -273,6 +306,7 @@
 		onOpenAbout={(tab) => openAbout(tab)}
 		onOpenSettings={() => (isSettingsOpen = true)}
 		onOpenInstall={handleInstallClick}
+		onOpenChangelog={() => (isChangelogOpen = true)}
 	/>
 
 	<!-- In-app Toasts -->
@@ -287,6 +321,8 @@
 		onRequestNotifications={handleRequestNotifications}
 		onOpenAbout={() => openAbout('overview')}
 		onOpenInstall={handleInstallClick}
+		onOpenChangelog={() => (isChangelogOpen = true)}
+		{hasUnreadChangelog}
 	/>
 
 	<!-- About & Project Guide Modal -->
@@ -294,4 +330,7 @@
 
 	<!-- Install PWA Modal -->
 	<InstallModal bind:isOpen={isInstallOpen} />
+
+	<!-- Changelog / Novedades Modal -->
+	<ChangelogModal bind:isOpen={isChangelogOpen} />
 </div>

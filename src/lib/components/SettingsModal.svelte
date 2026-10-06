@@ -14,7 +14,8 @@
 		Moon,
 		Bell,
 		BookOpen,
-		Download
+		Download,
+		Sparkles
 	} from 'lucide-svelte';
 
 	let {
@@ -24,7 +25,9 @@
 		notificationPermission = 'default',
 		onRequestNotifications,
 		onOpenAbout,
-		onOpenInstall
+		onOpenInstall,
+		onOpenChangelog,
+		hasUnreadChangelog = false
 	}: {
 		isOpen: boolean;
 		isDarkMode?: boolean;
@@ -33,6 +36,8 @@
 		onRequestNotifications?: () => void;
 		onOpenAbout?: () => void;
 		onOpenInstall?: () => void;
+		onOpenChangelog?: () => void;
+		hasUnreadChangelog?: boolean;
 	} = $props();
 
 	let currentStyle = $state<BlockColorStyle>(settingsStore.current);
@@ -162,6 +167,39 @@
 						<span class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
 							Ver Guía →
 						</span>
+					</button>
+
+					<!-- Changelog / Novedades -->
+					<button
+						type="button"
+						onclick={() => {
+							isOpen = false;
+							onOpenChangelog?.();
+						}}
+						class="flex items-center justify-between w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 p-3 text-left transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+					>
+						<div class="flex items-center gap-2.5">
+							<div class="relative">
+								<Sparkles class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+								{#if hasUnreadChangelog}
+									<span class="absolute -top-1 -right-1 flex h-2 w-2">
+										<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+										<span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+									</span>
+								{/if}
+							</div>
+							<span class="text-xs font-medium text-slate-800 dark:text-slate-200">Novedades & Versiones</span>
+						</div>
+						<div class="flex items-center gap-1.5">
+							{#if hasUnreadChangelog}
+								<span class="rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-[10px] font-bold px-1.5 py-0.5">
+									¡Nuevo!
+								</span>
+							{/if}
+							<span class="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+								v1.0.0 →
+							</span>
+						</div>
 					</button>
 				</div>
 			</div>
