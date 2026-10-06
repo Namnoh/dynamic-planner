@@ -1,13 +1,19 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { type ScheduledEvent, type ScheduledEventSubtask, type CategoryOption } from '$lib/types';
+	import { db } from '$lib/db';
+	import {
+		type ScheduledEvent,
+		type ScheduledEventSubtask,
+		type CategoryOption,
+		type ActivityTemplate
+	} from '$lib/types';
 	import { categoriesStore } from '$lib/stores/categories';
 	import Modal from './Modal.svelte';
 	import ColorPicker from './ColorPicker.svelte';
 	import SearchableSelect from './SearchableSelect.svelte';
 	import ChecklistEditor from './ChecklistEditor.svelte';
 	import CategoryManagerModal from './CategoryManagerModal.svelte';
-	import { Pencil, Trash2 } from 'lucide-svelte';
+	import { Pencil, Trash2, Layers } from 'lucide-svelte';
 
 	let {
 		isOpen = $bindable(false),
@@ -19,7 +25,20 @@
 		isOpen: boolean;
 		event: ScheduledEvent | null;
 		weekDays: { dateStr: string; dayName: string; dayNumber: number }[];
-		onSave: (updatedEvent: ScheduledEvent) => void;
+		onSave: (
+			updatedEvent: ScheduledEvent,
+			propagationOptions?: {
+				propagate: boolean;
+				scope: 'same_title' | 'all';
+				fields: {
+					color: boolean;
+					category: boolean;
+					notes: boolean;
+					subtasks: boolean;
+				};
+				updateBaseTemplate?: boolean;
+			}
+		) => void;
 		onDelete: (id: string) => void;
 	} = $props();
 
@@ -43,6 +62,47 @@
 	let subtasks = $state<ScheduledEventSubtask[]>([]);
 	let completed = $state(false);
 	let errors = $state<{ title?: string; date?: string; startTime?: string; endTime?: string }>({});
+
+	// Propagation / sync state
+	let applyToOthers = $state(false);
+	let propagateScope = $state<'same_title' | 'all'>('same_title');
+	let syncColor = $state(true);
+	let syncCategory = $state(false);
+	let syncNotes = $state(false);
+	let syncSubtasks = $state(false);
+	let syncBaseTemplate = $state(false);
+
+	let otherEvents = $state<ScheduledEvent[]>([]);
+	let matchingTemplate = $state<ActivityTemplate | null>(null);
+
+	async function loadPropagationContext(currentEvent: ScheduledEvent) {
+		try {
+			const allEvents = await db.scheduledEvents.toArray();
+			otherEvents = allEvents.filter((e) => e.id !== currentEvent.id);
+
+			const allTemplates = await db.activityTemplates.toArray();
+			matchingTemplate =
+				(currentEvent.sourceTemplateId
+					? allTemplates.find((t) => t.id === currentEvent.sourceTemplateId)
+					: null) ||
+				allTemplates.find((t) => t.title.trim().toLowerCase() === currentEvent.title.trim().toLowerCase()) ||
+				null;
+		} catch (err) {
+			console.error('Error loading propagation context:', err);
+		}
+	}
+
+	const matchingSameTitleCount = $derived.by(() => {
+		const trimmed = title.trim().toLowerCase();
+		if (!trimmed) return 0;
+		return otherEvents.filter((e) => {
+			const sameTemplate = Boolean(event?.sourceTemplateId && e.sourceTemplateId === event.sourceTemplateId);
+			const sameTitle = Boolean(e.title.trim().toLowerCase() === trimmed);
+			return sameTemplate || sameTitle;
+		}).length;
+	});
+
+	const totalOtherCount = $derived(otherEvents.length);
 
 	let wasOpen = false;
 	let lastEventId: string | null = null;
@@ -72,6 +132,15 @@
 					subtasks = event.subtasks ? JSON.parse(JSON.stringify(event.subtasks)) : [];
 					completed = event.completed;
 					errors = {};
+
+					applyToOthers = false;
+					propagateScope = 'same_title';
+					syncColor = true;
+					syncCategory = false;
+					syncNotes = false;
+					syncSubtasks = false;
+					syncBaseTemplate = false;
+					loadPropagationContext(event);
 				}
 			});
 		}
@@ -109,18 +178,33 @@
 
 		if (hasError) return;
 
-		onSave({
-			...event,
-			title: title.trim(),
-			date,
-			startTime,
-			endTime,
-			category: category || undefined,
-			color,
-			notes: notes.trim() || undefined,
-			subtasks: subtasks.length > 0 ? $state.snapshot(subtasks) : undefined,
-			completed
-		});
+		onSave(
+			{
+				...event,
+				title: title.trim(),
+				date,
+				startTime,
+				endTime,
+				category: category || undefined,
+				color,
+				notes: notes.trim() || undefined,
+				subtasks: subtasks.length > 0 ? $state.snapshot(subtasks) : undefined,
+				completed
+			},
+			applyToOthers
+				? {
+						propagate: true,
+						scope: propagateScope,
+						fields: {
+							color: syncColor,
+							category: syncCategory,
+							notes: syncNotes,
+							subtasks: syncSubtasks
+						},
+						updateBaseTemplate: syncBaseTemplate && Boolean(matchingTemplate)
+				  }
+				: undefined
+		);
 
 		isOpen = false;
 	}
@@ -289,6 +373,128 @@
 				/>
 				<span class="font-medium text-slate-700 dark:text-slate-300">Marcar este bloque como completado</span>
 			</label>
+
+			<!-- Propagation / Synchronize with other blocks -->
+			<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3 space-y-3">
+				<div class="flex items-center justify-between">
+					<label class="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-800 dark:text-slate-200">
+						<input
+							type="checkbox"
+							bind:checked={applyToOthers}
+							class="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+						/>
+						<span>Aplicar cambios a otros bloques existentes</span>
+					</label>
+					<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+				</div>
+
+				{#if applyToOthers}
+					<div class="pt-2 space-y-3 border-t border-slate-200 dark:border-slate-700/60 animate-in fade-in duration-150">
+						<!-- Scope selector -->
+						<div>
+							<span class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+								¿A qué bloques aplicar?
+							</span>
+							<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+								<label class="flex items-start gap-2 p-2 rounded-lg border cursor-pointer transition-colors {propagateScope === 'same_title' ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'}">
+									<input
+										type="radio"
+										name="propagate-scope"
+										value="same_title"
+										bind:group={propagateScope}
+										class="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+									/>
+									<div class="text-[11px] leading-snug">
+										<span class="font-medium text-slate-800 dark:text-slate-200 block">Mismo nombre</span>
+										<span class="text-[10px] text-slate-500 dark:text-slate-400">
+											"{title.trim() || 'Sin título'}" ({matchingSameTitleCount} {matchingSameTitleCount === 1 ? 'bloque' : 'bloques'})
+										</span>
+									</div>
+								</label>
+
+								<label class="flex items-start gap-2 p-2 rounded-lg border cursor-pointer transition-colors {propagateScope === 'all' ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'}">
+									<input
+										type="radio"
+										name="propagate-scope"
+										value="all"
+										bind:group={propagateScope}
+										class="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+									/>
+									<div class="text-[11px] leading-snug">
+										<span class="font-medium text-slate-800 dark:text-slate-200 block">Todos los bloques</span>
+										<span class="text-[10px] text-slate-500 dark:text-slate-400">
+											Todo el planificador ({totalOtherCount} {totalOtherCount === 1 ? 'bloque' : 'bloques'})
+										</span>
+									</div>
+								</label>
+							</div>
+						</div>
+
+						<!-- Fields to sync -->
+						<div>
+							<span class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+								Datos a sincronizar:
+							</span>
+							<div class="grid grid-cols-2 gap-2">
+								<label class="flex items-center gap-2 cursor-pointer select-none">
+									<input
+										type="checkbox"
+										bind:checked={syncColor}
+										class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+									/>
+									<span class="text-[11px] text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+										Color
+										<span class="inline-block w-2.5 h-2.5 rounded-full border border-black/10 shrink-0" style="background-color: {color};"></span>
+									</span>
+								</label>
+
+								<label class="flex items-center gap-2 cursor-pointer select-none">
+									<input
+										type="checkbox"
+										bind:checked={syncCategory}
+										class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+									/>
+									<span class="text-[11px] text-slate-700 dark:text-slate-300">Categoría</span>
+								</label>
+
+								<label class="flex items-center gap-2 cursor-pointer select-none">
+									<input
+										type="checkbox"
+										bind:checked={syncNotes}
+										class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+									/>
+									<span class="text-[11px] text-slate-700 dark:text-slate-300">Notas</span>
+								</label>
+
+								<label class="flex items-center gap-2 cursor-pointer select-none">
+									<input
+										type="checkbox"
+										bind:checked={syncSubtasks}
+										class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+									/>
+									<span class="text-[11px] text-slate-700 dark:text-slate-300">Checklist ({subtasks.length})</span>
+								</label>
+							</div>
+						</div>
+
+						<!-- Base template update option -->
+						{#if matchingTemplate}
+							<div class="pt-2 border-t border-slate-200 dark:border-slate-700/60">
+								<label class="flex items-center gap-2 cursor-pointer select-none">
+									<input
+										type="checkbox"
+										bind:checked={syncBaseTemplate}
+										class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+									/>
+									<span class="text-[11px] text-slate-700 dark:text-slate-300">
+										Actualizar también la plantilla base ("{matchingTemplate.title}")
+									</span>
+								</label>
+							</div>
+						{/if}
+					</div>
+				{/if}
+			</div>
 		</form>
 	{/snippet}
 

@@ -7,7 +7,8 @@
 		applyDayTemplateToDate,
 		clearAllData,
 		exportDatabaseToJson,
-		importDatabaseFromJson
+		importDatabaseFromJson,
+		propagateEventChanges
 	} from '$lib/db';
 	import { settingsStore, type BlockColorStyle } from '$lib/stores/settings';
 	import { readOnlyStore } from '$lib/stores/readOnly';
@@ -79,7 +80,20 @@
 		isEditModalOpen = true;
 	}
 
-	async function handleUpdateEvent(updatedEvent: ScheduledEvent) {
+	async function handleUpdateEvent(
+		updatedEvent: ScheduledEvent,
+		propagationOptions?: {
+			propagate: boolean;
+			scope: 'same_title' | 'all';
+			fields: {
+				color: boolean;
+				category: boolean;
+				notes: boolean;
+				subtasks: boolean;
+			};
+			updateBaseTemplate?: boolean;
+		}
+	) {
 		await db.scheduledEvents.update(updatedEvent.id, {
 			title: updatedEvent.title,
 			date: updatedEvent.date,
@@ -92,11 +106,44 @@
 			completed: updatedEvent.completed
 		});
 
-		toastStore.show({
-			title: 'Bloque actualizado',
-			message: 'Los cambios se han guardado con éxito.',
-			type: 'success'
-		});
+		if (propagationOptions?.propagate) {
+			const { updatedCount, templateUpdated } = await propagateEventChanges({
+				sourceEventId: updatedEvent.id,
+				scope: propagationOptions.scope,
+				title: updatedEvent.title,
+				sourceTemplateId: updatedEvent.sourceTemplateId,
+				fields: {
+					color: propagationOptions.fields.color ? updatedEvent.color : undefined,
+					category: propagationOptions.fields.category ? updatedEvent.category : undefined,
+					notes: propagationOptions.fields.notes ? updatedEvent.notes : undefined,
+					subtasks: propagationOptions.fields.subtasks ? updatedEvent.subtasks : undefined
+				},
+				updateBaseTemplate: propagationOptions.updateBaseTemplate
+			});
+
+			let msg = 'Bloque actualizado';
+			if (updatedCount > 0) {
+				msg += ` y propagado a ${updatedCount} ${updatedCount === 1 ? 'bloque adicional' : 'bloques adicionales'}.`;
+			} else {
+				msg += '.';
+			}
+			if (templateUpdated) {
+				msg += ' Plantilla base actualizada.';
+			}
+
+			toastStore.show({
+				title: 'Cambios guardados',
+				message: msg,
+				type: 'success'
+			});
+		} else {
+			toastStore.show({
+				title: 'Bloque actualizado',
+				message: 'Los cambios se han guardado con éxito.',
+				type: 'success'
+			});
+		}
+
 		refreshData();
 	}
 

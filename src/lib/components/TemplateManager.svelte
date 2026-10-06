@@ -1,6 +1,14 @@
 <script lang="ts">
-	import { db } from '$lib/db';
-	import { type ActivityTemplate, type DayTemplate, type DayTemplateBlock, type ScheduledEventSubtask, type CategoryOption, type CustomCategory } from '$lib/types';
+	import { db, propagateActivityTemplateChanges, propagateDayTemplateChanges } from '$lib/db';
+	import {
+		type ActivityTemplate,
+		type DayTemplate,
+		type DayTemplateBlock,
+		type ScheduledEvent,
+		type ScheduledEventSubtask,
+		type CategoryOption,
+		type CustomCategory
+	} from '$lib/types';
 	import { categoriesStore } from '$lib/stores/categories';
 	import { toastStore } from '$lib/utils/notifications';
 	import ColorPicker from './ColorPicker.svelte';
@@ -36,6 +44,45 @@
 	let actSubtasks = $state<ScheduledEventSubtask[]>([]);
 	let activityErrors = $state<{ title?: string; duration?: string }>({});
 
+	// Activity Template Propagation State
+	let applyActToOthers = $state(false);
+	let actPropagationScope = $state<'same_template' | 'all'>('same_template');
+	let actSyncColor = $state(true);
+	let actSyncCategory = $state(false);
+	let actSyncDuration = $state(false);
+	let actSyncNotes = $state(false);
+	let actSyncSubtasks = $state(false);
+
+	// Day Template Propagation State
+	let syncDayTemplateEvents = $state(false);
+
+	let allScheduledEvents = $state<ScheduledEvent[]>([]);
+
+	async function loadScheduledEventsContext() {
+		try {
+			allScheduledEvents = await db.scheduledEvents.toArray();
+		} catch (err) {
+			console.error('Error loading scheduled events in TemplateManager:', err);
+		}
+	}
+
+	const actMatchingEventsCount = $derived.by(() => {
+		const trimmed = actTitle.trim().toLowerCase();
+		if (!trimmed) return 0;
+		return allScheduledEvents.filter((e) => {
+			const sameTemplate = Boolean(editingActivityId && e.sourceTemplateId === editingActivityId);
+			const sameTitle = Boolean(e.title.trim().toLowerCase() === trimmed);
+			return sameTemplate || sameTitle;
+		}).length;
+	});
+
+	const totalScheduledEventsCount = $derived(allScheduledEvents.length);
+
+	const dayTplMatchingEventsCount = $derived.by(() => {
+		if (!editingDayTemplateId) return 0;
+		return allScheduledEvents.filter((e) => e.sourceTemplateId === editingDayTemplateId).length;
+	});
+
 	// Day Template Form State (Creation & Editing)
 	let isCreatingDayTemplate = $state(false);
 	let editingDayTemplateId = $state<string | null>(null);
@@ -64,6 +111,7 @@
 	async function loadData() {
 		activities = await db.activityTemplates.toArray();
 		dayTemplates = await db.dayTemplates.toArray();
+		await loadScheduledEventsContext();
 		if (activities.length > 0 && !selectedActivityIdForBlock) {
 			selectedActivityIdForBlock = activities[0].id;
 			blockDuration = activities[0].defaultDuration;
@@ -83,6 +131,13 @@
 		actNotes = '';
 		actSubtasks = [];
 		activityErrors = {};
+		applyActToOthers = false;
+		actPropagationScope = 'same_template';
+		actSyncColor = true;
+		actSyncCategory = false;
+		actSyncDuration = false;
+		actSyncNotes = false;
+		actSyncSubtasks = false;
 		isCreatingActivity = true;
 	}
 
@@ -99,6 +154,14 @@
 			completed: false
 		}));
 		activityErrors = {};
+		applyActToOthers = false;
+		actPropagationScope = 'same_template';
+		actSyncColor = true;
+		actSyncCategory = false;
+		actSyncDuration = false;
+		actSyncNotes = false;
+		actSyncSubtasks = false;
+		loadScheduledEventsContext();
 		isCreatingActivity = true;
 
 		if (typeof document !== 'undefined') {
@@ -142,16 +205,39 @@
 		const cleanSubtasks = actSubtasks.map((s) => s.title.trim()).filter(Boolean);
 
 		if (editingActivityId) {
-			await db.activityTemplates.update(editingActivityId, $state.snapshot({
+			const updatedTemplate: ActivityTemplate = {
+				id: editingActivityId,
 				title: actTitle.trim(),
 				category: actCategory || undefined,
 				defaultDuration: Number(actDuration),
 				color: actColor,
 				notes: actNotes.trim() || undefined,
 				subtasks: cleanSubtasks.length > 0 ? cleanSubtasks : undefined
-			}));
+			};
+			await db.activityTemplates.update(editingActivityId, $state.snapshot(updatedTemplate));
+
+			let propagatedCount = 0;
+			if (applyActToOthers) {
+				propagatedCount = await propagateActivityTemplateChanges({
+					templateId: editingActivityId,
+					templateTitle: actTitle.trim(),
+					scope: actPropagationScope,
+					fields: {
+						color: actSyncColor ? actColor : undefined,
+						category: actSyncCategory ? (actCategory || undefined) : undefined,
+						duration: actSyncDuration ? Number(actDuration) : undefined,
+						notes: actSyncNotes ? (actNotes.trim() || undefined) : undefined,
+						subtasks: actSyncSubtasks ? cleanSubtasks : undefined
+					}
+				});
+			}
+
 			toastStore.show({
 				title: 'Bloque de actividad actualizado',
+				message:
+					propagatedCount > 0
+						? `Se actualizaron ${propagatedCount} ${propagatedCount === 1 ? 'bloque existente' : 'bloques existentes'} en el planificador.`
+						: undefined,
 				type: 'success'
 			});
 		} else {
@@ -180,6 +266,7 @@
 		actNotes = '';
 		actSubtasks = [];
 		activityErrors = {};
+		applyActToOthers = false;
 		await loadData();
 		onTemplatesUpdated?.();
 	}
@@ -208,6 +295,7 @@
 		blockCustomTitle = '';
 		dayTemplateErrors = {};
 		blockErrors = {};
+		syncDayTemplateEvents = false;
 		isCreatingDayTemplate = true;
 	}
 
@@ -220,6 +308,8 @@
 		blockCustomTitle = '';
 		dayTemplateErrors = {};
 		blockErrors = {};
+		syncDayTemplateEvents = false;
+		loadScheduledEventsContext();
 		isCreatingDayTemplate = true;
 
 		if (typeof window !== 'undefined') {
@@ -362,8 +452,18 @@
 				blocks: cleanBlocks
 			};
 			await db.dayTemplates.put($state.snapshot(updatedTpl));
+
+			let syncedCount = 0;
+			if (syncDayTemplateEvents) {
+				syncedCount = await propagateDayTemplateChanges(editingDayTemplateId, updatedTpl);
+			}
+
 			toastStore.show({
 				title: 'Plantilla de Día actualizada con éxito',
+				message:
+					syncedCount > 0
+						? `Se sincronizaron ${syncedCount} ${syncedCount === 1 ? 'bloque' : 'bloques'} en el planificador.`
+						: undefined,
 				type: 'success'
 			});
 		} else {
@@ -390,6 +490,7 @@
 		blockCustomTitle = '';
 		dayTemplateErrors = {};
 		blockErrors = {};
+		syncDayTemplateEvents = false;
 		await loadData();
 		onTemplatesUpdated?.();
 	}
@@ -670,6 +771,25 @@
 					</div>
 				{/if}
 
+				<!-- Day Template propagation toggle if existing events match -->
+				{#if editingDayTemplateId && dayTplMatchingEventsCount > 0}
+					<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3">
+						<label class="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-800 dark:text-slate-200">
+							<input
+								type="checkbox"
+								bind:checked={syncDayTemplateEvents}
+								class="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+							/>
+							<span>
+								Sincronizar cambios en los bloques programados con esta plantilla ({dayTplMatchingEventsCount} {dayTplMatchingEventsCount === 1 ? 'bloque' : 'bloques'})
+							</span>
+						</label>
+						<p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 pl-6">
+							Actualizará el título, categoría, color y notas de las actividades en los bloques ya agendados en el calendario a partir de esta plantilla.
+						</p>
+					</div>
+				{/if}
+
 				<div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
 					<div class="text-[11px]">
 						{#if tplBlocks.length === 0}
@@ -925,6 +1045,123 @@
 				/>
 
 				<ColorPicker bind:selectedColor={actColor} label="Color de la Actividad" />
+
+				<!-- Propagation / Synchronize with planner blocks (only when editing) -->
+				{#if editingActivityId}
+					<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3 space-y-3">
+						<div class="flex items-center justify-between">
+							<label class="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-800 dark:text-slate-200">
+								<input
+									type="checkbox"
+									bind:checked={applyActToOthers}
+									class="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+								/>
+								<span>Aplicar cambios a los bloques existentes en el planificador</span>
+							</label>
+							<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+						</div>
+
+						{#if applyActToOthers}
+							<div class="pt-2 space-y-3 border-t border-slate-200 dark:border-slate-700/60 animate-in fade-in duration-150">
+								<!-- Scope selector -->
+								<div>
+									<span class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+										¿A qué bloques aplicar?
+									</span>
+									<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+										<label class="flex items-start gap-2 p-2 rounded-lg border cursor-pointer transition-colors {actPropagationScope === 'same_template' ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'}">
+											<input
+												type="radio"
+												name="act-propagate-scope"
+												value="same_template"
+												bind:group={actPropagationScope}
+												class="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+											/>
+											<div class="text-[11px] leading-snug">
+												<span class="font-medium text-slate-800 dark:text-slate-200 block">Bloques de esta actividad</span>
+												<span class="text-[10px] text-slate-500 dark:text-slate-400">
+													"{actTitle.trim() || 'Sin título'}" ({actMatchingEventsCount} {actMatchingEventsCount === 1 ? 'bloque' : 'bloques'})
+												</span>
+											</div>
+										</label>
+
+										<label class="flex items-start gap-2 p-2 rounded-lg border cursor-pointer transition-colors {actPropagationScope === 'all' ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'}">
+											<input
+												type="radio"
+												name="act-propagate-scope"
+												value="all"
+												bind:group={actPropagationScope}
+												class="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+											/>
+											<div class="text-[11px] leading-snug">
+												<span class="font-medium text-slate-800 dark:text-slate-200 block">Todos los bloques</span>
+												<span class="text-[10px] text-slate-500 dark:text-slate-400">
+													Todo el planificador ({totalScheduledEventsCount} {totalScheduledEventsCount === 1 ? 'bloque' : 'bloques'})
+												</span>
+											</div>
+										</label>
+									</div>
+								</div>
+
+								<!-- Fields to sync -->
+								<div>
+									<span class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+										Datos a sincronizar:
+									</span>
+									<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+										<label class="flex items-center gap-2 cursor-pointer select-none">
+											<input
+												type="checkbox"
+												bind:checked={actSyncColor}
+												class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+											/>
+											<span class="text-[11px] text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+												Color
+												<span class="inline-block w-2.5 h-2.5 rounded-full border border-black/10 shrink-0" style="background-color: {actColor};"></span>
+											</span>
+										</label>
+
+										<label class="flex items-center gap-2 cursor-pointer select-none">
+											<input
+												type="checkbox"
+												bind:checked={actSyncCategory}
+												class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+											/>
+											<span class="text-[11px] text-slate-700 dark:text-slate-300">Categoría</span>
+										</label>
+
+										<label class="flex items-center gap-2 cursor-pointer select-none">
+											<input
+												type="checkbox"
+												bind:checked={actSyncDuration}
+												class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+											/>
+											<span class="text-[11px] text-slate-700 dark:text-slate-300">Duración ({actDuration}m)</span>
+										</label>
+
+										<label class="flex items-center gap-2 cursor-pointer select-none">
+											<input
+												type="checkbox"
+												bind:checked={actSyncNotes}
+												class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+											/>
+											<span class="text-[11px] text-slate-700 dark:text-slate-300">Notas</span>
+										</label>
+
+										<label class="flex items-center gap-2 cursor-pointer select-none">
+											<input
+												type="checkbox"
+												bind:checked={actSyncSubtasks}
+												class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+											/>
+											<span class="text-[11px] text-slate-700 dark:text-slate-300">Checklist ({actSubtasks.length})</span>
+										</label>
+									</div>
+								</div>
+							</div>
+						{/if}
+					</div>
+				{/if}
 
 				<div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
 					<button

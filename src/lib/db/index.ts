@@ -4,6 +4,7 @@ import {
 	type ActivityTemplate,
 	type DayTemplate,
 	type ScheduledEvent,
+	type ScheduledEventSubtask,
 	type SpecialEvent,
 	type AppSetting,
 	type CustomCategory
@@ -232,4 +233,210 @@ export async function importDatabaseFromJson(jsonContent: string): Promise<boole
 	);
 
 	return true;
+}
+
+// -------------------------------------------------------------
+// BATCH PROPAGATION / SYNCHRONIZATION HELPERS
+// -------------------------------------------------------------
+
+export interface EventPropagationOptions {
+	sourceEventId: string;
+	scope: 'same_title' | 'all';
+	title: string;
+	sourceTemplateId?: string;
+	fields: {
+		color?: string;
+		category?: string;
+		notes?: string;
+		subtasks?: ScheduledEventSubtask[];
+	};
+	updateBaseTemplate?: boolean;
+}
+
+/**
+ * Propagates changes made on a single ScheduledEvent to other scheduled events,
+ * and optionally updates any matching base ActivityTemplate.
+ */
+export async function propagateEventChanges(options: EventPropagationOptions): Promise<{
+	updatedCount: number;
+	templateUpdated: boolean;
+}> {
+	const allEvents = await db.scheduledEvents.toArray();
+	const trimmedTitle = options.title.trim().toLowerCase();
+
+	const targetEvents = allEvents.filter((e) => {
+		if (e.id === options.sourceEventId) return false;
+		if (options.scope === 'all') return true;
+
+		// Match by sourceTemplateId if present, or by title (case-insensitive)
+		const sameTemplate = Boolean(options.sourceTemplateId && e.sourceTemplateId === options.sourceTemplateId);
+		const sameTitle = Boolean(trimmedTitle && e.title.trim().toLowerCase() === trimmedTitle);
+		return sameTemplate || sameTitle;
+	});
+
+	if (targetEvents.length > 0) {
+		for (const evt of targetEvents) {
+			if (options.fields.color !== undefined) {
+				evt.color = options.fields.color;
+			}
+			if (options.fields.category !== undefined) {
+				evt.category = options.fields.category || undefined;
+			}
+			if (options.fields.notes !== undefined) {
+				evt.notes = options.fields.notes || undefined;
+			}
+			if (options.fields.subtasks !== undefined) {
+				evt.subtasks =
+					options.fields.subtasks.length > 0
+						? options.fields.subtasks.map((st, i) => ({
+								id: crypto.randomUUID
+									? crypto.randomUUID()
+									: `st-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 5)}`,
+								title: st.title,
+								completed: false
+						  }))
+						: undefined;
+			}
+		}
+
+		await db.scheduledEvents.bulkPut(targetEvents);
+	}
+
+	let templateUpdated = false;
+	if (options.updateBaseTemplate) {
+		let template: ActivityTemplate | undefined;
+		if (options.sourceTemplateId) {
+			template = await db.activityTemplates.get(options.sourceTemplateId);
+		}
+		if (!template && trimmedTitle) {
+			const allTemplates = await db.activityTemplates.toArray();
+			template = allTemplates.find((t) => t.title.trim().toLowerCase() === trimmedTitle);
+		}
+
+		if (template) {
+			const updatedTemplate: ActivityTemplate = {
+				...template,
+				...(options.fields.color !== undefined ? { color: options.fields.color } : {}),
+				...(options.fields.category !== undefined ? { category: options.fields.category || undefined } : {}),
+				...(options.fields.notes !== undefined ? { notes: options.fields.notes || undefined } : {}),
+				...(options.fields.subtasks !== undefined
+					? { subtasks: options.fields.subtasks.map((s) => s.title.trim()).filter(Boolean) }
+					: {})
+			};
+			await db.activityTemplates.put(updatedTemplate);
+			templateUpdated = true;
+		}
+	}
+
+	return {
+		updatedCount: targetEvents.length,
+		templateUpdated
+	};
+}
+
+export interface ActivityTemplatePropagationOptions {
+	templateId: string;
+	templateTitle: string;
+	scope: 'same_template' | 'all';
+	fields: {
+		color?: string;
+		category?: string;
+		duration?: number;
+		notes?: string;
+		subtasks?: string[];
+	};
+}
+
+/**
+ * Propagates changes made on an ActivityTemplate to scheduled events in the database.
+ */
+export async function propagateActivityTemplateChanges(
+	options: ActivityTemplatePropagationOptions
+): Promise<number> {
+	const allEvents = await db.scheduledEvents.toArray();
+	const trimmedTitle = options.templateTitle.trim().toLowerCase();
+
+	const targetEvents = allEvents.filter((e) => {
+		if (options.scope === 'all') return true;
+		const sameTemplate = e.sourceTemplateId === options.templateId;
+		const sameTitle = Boolean(trimmedTitle && e.title.trim().toLowerCase() === trimmedTitle);
+		return sameTemplate || sameTitle;
+	});
+
+	if (targetEvents.length === 0) return 0;
+
+	for (const evt of targetEvents) {
+		if (options.fields.color !== undefined) {
+			evt.color = options.fields.color;
+		}
+		if (options.fields.category !== undefined) {
+			evt.category = options.fields.category || undefined;
+		}
+		if (options.fields.notes !== undefined) {
+			evt.notes = options.fields.notes || undefined;
+		}
+		if (options.fields.duration !== undefined && options.fields.duration > 0) {
+			evt.endTime = addMinutesToTime(evt.startTime, options.fields.duration);
+		}
+		if (options.fields.subtasks !== undefined) {
+			evt.subtasks =
+				options.fields.subtasks.length > 0
+					? options.fields.subtasks.map((st, i) => ({
+							id: crypto.randomUUID
+								? crypto.randomUUID()
+								: `st-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 5)}`,
+							title: st,
+							completed: false
+					  }))
+					: undefined;
+		}
+	}
+
+	await db.scheduledEvents.bulkPut(targetEvents);
+	return targetEvents.length;
+}
+
+/**
+ * Propagates changes made on a DayTemplate to scheduled events that were created from it.
+ */
+export async function propagateDayTemplateChanges(
+	templateId: string,
+	updatedTemplate: DayTemplate
+): Promise<number> {
+	const allEvents = await db.scheduledEvents.toArray();
+	const targetEvents = allEvents.filter((e) => e.sourceTemplateId === templateId);
+	if (targetEvents.length === 0) return 0;
+
+	const allActivities = await db.activityTemplates.toArray();
+	const actMap = new Map(allActivities.map((a) => [a.id, a]));
+
+	// Group events by date
+	const eventsByDate = new Map<string, ScheduledEvent[]>();
+	for (const e of targetEvents) {
+		const list = eventsByDate.get(e.date) || [];
+		list.push(e);
+		eventsByDate.set(e.date, list);
+	}
+
+	const updatedEvents: ScheduledEvent[] = [];
+	for (const [, dateEvts] of eventsByDate.entries()) {
+		dateEvts.sort((a, b) => a.startTime.localeCompare(b.startTime));
+		for (let i = 0; i < dateEvts.length && i < updatedTemplate.blocks.length; i++) {
+			const evt = dateEvts[i];
+			const tplBlock = updatedTemplate.blocks[i];
+			const act = actMap.get(tplBlock.activityId);
+			if (act) {
+				evt.title = tplBlock.customTitle || act.title;
+				evt.category = act.category;
+				evt.color = act.color;
+				evt.notes = act.notes;
+				updatedEvents.push(evt);
+			}
+		}
+	}
+
+	if (updatedEvents.length > 0) {
+		await db.scheduledEvents.bulkPut(updatedEvents);
+	}
+	return updatedEvents.length;
 }
