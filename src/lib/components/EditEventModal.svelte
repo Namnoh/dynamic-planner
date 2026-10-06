@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { CATEGORY_OPTIONS, type ScheduledEvent } from '$lib/types';
 	import Modal from './Modal.svelte';
 	import ColorPicker from './ColorPicker.svelte';
@@ -29,6 +30,9 @@
 	let completed = $state(false);
 	let errors = $state<{ title?: string; date?: string; startTime?: string; endTime?: string }>({});
 
+	let wasOpen = false;
+	let lastEventId: string | null = null;
+
 	const dayOptions = $derived.by(() =>
 		weekDays.map((d) => ({
 			value: d.dateStr,
@@ -36,19 +40,28 @@
 		}))
 	);
 
-	// Synchronize form when active event changes
+	// Synchronize form when modal opens or active event ID changes
 	$effect(() => {
-		if (event && isOpen) {
-			title = event.title;
-			date = event.date;
-			startTime = event.startTime;
-			endTime = event.endTime;
-			category = event.category || '';
-			color = event.color || '#3b82f6';
-			notes = event.notes || '';
-			completed = event.completed;
-			errors = {};
+		const currentlyOpen = isOpen;
+		const currentEventId = event?.id || null;
+
+		if (currentlyOpen && (!wasOpen || currentEventId !== lastEventId)) {
+			untrack(() => {
+				if (event) {
+					title = event.title;
+					date = event.date;
+					startTime = event.startTime;
+					endTime = event.endTime;
+					category = event.category || '';
+					color = event.color || '#3b82f6';
+					notes = event.notes || '';
+					completed = event.completed;
+					errors = {};
+				}
+			});
 		}
+		wasOpen = currentlyOpen;
+		lastEventId = currentEventId;
 	});
 
 	function handleSubmit() {
@@ -166,6 +179,7 @@
 						type="time"
 						bind:value={startTime}
 						oninput={() => { if (errors.startTime) errors.startTime = ''; }}
+						onchange={() => { if (errors.startTime) errors.startTime = ''; }}
 						class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.startTime
 							? 'border-rose-500 focus:border-rose-500'
 							: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
@@ -185,6 +199,7 @@
 						type="time"
 						bind:value={endTime}
 						oninput={() => { if (errors.endTime) errors.endTime = ''; }}
+						onchange={() => { if (errors.endTime) errors.endTime = ''; }}
 						class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.endTime
 							? 'border-rose-500 focus:border-rose-500'
 							: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"

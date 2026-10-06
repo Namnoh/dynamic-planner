@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { CATEGORY_OPTIONS, type ScheduledEvent, type ActivityTemplate } from '$lib/types';
 	import { addMinutesToTime } from '$lib/db';
 	import Modal from './Modal.svelte';
@@ -30,19 +31,29 @@
 	let currentDuration = $state(60);
 	let errors = $state<{ title?: string; startTime?: string; endTime?: string }>({});
 
-	// Reset form when modal opens
+	let wasOpen = false;
+
+	function resetForm() {
+		selectedActivityId = '';
+		title = '';
+		startTime = initialStartTime || '09:00';
+		currentDuration = 60;
+		endTime = addMinutesToTime(startTime, currentDuration);
+		category = '';
+		color = '#3b82f6';
+		notes = '';
+		errors = {};
+	}
+
+	// Reset form ONLY when modal transitions from closed to open
 	$effect(() => {
-		if (isOpen) {
-			selectedActivityId = '';
-			title = '';
-			startTime = initialStartTime || '09:00';
-			currentDuration = 60;
-			endTime = addMinutesToTime(startTime, currentDuration);
-			category = '';
-			color = '#3b82f6';
-			notes = '';
-			errors = {};
+		const currentlyOpen = isOpen;
+		if (currentlyOpen && !wasOpen) {
+			untrack(() => {
+				resetForm();
+			});
 		}
+		wasOpen = currentlyOpen;
 	});
 
 	function handleSelectActivity(act: ActivityTemplate) {
@@ -91,13 +102,31 @@
 		endTime = addMinutesToTime(startTime, currentDuration);
 	}
 
-	function handleStartTimeInput(e: Event) {
+	function getMinutesDifference(start: string, end: string): number {
+		const [h1, m1] = start.split(':').map(Number);
+		const [h2, m2] = end.split(':').map(Number);
+		return (h2 * 60 + m2) - (h1 * 60 + m1);
+	}
+
+	function handleStartTimeChange(e: Event) {
 		const newStart = (e.target as HTMLInputElement).value;
 		startTime = newStart;
 		if (errors.startTime) errors.startTime = '';
 		if (newStart && currentDuration > 0) {
 			endTime = addMinutesToTime(newStart, currentDuration);
 			if (errors.endTime) errors.endTime = '';
+		}
+	}
+
+	function handleEndTimeChange(e: Event) {
+		const newEnd = (e.target as HTMLInputElement).value;
+		endTime = newEnd;
+		if (errors.endTime) errors.endTime = '';
+		if (startTime && newEnd) {
+			const diff = getMinutesDifference(startTime, newEnd);
+			if (diff > 0) {
+				currentDuration = diff;
+			}
 		}
 	}
 
@@ -228,8 +257,9 @@
 					<input
 						id="new-event-start-time"
 						type="time"
-						value={startTime}
-						oninput={handleStartTimeInput}
+						bind:value={startTime}
+						oninput={handleStartTimeChange}
+						onchange={handleStartTimeChange}
 						class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.startTime
 							? 'border-rose-500 focus:border-rose-500'
 							: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
@@ -248,7 +278,8 @@
 						id="new-event-end-time"
 						type="time"
 						bind:value={endTime}
-						oninput={() => { if (errors.endTime) errors.endTime = ''; }}
+						oninput={handleEndTimeChange}
+						onchange={handleEndTimeChange}
 						class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.endTime
 							? 'border-rose-500 focus:border-rose-500'
 							: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
