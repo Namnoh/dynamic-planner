@@ -320,12 +320,17 @@ export async function ensureDefaultCategories(): Promise<void> {
 	}
 }
 
+export type ExportScope = 'full' | 'templates_only' | 'recent_month' | 'current_week';
+
 /**
  * Exports all database tables to a structured JSON string.
  */
-export async function exportDatabaseToJson(): Promise<string> {
+export async function exportDatabaseToJson(
+	scope: ExportScope = 'full',
+	pretty = false
+): Promise<string> {
 	await ensureDefaultCategories();
-	const [activities, dayTemplates, events, specialEvents, settings, categories] = await Promise.all([
+	const [activities, dayTemplates, allEvents, specialEvents, settings, categories] = await Promise.all([
 		db.activityTemplates.toArray(),
 		db.dayTemplates.toArray(),
 		db.scheduledEvents.toArray(),
@@ -334,9 +339,27 @@ export async function exportDatabaseToJson(): Promise<string> {
 		db.categories.toArray()
 	]);
 
+	let events = allEvents;
+	if (scope === 'templates_only') {
+		events = [];
+	} else if (scope === 'recent_month') {
+		const pastLimit = new Date();
+		pastLimit.setDate(pastLimit.getDate() - 30);
+		const pastLimitStr = formatDateToYYYYMMDD(pastLimit);
+		events = allEvents.filter((e) => e.date >= pastLimitStr);
+	} else if (scope === 'current_week') {
+		const monday = getMondayOfCurrentWeek();
+		const sunday = new Date(monday);
+		sunday.setDate(sunday.getDate() + 6);
+		const monStr = formatDateToYYYYMMDD(monday);
+		const sunStr = formatDateToYYYYMMDD(sunday);
+		events = allEvents.filter((e) => e.date >= monStr && e.date <= sunStr);
+	}
+
 	const backup = {
 		app: 'dynamic-planner',
 		version: '1.0.0',
+		scope,
 		exportedAt: new Date().toISOString(),
 		data: {
 			activities,
@@ -348,13 +371,18 @@ export async function exportDatabaseToJson(): Promise<string> {
 		}
 	};
 
-	return JSON.stringify(backup, null, 2);
+	return pretty ? JSON.stringify(backup, null, 2) : JSON.stringify(backup);
 }
+
+export type ImportMode = 'replace' | 'merge';
 
 /**
  * Imports a JSON backup string into IndexedDB.
  */
-export async function importDatabaseFromJson(jsonContent: string): Promise<boolean> {
+export async function importDatabaseFromJson(
+	jsonContent: string,
+	mode: ImportMode = 'replace'
+): Promise<{ success: boolean; eventsCount: number; templatesCount: number }> {
 	const parsed = JSON.parse(jsonContent);
 
 	if (!parsed || parsed.app !== 'dynamic-planner' || !parsed.data) {
@@ -381,27 +409,41 @@ export async function importDatabaseFromJson(jsonContent: string): Promise<boole
 			db.categories
 		],
 		async () => {
-			await db.activityTemplates.clear();
-			await db.dayTemplates.clear();
-			await db.scheduledEvents.clear();
-			await db.specialEvents.clear();
-			await db.settings.clear();
-			await db.categories.clear();
+			if (mode === 'replace') {
+				await db.activityTemplates.clear();
+				await db.dayTemplates.clear();
+				await db.scheduledEvents.clear();
+				await db.specialEvents.clear();
+				await db.settings.clear();
+				await db.categories.clear();
 
-			if (activities.length) await db.activityTemplates.bulkAdd(activities);
-			if (dayTemplates.length) await db.dayTemplates.bulkAdd(dayTemplates);
-			if (events.length) await db.scheduledEvents.bulkAdd(events);
-			if (specialEvents.length) await db.specialEvents.bulkAdd(specialEvents);
-			if (settings.length) await db.settings.bulkAdd(settings);
-			if (categories.length) {
-				await db.categories.bulkAdd(categories);
+				if (activities.length) await db.activityTemplates.bulkAdd(activities);
+				if (dayTemplates.length) await db.dayTemplates.bulkAdd(dayTemplates);
+				if (events.length) await db.scheduledEvents.bulkAdd(events);
+				if (specialEvents.length) await db.specialEvents.bulkAdd(specialEvents);
+				if (settings.length) await db.settings.bulkAdd(settings);
+				if (categories.length) {
+					await db.categories.bulkAdd(categories);
+				} else {
+					await db.categories.bulkAdd(DEFAULT_CATEGORIES);
+				}
 			} else {
-				await db.categories.bulkAdd(DEFAULT_CATEGORIES);
+				// 'merge' mode: bulkPut merges or adds items without clearing
+				if (activities.length) await db.activityTemplates.bulkPut(activities);
+				if (dayTemplates.length) await db.dayTemplates.bulkPut(dayTemplates);
+				if (events.length) await db.scheduledEvents.bulkPut(events);
+				if (specialEvents.length) await db.specialEvents.bulkPut(specialEvents);
+				if (settings.length) await db.settings.bulkPut(settings);
+				if (categories.length) await db.categories.bulkPut(categories);
 			}
 		}
 	);
 
-	return true;
+	return {
+		success: true,
+		eventsCount: events.length,
+		templatesCount: dayTemplates.length
+	};
 }
 
 // -------------------------------------------------------------

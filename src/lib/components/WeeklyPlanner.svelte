@@ -10,8 +10,6 @@
 		deleteRecurringEvents,
 		updateRecurringEvents,
 		clearAllData,
-		exportDatabaseToJson,
-		importDatabaseFromJson,
 		propagateEventChanges
 	} from '$lib/db';
 	import { settingsStore, type BlockColorStyle } from '$lib/stores/settings';
@@ -28,6 +26,7 @@
 	import EventCard from './EventCard.svelte';
 	import AddEventModal from './AddEventModal.svelte';
 	import EditEventModal from './EditEventModal.svelte';
+	import DataTransferModal from './DataTransferModal.svelte';
 	import ReadOnlyFloatingPill from './ReadOnlyFloatingPill.svelte';
 	import WeekPickerCalendar from './WeekPickerCalendar.svelte';
 	import SearchableSelect from './SearchableSelect.svelte';
@@ -41,8 +40,7 @@
 		Sparkles,
 		Trash2,
 		Plus,
-		FileDown,
-		FileUp,
+		QrCode,
 		Layers,
 		Repeat,
 		Zap
@@ -54,6 +52,7 @@
 	let dayTemplates = $state<DayTemplate[]>([]);
 	let activityTemplates = $state<ActivityTemplate[]>([]);
 	let isExportModalOpen = $state(false);
+	let isTransferModalOpen = $state(false);
 	let isWeekPickerOpen = $state(false);
 	let boardElement = $state<HTMLElement | null>(null);
 	let blockColorStyle = $state<BlockColorStyle>(settingsStore.current);
@@ -324,6 +323,14 @@
 
 	onMount(() => {
 		refreshData();
+
+		const handleOpenTransfer = () => {
+			isTransferModalOpen = true;
+		};
+		window.addEventListener('open-data-transfer', handleOpenTransfer);
+		return () => {
+			window.removeEventListener('open-data-transfer', handleOpenTransfer);
+		};
 	});
 
 	const isCurrentWeek = $derived.by(() => {
@@ -603,43 +610,7 @@
 		}
 	}
 
-	// JSON Backup and restore
-	async function handleExportJson() {
-		const json = await exportDatabaseToJson();
-		const blob = new Blob([json], { type: 'application/json' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `dynamic-planner-backup-${new Date().toISOString().split('T')[0]}.json`;
-		a.click();
-		URL.revokeObjectURL(url);
-		toastStore.show({
-			title: 'Copia de seguridad descargada',
-			type: 'success'
-		});
-	}
 
-	async function handleImportJson(e: Event) {
-		const input = e.target as HTMLInputElement;
-		if (!input.files || input.files.length === 0) return;
-		const file = input.files[0];
-		const text = await file.text();
-		try {
-			await importDatabaseFromJson(text);
-			toastStore.show({
-				title: 'Copia de seguridad restaurada',
-				type: 'success'
-			});
-			refreshData();
-		} catch (err: any) {
-			toastStore.show({
-				title: 'Error al restaurar',
-				message: err.message,
-				type: 'error'
-			});
-		}
-		input.value = '';
-	}
 </script>
 
 <div class="flex flex-col gap-5 w-full">
@@ -693,24 +664,16 @@
 					<Trash2 class="h-3.5 w-3.5 text-red-500" />
 				</button>
 
-				<!-- Backup JSON Menu -->
-				<div class="flex items-center rounded-xl border border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-800/60 p-0.5">
-					<button
-						type="button"
-						onclick={handleExportJson}
-						class="p-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
-						title="Exportar respaldo JSON local"
-					>
-						<FileDown class="h-3.5 w-3.5" />
-					</button>
-					<label
-						class="p-1.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
-						title="Importar respaldo JSON"
-					>
-						<FileUp class="h-3.5 w-3.5" />
-						<input type="file" accept=".json" onchange={handleImportJson} class="hidden" />
-					</label>
-				</div>
+				<!-- Transfer Data (QR & JSON Backup) -->
+				<button
+					type="button"
+					onclick={() => (isTransferModalOpen = true)}
+					class="text-nowrap flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700/70 text-slate-700 dark:text-slate-200 px-2.5 py-1.5 text-xs font-medium transition-all cursor-pointer shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-500/40"
+					title="Transferir o respaldar datos (Código QR o archivo JSON)"
+				>
+					<QrCode class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+					<span class="hidden sm:inline">Transferir</span>
+				</button>
 			</div>
 		</div>
 
@@ -957,6 +920,12 @@
 	bind:isOpen={isExportModalOpen}
 	targetElement={boardElement}
 	defaultFilename={`dynamic-planner-${weekRangeLabel.replace(/[\s—]/g, '_')}`}
+/>
+
+<!-- Peer-to-Peer Data Transfer & Backup Modal -->
+<DataTransferModal
+	bind:isOpen={isTransferModalOpen}
+	onDataImported={refreshData}
 />
 
 <!-- Floating Pill for Read-Only / Lock Mode -->

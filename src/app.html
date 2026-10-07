@@ -44,10 +44,10 @@
 
 		<!-- Security & Privacy Policies -->
 		<meta name="referrer" content="strict-origin-when-cross-origin" />
-		<meta http-equiv="Permissions-Policy" content="accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()" />
+		<meta http-equiv="Permissions-Policy" content="accelerometer=(), camera=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()" />
 		<meta
 			http-equiv="Content-Security-Policy"
-			content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://mydynamicplanner.com; font-src 'self' data:; connect-src 'self' ws: wss:; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self';"
+			content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://mydynamicplanner.com; font-src 'self' data:; connect-src 'self' ws: wss:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self';"
 		/>
 
 		<!-- Structured Data (Schema.org JSON-LD) -->

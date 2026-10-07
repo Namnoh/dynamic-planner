@@ -17,7 +17,8 @@
 		BookOpen,
 		Download,
 		Sparkles,
-		Tag
+		Tag,
+		QrCode
 	} from 'lucide-svelte';
 
 	let isCategoryModalOpen = $state(false);
@@ -361,28 +362,40 @@
 					</div>
 				</div>
 
-				<!-- Data Portability (JSON Import/Export) -->
-				<div class="space-y-1.5 pt-1">
+				<!-- Data Portability (QR Transfer & JSON Backup) -->
+				<div class="space-y-2 pt-1">
 					<span class="text-xs font-semibold text-slate-700 dark:text-slate-300">
-						Portabilidad y Respaldo (Importar / Exportar JSON):
+						Transferencia y Respaldo de Datos:
 					</span>
 					<p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
-						Para mover tus rutinas a otro navegador o dispositivo, descarga tu archivo JSON y luego impórtalo allí.
+						Pasa tus rutinas y bloques a otro dispositivo escaneando un código QR en tiempo real, o descarga un archivo JSON como respaldo local.
 					</p>
-					<div class="flex items-center gap-2 pt-1">
+					<div class="flex flex-wrap items-center gap-2 pt-1">
+						<button
+							type="button"
+							onclick={() => {
+								isOpen = false;
+								window.dispatchEvent(new CustomEvent('open-data-transfer'));
+							}}
+							class="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 text-xs font-semibold shadow-xs transition-all cursor-pointer"
+						>
+							<QrCode class="h-3.5 w-3.5" />
+							<span>Transferir (QR / JSON)</span>
+						</button>
+
 						<button
 							type="button"
 							onclick={handleExportJson}
 							class="flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
 						>
-							<FileDown class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+							<FileDown class="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
 							<span>Exportar JSON</span>
 						</button>
 
 						<label
 							class="flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
 						>
-							<FileUp class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+							<FileUp class="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
 							<span>Importar JSON</span>
 							<input type="file" accept=".json" onchange={handleImportJson} class="hidden" />
 						</label>
