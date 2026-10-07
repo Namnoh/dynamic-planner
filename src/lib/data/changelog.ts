@@ -17,10 +17,67 @@ export interface Release {
 
 export const CHANGELOG_DATA: Release[] = [
 	{
+		version: '1.1.0',
+		title: 'Transferencia Offline, Recurrencia & Categorías Personalizadas',
+		date: '2026-10-06',
+		badge: 'Versión Actual',
+		description:
+			'Nueva suite de sincronización entre dispositivos sin servidor mediante Código QR único y archivos compartibles (.planner), soporte de recurrencia en bloques y plantillas, categorías personalizadas con colores a medida, propagación en lote y listas de subtareas integradas.',
+		items: [
+			{
+				type: 'feat',
+				text: 'Transferencia sin servidor por Código QR instantáneo',
+				detail:
+					'Pasa tus datos y cronogramas entre tu computadora y tu celular en un solo escaneo ultrarrápido. Funciona 100% offline y privado, sin cuentas ni servidores intermedios.'
+			},
+			{
+				type: 'feat',
+				text: 'Compartir rutinas vía WhatsApp, AirDrop y archivo .planner',
+				detail:
+					'Genera un archivo ligero .planner para compartirlo directamente por tus aplicaciones de mensajería favoritas o respaldarlo en tu equipo, con opciones inteligentes de combinar o reemplazar.'
+			},
+			{
+				type: 'feat',
+				text: 'Categorías 100% personalizables con paletas de color',
+				detail:
+					'Crea tus propias categorías con nombres y colores a medida. Se integran automáticamente en la creación de bloques, plantillas y filtros de búsqueda.'
+			},
+			{
+				type: 'feat',
+				text: 'Propagación en lote y sincronización masiva',
+				detail:
+					'Al actualizar un bloque o plantilla (como cambiar su color o duración), ahora puedes sincronizar automáticamente todos los bloques existentes con alcance personalizable (semana activa, mes o historial completo).'
+			},
+			{
+				type: 'feat',
+				text: 'Recurrencia en bloques y plantillas de día',
+				detail:
+					'Programa repeticiones automáticas: días laborales (lunes a viernes), fines de semana, días específicos (ej. lunes, miércoles y viernes) o días fijos de cada mes.'
+			},
+			{
+				type: 'feat',
+				text: 'Ordenamientos avanzados en plantillas y actividades',
+				detail:
+					'Nuevas opciones para ordenar tus actividades, plantillas de día y categorías por orden alfabético (A-Z), fecha de creación, última modificación o cantidad de bloques.'
+			},
+			{
+				type: 'feat',
+				text: 'Subtareas y listas de chequeo (Checklist) en bloques',
+				detail:
+					'Añade tareas pendientes dentro de tus actividades y márcalas como completadas directamente desde el tablero semanal sin salir de tu vista principal.'
+			},
+			{
+				type: 'fix',
+				text: 'Compatibilidad de cámara y renderizado en Zen Browser / Gecko',
+				detail:
+					'Optimización en la compresión nativa de datos y renderizado vectorial de códigos QR para navegadores con privacidad estricta y motores Gecko.'
+			}
+		]
+	},
+	{
 		version: '1.0.0',
 		title: 'Lanzamiento Oficial & Experiencia Unificada',
 		date: '2026-10-06',
-		badge: 'Versión Actual',
 		description: 'Primera versión oficial estable de Dynamic Planner con selectores enriquecidos, navegación por calendario, soporte PWA completo y correcciones críticas en dispositivos móviles.',
 		items: [
 			{

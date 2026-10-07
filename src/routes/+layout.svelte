@@ -268,7 +268,7 @@
 					class="relative rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-all border border-slate-200 dark:border-slate-800 cursor-pointer {hasUnreadChangelog
 						? 'inline-flex bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-800/80 shadow-xs'
 						: 'hidden md:inline-flex'}"
-					title="Novedades y Registro de Cambios (v1.0.0)"
+					title="Novedades y Registro de Cambios (v1.1.0)"
 					aria-label="Ver novedades y cambios"
 				>
 					<Sparkles class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />

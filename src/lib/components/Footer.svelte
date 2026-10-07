@@ -206,7 +206,7 @@
 					class="rounded bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 dark:bg-slate-800 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-400 px-2 py-0.5 text-[10px] font-mono text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
 					title="Ver historial de versiones y novedades"
 				>
-					v1.0.0
+					v1.1.0
 				</button>
 			</div>
 		</div>

@@ -1,7 +1,7 @@
 {
 	"name": "dynamic-planner",
 	"private": true,
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"author": "Fernando Muñoz <ferm.programmer@gmail.com>",
 	"type": "module",
 	"packageManager": "pnpm@11.3.0",
