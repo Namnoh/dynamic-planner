@@ -678,7 +678,7 @@
 		</div>
 
 
-		<!-- Rigth: Week Navigation & Quick Apply Template -->
+		<!-- Right: Week Navigation & Quick Apply Template -->
 		<div class="relative z-30 w-full md:h-30 lg:h-20 flex flex-wrap lg:flex-nowrap items-center justify-around gap-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-md dark:shadow-xl transition-colors">
 			<div class="relative flex items-center gap-2">
 				<div class="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 border border-slate-200 dark:border-slate-700/60 shadow-inner">
@@ -717,18 +717,18 @@
 					</button>
 				</div>
 	
-				<!-- "Today" button now to the right -->
-				<!-- For now, we'll keep it hidden -->
-				<!-- <button
+				<!-- "Today" button placed to the right -->
+				<!-- Kept hidden for now:
+				<button
 					type="button"
 					onclick={goToCurrentWeek}
 					class="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold border transition-all cursor-pointer shadow-xs {isCurrentWeek
 						? 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-500 dark:border-slate-800/60'
 						: 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 dark:text-indigo-300 dark:border-indigo-800 font-bold'}"
-					title="Ir a la semana actual (Hoy)"
-					aria-label="Ir a la semana actual (Hoy)"
+					title="Go to current week (Today)"
+					aria-label="Go to current week (Today)"
 				>
-					Hoy
+					Today
 				</button> -->
 	
 				<!-- Calendar Week Picker Popover -->

@@ -258,7 +258,7 @@
 		</button>
 	</div>
 
-	<!-- Day Labels (Lu, Ma, Mi, Ju, Vi, Sá, Do) -->
+	<!-- Day Labels (Mon, Tue, Wed, Thu, Fri, Sat, Sun) -->
 	<div class="grid grid-cols-7 gap-1 pt-3 pb-1 text-center">
 		{#each DAY_LABELS as label}
 			<span class="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
@@ -299,7 +299,7 @@
 		{/each}
 	</div>
 
-	<!-- Calendar Footer: Quick "Ir a hoy" & "Cerrar" -->
+	<!-- Calendar Footer: Quick "Go to today" & "Close" -->
 	<div class="flex items-center justify-between gap-2 pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
 		<button
 			type="button"

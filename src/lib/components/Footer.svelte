@@ -65,7 +65,7 @@
 				</div>
 			</div>
 
-			<!-- Col 2: Conoce el Proyecto (Guía & Acerca de) -->
+			<!-- Col 2: About the Project (Guide & About) -->
 			<div class="space-y-3">
 				<h4 class="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
 					<BookOpen class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
@@ -111,7 +111,7 @@
 				</ul>
 			</div>
 
-			<!-- Col 3: Navegación & Herramientas -->
+			<!-- Col 3: Navigation & Tools -->
 			<div class="space-y-3">
 				<h4 class="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
 					<Layers class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />

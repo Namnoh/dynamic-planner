@@ -174,7 +174,7 @@
 						</span>
 					</button>
 
-					<!-- Changelog / Novedades -->
+					<!-- Changelog / What's New -->
 					<button
 						type="button"
 						onclick={() => {

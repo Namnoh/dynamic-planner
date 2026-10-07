@@ -74,7 +74,7 @@ export type RecurrenceRangeType = 'current_week' | 'weeks' | 'until_date';
 
 export interface RecurrenceConfig {
 	frequency: RecurrenceFrequency;
-	customDays?: number[]; // 1 = Lunes, 2 = Martes, ..., 7 = Domingo (ISO standard)
+	customDays?: number[]; // 1 = Monday, 2 = Tuesday, ..., 7 = Sunday (ISO standard)
 	dayOfMonth?: number; // 1 to 31
 	rangeType?: RecurrenceRangeType;
 	weeksCount?: number; // 1, 2, 4, 8, 12, etc.

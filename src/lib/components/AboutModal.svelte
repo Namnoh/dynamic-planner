@@ -71,7 +71,7 @@
 				{/each}
 			</div>
 
-			<!-- Tab 1: Overview (¿Qué es y Para qué sirve?) -->
+			<!-- Tab 1: Overview -->
 			{#if activeTab === 'overview'}
 				<div class="space-y-5 animate-in fade-in duration-200">
 					<!-- Hero Box -->
@@ -150,7 +150,7 @@
 					</div>
 				</div>
 
-			<!-- Tab 2: Features (Funcionalidades) -->
+			<!-- Tab 2: Features -->
 			{:else if activeTab === 'features'}
 				<div class="space-y-4 animate-in fade-in duration-200">
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -228,7 +228,7 @@
 					</div>
 				</div>
 
-			<!-- Tab 3: Use Cases (Casos de Uso) -->
+			<!-- Tab 3: Use Cases -->
 			{:else if activeTab === 'usecases'}
 				<div class="space-y-4 animate-in fade-in duration-200">
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -298,7 +298,7 @@
 					</div>
 				</div>
 
-			<!-- Tab 4: Practical Examples (Ejemplos Prácticos) -->
+			<!-- Tab 4: Practical Examples -->
 			{:else if activeTab === 'examples'}
 				<div class="space-y-4 animate-in fade-in duration-200">
 					<div class="space-y-3">
@@ -364,7 +364,7 @@
 					</div>
 				</div>
 
-			<!-- Tab 5: Privacy & Security (Privacidad) -->
+			<!-- Tab 5: Privacy & Security -->
 			{:else if activeTab === 'privacy'}
 				<div class="space-y-4 animate-in fade-in duration-200">
 					<div class="rounded-2xl border border-emerald-300 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 space-y-2.5">

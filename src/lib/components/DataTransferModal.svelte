@@ -45,7 +45,7 @@
 		onDataImported?: () => void;
 	} = $props();
 
-	// Primary Tabs: 'qr' (Opción 4: 1 solo QR) | 'share' (Opción 3: WhatsApp/AirDrop .planner)
+	// Primary Tabs: 'qr' (Option 4: Single static QR) | 'share' (Option 3: WhatsApp/AirDrop .planner)
 	let activeTab = $state<'qr' | 'share'>('qr');
 
 	// QR Submode: 'send' | 'receive'
@@ -126,7 +126,7 @@
 
 	let currentGenerationId = 0;
 
-	// --- 1. SINGLE QR GENERATOR (OPCIÓN 4) ---
+	// --- 1. SINGLE QR GENERATOR (OPTION 4) ---
 	async function generateSingleQr(scope: ExportScope) {
 		const genId = ++currentGenerationId;
 		isGeneratingQr = true;
@@ -366,7 +366,7 @@
 		}
 	}
 
-	// --- 3. SHARE FILE .PLANNER (OPCIÓN 3) ---
+	// --- 3. SHARE FILE .PLANNER (OPTION 3) ---
 	async function handleSharePlanner() {
 		isSharing = true;
 		try {
@@ -506,11 +506,11 @@
 			</div>
 
 			<!-- ========================================== -->
-			<!-- TAB 1: CÓDIGO QR (OPCIÓN 4: 1 SOLO ESCANEO) -->
+			<!-- TAB 1: QR CODE (OPTION 4: SINGLE SCAN) -->
 			<!-- ========================================== -->
 			{#if activeTab === 'qr'}
 				<div class="space-y-4">
-					<!-- Role Switcher: Enviar vs Recibir -->
+					<!-- Role Switcher: Send vs Receive -->
 					<div class="flex items-center justify-center gap-2">
 						<div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 border border-slate-200 dark:border-slate-700">
 							<button
@@ -543,10 +543,10 @@
 						</div>
 					</div>
 
-					<!-- SUBMODO: ENVIAR QR -->
+					<!-- SUBMODE: SEND QR -->
 					{#if qrRole === 'send'}
 						<div class="space-y-4">
-							<!-- Instrucciones cortas y sencillas -->
+							<!-- Short, simple instructions -->
 							<div class="rounded-2xl border border-indigo-100 dark:border-indigo-950/60 bg-indigo-50/60 dark:bg-indigo-950/20 p-3.5">
 								<h5 class="text-xs font-bold text-indigo-900 dark:text-indigo-200 mb-2 flex items-center gap-1.5">
 									<Sparkles class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
@@ -568,7 +568,7 @@
 								</ol>
 							</div>
 
-							<!-- Selector de Alcance -->
+							<!-- Scope Selector -->
 							<div class="space-y-1.5">
 								<label for="qr-scope-select" class="text-xs font-semibold text-slate-700 dark:text-slate-300">
 									¿Qué deseas transferir?
@@ -632,7 +632,7 @@
 								</div>
 							</div>
 
-							<!-- Código QR Único Estático -->
+							<!-- Single Static QR Code -->
 							<div class="flex flex-col items-center justify-center p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 min-h-72">
 								{#if isGeneratingQr}
 									<div class="flex flex-col items-center gap-2 py-12 text-slate-500">
@@ -640,7 +640,7 @@
 										<span class="text-xs font-medium">Generando código QR comprimido...</span>
 									</div>
 								{:else if isQrTooLarge}
-									<!-- Alerta amigable si el historial completo es enorme -->
+									<!-- Friendly alert if full history is too large -->
 									<div class="max-w-md text-center py-6 px-4 space-y-3">
 										<div class="inline-flex p-3 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
 											<AlertCircle class="h-6 w-6" />
@@ -697,7 +697,7 @@
 										{/if}
 									</div>
 
-									<!-- Resumen de contenido -->
+									<!-- Content summary -->
 									<div class="mt-3 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
 										<span class="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
 											<Check class="h-3.5 w-3.5" /> QR de alta velocidad
@@ -710,7 +710,7 @@
 										{/if}
 									</div>
 
-									<!-- Botones de Acción Extra -->
+									<!-- Extra Action Buttons -->
 									<div class="flex items-center gap-2 mt-3">
 										<button
 											type="button"
@@ -755,9 +755,9 @@
 							</div>
 						</div>
 					{:else}
-						<!-- SUBMODO: RECIBIR QR -->
+						<!-- SUBMODE: RECEIVE QR -->
 						<div class="space-y-4">
-							<!-- Instrucciones cortas y sencillas -->
+							<!-- Short, simple instructions -->
 							<div class="rounded-2xl border border-emerald-100 dark:border-emerald-950/60 bg-emerald-50/60 dark:bg-emerald-950/20 p-3.5">
 								<h5 class="text-xs font-bold text-emerald-900 dark:text-emerald-200 mb-2 flex items-center gap-1.5">
 									<Camera class="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -779,7 +779,7 @@
 								</ol>
 							</div>
 
-							<!-- Visor de Escáner o Estado -->
+							<!-- Scanner Viewer or Status -->
 							{#if !parsedPreview}
 								<div class="space-y-3">
 									<div class="relative w-full aspect-square max-w-sm mx-auto overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-900 flex flex-col items-center justify-center text-white">
@@ -831,7 +831,7 @@
 									</div>
 								</div>
 							{:else}
-								<!-- Vista previa y confirmación de datos detectados -->
+								<!-- Preview and confirmation of detected data -->
 								<div class="p-4 rounded-2xl border-2 border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-4">
 									<div class="flex items-center gap-2">
 										<div class="p-1.5 rounded-full bg-emerald-600 text-white">
@@ -857,7 +857,7 @@
 										</div>
 									</div>
 
-									<!-- Modo de importación -->
+									<!-- Import mode -->
 									<div class="space-y-1.5">
 										<label for="qr-import-mode-select" class="text-xs font-semibold text-slate-700 dark:text-slate-300">
 											¿Cómo deseas guardar estos datos?
@@ -912,11 +912,11 @@
 			{/if}
 
 			<!-- ======================================================== -->
-			<!-- TAB 2: COMPARTIR ARCHIVO .PLANNER (OPCIÓN 3: WHATSAPP)   -->
+			<!-- TAB 2: SHARE .PLANNER FILE (OPTION 3: WHATSAPP) -->
 			<!-- ======================================================== -->
 			{#if activeTab === 'share'}
 				<div class="space-y-4">
-					<!-- Role Switcher: Compartir vs Abrir Archivo -->
+					<!-- Role Switcher: Share vs Open File -->
 					<div class="flex items-center justify-center gap-2">
 						<div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 border border-slate-200 dark:border-slate-700">
 							<button
@@ -949,10 +949,10 @@
 						</div>
 					</div>
 
-					<!-- SUBMODO: COMPARTIR / ENVIAR ARCHIVO .PLANNER -->
+					<!-- SUBMODE: SHARE / SEND .PLANNER FILE -->
 					{#if shareRole === 'send'}
 						<div class="space-y-4">
-							<!-- Instrucciones cortas y sencillas -->
+							<!-- Short, simple instructions -->
 							<div class="rounded-2xl border border-indigo-100 dark:border-indigo-950/60 bg-indigo-50/60 dark:bg-indigo-950/20 p-3.5">
 								<h5 class="text-xs font-bold text-indigo-900 dark:text-indigo-200 mb-2 flex items-center gap-1.5">
 									<Sparkles class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
@@ -974,7 +974,7 @@
 								</ol>
 							</div>
 
-							<!-- Selector de Alcance -->
+							<!-- Scope Selector -->
 							<div class="space-y-1.5">
 								<label for="share-scope-select" class="text-xs font-semibold text-slate-700 dark:text-slate-300">
 									¿Qué deseas incluir en el archivo?
@@ -1026,7 +1026,7 @@
 								</div>
 							</div>
 
-							<!-- Botón Principal de Compartir -->
+							<!-- Main Share Button -->
 							<div class="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 text-center space-y-4">
 								<div class="max-w-sm mx-auto space-y-2">
 									<h5 class="text-sm font-bold text-slate-900 dark:text-slate-100">
@@ -1060,9 +1060,9 @@
 							</div>
 						</div>
 					{:else}
-						<!-- SUBMODO: ABRIR / RESTAURAR ARCHIVO .PLANNER -->
+						<!-- SUBMODE: OPEN / RESTORE .PLANNER FILE -->
 						<div class="space-y-4">
-							<!-- Instrucciones cortas y sencillas -->
+							<!-- Short, simple instructions -->
 							<div class="rounded-2xl border border-emerald-100 dark:border-emerald-950/60 bg-emerald-50/60 dark:bg-emerald-950/20 p-3.5">
 								<h5 class="text-xs font-bold text-emerald-900 dark:text-emerald-200 mb-2 flex items-center gap-1.5">
 									<Upload class="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -1085,7 +1085,7 @@
 							</div>
 
 							{#if !parsedPreview}
-								<!-- Selector de archivo amigable -->
+								<!-- User-friendly file selector -->
 								<label
 									class="flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500 bg-slate-50/60 dark:bg-slate-900/40 cursor-pointer transition-all group"
 								>
@@ -1104,7 +1104,7 @@
 									/>
 								</label>
 							{:else}
-								<!-- Vista previa del archivo cargado -->
+								<!-- Uploaded file preview -->
 								<div class="p-4 rounded-2xl border-2 border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-4">
 									<div class="flex items-center gap-2">
 										<div class="p-1.5 rounded-full bg-emerald-600 text-white">
@@ -1130,7 +1130,7 @@
 										</div>
 									</div>
 
-									<!-- Modo de importación -->
+									<!-- Import mode -->
 									<div class="space-y-1.5">
 										<label for="share-import-mode-select" class="text-xs font-semibold text-slate-700 dark:text-slate-300">
 											¿Cómo deseas guardar estos datos?
@@ -1182,7 +1182,7 @@
 						</div>
 					{/if}
 
-					<!-- Opciones Técnicas JSON (Desplegable discreto) -->
+					<!-- Technical JSON Options (Discrete dropdown) -->
 					<div class="pt-2 border-t border-slate-200 dark:border-slate-800">
 						<button
 							type="button"
@@ -1212,7 +1212,7 @@
 				</div>
 			{/if}
 
-			<!-- Banner de Privacidad 100% Offline -->
+			<!-- 100% Offline Privacy Banner -->
 			<div class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
 				<ShieldCheck class="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
 				<span>Tus datos son 100% locales y privados. Nunca se envían a ningún servidor en la nube ni requieren inicio de sesión.</span>
