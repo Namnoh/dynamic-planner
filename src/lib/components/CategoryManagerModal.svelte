@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { categoriesStore } from '$lib/stores/categories';
-	import type { CustomCategory } from '$lib/types';
+	import type { CustomCategory, CategorySortOption } from '$lib/types';
 	import { toastStore } from '$lib/utils/notifications';
 	import Modal from './Modal.svelte';
 	import ColorPicker from './ColorPicker.svelte';
-	import { Tag, Plus, Pencil, Trash2, RotateCcw } from 'lucide-svelte';
+	import { Tag, Plus, Pencil, Trash2, RotateCcw, ArrowUpDown, Search } from 'lucide-svelte';
 
 	let {
 		isOpen = $bindable(false),
@@ -20,6 +20,8 @@
 	let name = $state('');
 	let color = $state('#3b82f6');
 	let error = $state('');
+	let sortOption = $state<CategorySortOption>(categoriesStore.sortOption);
+	let searchQuery = $state('');
 
 	$effect(() => {
 		const unsubscribe = categoriesStore.subscribe((cats) => {
@@ -27,6 +29,17 @@
 		});
 		return unsubscribe;
 	});
+
+	const displayedCategories = $derived.by(() => {
+		const query = searchQuery.trim().toLowerCase();
+		if (!query) return categories;
+		return categories.filter((c) => c.name.toLowerCase().includes(query));
+	});
+
+	function handleSortChange(newSort: CategorySortOption) {
+		sortOption = newSort;
+		categoriesStore.setSort(newSort);
+	}
 
 	function handleStartCreate() {
 		editingId = null;
@@ -191,9 +204,38 @@
 				</div>
 			{/if}
 
+			<!-- Search and Sort Toolbar -->
+			<div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pb-1">
+				<div class="relative flex-1">
+					<Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+					<input
+						type="text"
+						bind:value={searchQuery}
+						placeholder="Buscar categoría..."
+						class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-indigo-500 focus:outline-hidden"
+					/>
+				</div>
+
+				<div class="flex items-center gap-1.5 shrink-0">
+					<ArrowUpDown class="h-3.5 w-3.5 text-slate-400 shrink-0" />
+					<select
+						value={sortOption}
+						onchange={(e) => handleSortChange((e.target as HTMLSelectElement).value as CategorySortOption)}
+						class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:border-indigo-500 focus:outline-hidden cursor-pointer"
+					>
+						<option value="name_asc">Nombre (A - Z)</option>
+						<option value="name_desc">Nombre (Z - A)</option>
+						<option value="created_desc">Más recientes (Creación)</option>
+						<option value="created_asc">Más antiguos (Creación)</option>
+						<option value="updated_desc">Modificados recientemente</option>
+						<option value="default">Orden original</option>
+					</select>
+				</div>
+			</div>
+
 			<!-- Categories List -->
 			<div class="space-y-1.5 max-h-60 overflow-y-auto pr-1">
-				{#each categories as cat (cat.id)}
+				{#each displayedCategories as cat (cat.id)}
 					<div
 						class="flex items-center justify-between p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/70 hover:border-slate-300 dark:hover:border-slate-700 transition-all"
 					>
@@ -227,6 +269,12 @@
 						</div>
 					</div>
 				{/each}
+
+				{#if displayedCategories.length === 0}
+					<div class="py-6 text-center text-xs text-slate-500 dark:text-slate-400">
+						No se encontraron categorías que coincidan con "{searchQuery}".
+					</div>
+				{/if}
 			</div>
 
 			<!-- Footer helper: Reset to defaults -->

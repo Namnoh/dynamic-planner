@@ -5,6 +5,10 @@
 		db,
 		getMondayOfCurrentWeek,
 		applyDayTemplateToDate,
+		applyDayTemplateWithRecurrence,
+		applyRecurringTemplatesToWeek,
+		deleteRecurringEvents,
+		updateRecurringEvents,
 		clearAllData,
 		exportDatabaseToJson,
 		importDatabaseFromJson,
@@ -12,7 +16,14 @@
 	} from '$lib/db';
 	import { settingsStore, type BlockColorStyle } from '$lib/stores/settings';
 	import { readOnlyStore } from '$lib/stores/readOnly';
-	import type { ScheduledEvent, DayTemplate, ActivityTemplate } from '$lib/types';
+	import {
+		type ScheduledEvent,
+		type DayTemplate,
+		type ActivityTemplate,
+		type RecurrenceConfig,
+		sortDayTemplates,
+		getRecurrenceLabel
+	} from '$lib/types';
 	import ExportModal from './ExportModal.svelte';
 	import EventCard from './EventCard.svelte';
 	import AddEventModal from './AddEventModal.svelte';
@@ -32,7 +43,9 @@
 		Plus,
 		FileDown,
 		FileUp,
-		Layers
+		Layers,
+		Repeat,
+		Zap
 	} from 'lucide-svelte';
 
 	// Component State
@@ -92,6 +105,11 @@
 				subtasks: boolean;
 			};
 			updateBaseTemplate?: boolean;
+		},
+		recurrenceOptions?: {
+			updateAllSeries?: boolean;
+			newRecurringDates?: string[];
+			newRecurrenceRule?: RecurrenceConfig;
 		}
 	) {
 		await db.scheduledEvents.update(updatedEvent.id, {
@@ -106,7 +124,49 @@
 			completed: updatedEvent.completed
 		});
 
-		if (propagationOptions?.propagate) {
+		if (recurrenceOptions?.updateAllSeries && updatedEvent.recurrenceId) {
+			const count = await updateRecurringEvents(updatedEvent.recurrenceId, {
+				title: updatedEvent.title,
+				startTime: updatedEvent.startTime,
+				endTime: updatedEvent.endTime,
+				category: updatedEvent.category,
+				color: updatedEvent.color,
+				notes: updatedEvent.notes,
+				subtasks: updatedEvent.subtasks
+			});
+			toastStore.show({
+				title: 'Serie recurrente actualizada',
+				message: `Se actualizaron ${count} bloques de la serie.`,
+				type: 'success'
+			});
+		} else if (
+			recurrenceOptions?.newRecurringDates &&
+			recurrenceOptions.newRecurringDates.length > 1
+		) {
+			const recurrenceId = crypto.randomUUID ? crypto.randomUUID() : `rec-${Date.now()}`;
+			const otherDates = recurrenceOptions.newRecurringDates.filter(
+				(d) => d !== updatedEvent.date
+			);
+			await db.scheduledEvents.update(updatedEvent.id, {
+				recurrenceId,
+				recurrenceRule: recurrenceOptions.newRecurrenceRule
+			});
+			const newEvents: ScheduledEvent[] = otherDates.map((d) => ({
+				...$state.snapshot(updatedEvent),
+				id: crypto.randomUUID
+					? crypto.randomUUID()
+					: `event-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+				date: d,
+				recurrenceId,
+				recurrenceRule: recurrenceOptions.newRecurrenceRule
+			}));
+			await db.scheduledEvents.bulkAdd(newEvents);
+			toastStore.show({
+				title: 'Serie recurrente creada',
+				message: `Se añadieron ${newEvents.length} bloques adicionales.`,
+				type: 'success'
+			});
+		} else if (propagationOptions?.propagate) {
 			const { updatedCount, templateUpdated } = await propagateEventChanges({
 				sourceEventId: updatedEvent.id,
 				scope: propagationOptions.scope,
@@ -147,9 +207,17 @@
 		refreshData();
 	}
 
-	// Apply Template Dropdown State
+	// Apply Template State
 	let selectedTemplateId = $state<string>('');
-	let targetDayOffset = $state<number>(0);
+	let applyTargetOption = $state<string>('0');
+	let applyWeeksCount = $state<number>(1);
+	let isApplyingRecurringAuto = $state(false);
+
+	const selectedTemplate = $derived(dayTemplates.find((t) => t.id === selectedTemplateId));
+
+	const recurringTemplates = $derived.by(() => {
+		return dayTemplates.filter((t) => t.recurrence && t.recurrence.frequency !== 'none');
+	});
 
 	// 7 days calculation derived from currentMonday
 	const weekDays = $derived.by(() => {
@@ -186,20 +254,51 @@
 	});
 
 	// Select options for applying day template
-	const templateOptions = $derived.by(() => [
-		{ value: '', label: 'Seleccionar plantilla...' },
-		...dayTemplates.map((tpl) => ({
-			value: tpl.id,
-			label: tpl.name,
-			sublabel: `${tpl.blocks.length} bloque${tpl.blocks.length === 1 ? '' : 's'}`
-		}))
-	]);
+	const templateOptions = $derived.by(() => {
+		const sorted = sortDayTemplates(dayTemplates, 'name_asc');
+		return [
+			{ value: '', label: 'Seleccionar plantilla...' },
+			...sorted.map((tpl) => ({
+				value: tpl.id,
+				label:
+					tpl.recurrence && tpl.recurrence.frequency !== 'none'
+						? `${tpl.name} [${getRecurrenceLabel(tpl.recurrence)}]`
+						: tpl.name,
+				sublabel: `${tpl.blocks.length} bloque${tpl.blocks.length === 1 ? '' : 's'}${tpl.recurrence && tpl.recurrence.frequency !== 'none' ? ` • ${getRecurrenceLabel(tpl.recurrence)}` : ''}`
+			}))
+		];
+	});
 
-	const dayOptions = $derived.by(() =>
-		weekDays.map((d, idx) => ({
-			value: idx,
-			label: `${d.dayName} (${d.dayNumber})`
-		}))
+	const targetDestinationOptions = $derived.by(() => {
+		const opts: { value: string; label: string; sublabel?: string }[] = [];
+
+		if (selectedTemplate?.recurrence && selectedTemplate.recurrence.frequency !== 'none') {
+			opts.push({
+				value: 'template_rule',
+				label: `🔁 Según plantilla (${getRecurrenceLabel(selectedTemplate.recurrence)})`,
+				sublabel: 'Aplica a los días configurados en su regla'
+			});
+		}
+
+		opts.push(
+			{ value: 'weekdays', label: '🔁 Lunes a Viernes (Laborables)' },
+			{ value: 'weekends', label: '🔁 Sábado y Domingo (Fin de semana)' },
+			{ value: 'all_week', label: '🔁 Toda la semana (7 días)' }
+		);
+
+		for (let i = 0; i < 7; i++) {
+			const d = weekDays[i];
+			opts.push({
+				value: String(i),
+				label: `${d.dayName} (${d.dayNumber})`
+			});
+		}
+
+		return opts;
+	});
+
+	const isMultiDayApply = $derived(
+		['template_rule', 'weekdays', 'weekends', 'all_week'].includes(applyTargetOption)
 	);
 
 	// Load DB data
@@ -312,15 +411,76 @@
 		refreshData();
 	}
 
-	// Apply Day Template
+	async function deleteEventSeries(recurrenceId: string) {
+		const count = await deleteRecurringEvents(recurrenceId);
+		toastStore.show({
+			title: 'Serie recurrente eliminada',
+			message: `Se eliminaron ${count} bloques de la serie.`,
+			type: 'info'
+		});
+		refreshData();
+	}
+
+	// Apply Day Template (Single day or recurring range)
 	async function handleApplyTemplate() {
 		if (!selectedTemplateId) return;
-		const targetDate = weekDays[targetDayOffset].dateStr;
+		const tpl = selectedTemplate;
+		if (!tpl) return;
+
 		try {
-			const count = await applyDayTemplateToDate(selectedTemplateId, targetDate);
+			let daysApplied = 0;
+			let totalBlocks = 0;
+
+			if (
+				applyTargetOption === 'template_rule' &&
+				tpl.recurrence &&
+				tpl.recurrence.frequency !== 'none'
+			) {
+				const res = await applyDayTemplateWithRecurrence(
+					tpl.id,
+					currentMonday,
+					tpl.recurrence,
+					applyWeeksCount
+				);
+				daysApplied = res.daysCount;
+				totalBlocks = res.blocksCount;
+			} else if (applyTargetOption === 'weekdays') {
+				const res = await applyDayTemplateWithRecurrence(
+					tpl.id,
+					currentMonday,
+					{ frequency: 'weekdays' },
+					applyWeeksCount
+				);
+				daysApplied = res.daysCount;
+				totalBlocks = res.blocksCount;
+			} else if (applyTargetOption === 'weekends') {
+				const res = await applyDayTemplateWithRecurrence(
+					tpl.id,
+					currentMonday,
+					{ frequency: 'weekends' },
+					applyWeeksCount
+				);
+				daysApplied = res.daysCount;
+				totalBlocks = res.blocksCount;
+			} else if (applyTargetOption === 'all_week') {
+				const res = await applyDayTemplateWithRecurrence(
+					tpl.id,
+					currentMonday,
+					{ frequency: 'daily' },
+					applyWeeksCount
+				);
+				daysApplied = res.daysCount;
+				totalBlocks = res.blocksCount;
+			} else {
+				const dayIndex = Number(applyTargetOption) || 0;
+				const targetDate = weekDays[dayIndex].dateStr;
+				totalBlocks = await applyDayTemplateToDate(tpl.id, targetDate);
+				daysApplied = 1;
+			}
+
 			toastStore.show({
 				title: 'Plantilla aplicada con éxito',
-				message: `Se añadieron ${count} bloques al ${weekDays[targetDayOffset].dayName}.`,
+				message: `Se añadieron ${totalBlocks} bloques a ${daysApplied} ${daysApplied === 1 ? 'día' : 'días'}.`,
 				type: 'success'
 			});
 			refreshData();
@@ -333,20 +493,88 @@
 		}
 	}
 
-	// Add custom event
-	async function handleCreateEvent(eventData: Omit<ScheduledEvent, 'id'>) {
-		const id = crypto.randomUUID ? crypto.randomUUID() : `event-${Date.now()}`;
-		const newEvt: ScheduledEvent = {
-			id,
-			...$state.snapshot(eventData)
-		};
+	async function handleAutoApplyRecurringTemplates() {
+		if (recurringTemplates.length === 0) {
+			toastStore.show({
+				title: 'Sin plantillas recurrentes',
+				message:
+					'Puedes configurar qué días se repite cada plantilla (ej. Lun-Vie) desde la sección de Plantillas.',
+				type: 'info'
+			});
+			return;
+		}
 
-		await db.scheduledEvents.add($state.snapshot(newEvt));
-		toastStore.show({
-			title: 'Bloque programado',
-			message: `"${newEvt.title}" añadido con éxito.`,
-			type: 'success'
-		});
+		const summary = recurringTemplates
+			.map((t) => `• ${t.name}: ${getRecurrenceLabel(t.recurrence)}`)
+			.join('\n');
+		const confirmed = confirm(
+			`Se aplicarán las siguientes plantillas recurrentes a los días correspondientes de esta semana:\n\n${summary}\n\n¿Deseas generar los bloques en la semana activa?`
+		);
+
+		if (!confirmed) return;
+
+		isApplyingRecurringAuto = true;
+		try {
+			const res = await applyRecurringTemplatesToWeek(currentMonday);
+			if (res.totalBlocks > 0) {
+				toastStore.show({
+					title: '¡Semana planificada! ⚡',
+					message: `Se aplicaron ${res.appliedTemplates} plantillas (${res.totalBlocks} bloques en ${res.matchedDays} días).`,
+					type: 'success'
+				});
+			} else {
+				toastStore.show({
+					title: 'Sin coincidencias en esta semana',
+					message: 'Ninguna de tus reglas de plantilla coincide con los días de la semana activa.',
+					type: 'info'
+				});
+			}
+			refreshData();
+		} catch (err: any) {
+			toastStore.show({
+				title: 'Error al auto-aplicar plantillas',
+				message: err.message,
+				type: 'error'
+			});
+		} finally {
+			isApplyingRecurringAuto = false;
+		}
+	}
+
+	// Add custom event (single or recurring series)
+	async function handleCreateEvent(
+		eventData: Omit<ScheduledEvent, 'id'>,
+		recurringDates?: string[]
+	) {
+		if (recurringDates && recurringDates.length > 1) {
+			const recurrenceId = crypto.randomUUID ? crypto.randomUUID() : `rec-${Date.now()}`;
+			const eventsToCreate: ScheduledEvent[] = recurringDates.map((dateStr) => ({
+				id: crypto.randomUUID
+					? crypto.randomUUID()
+					: `event-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+				...$state.snapshot(eventData),
+				date: dateStr,
+				recurrenceId
+			}));
+			await db.scheduledEvents.bulkAdd(eventsToCreate);
+			toastStore.show({
+				title: 'Serie recurrente creada',
+				message: `Se crearon ${eventsToCreate.length} bloques para "${eventData.title}".`,
+				type: 'success'
+			});
+		} else {
+			const id = crypto.randomUUID ? crypto.randomUUID() : `event-${Date.now()}`;
+			const newEvt: ScheduledEvent = {
+				id,
+				...$state.snapshot(eventData)
+			};
+			await db.scheduledEvents.add($state.snapshot(newEvt));
+			toastStore.show({
+				title: 'Bloque programado',
+				message: `"${newEvt.title}" añadido con éxito.`,
+				type: 'success'
+			});
+		}
 		refreshData();
 	}
 
@@ -429,6 +657,19 @@
 					<Camera class="h-3.5 w-3.5" />
 					<span>Exportar Horario</span>
 				</button>
+
+				{#if recurringTemplates.length > 0}
+					<button
+						type="button"
+						onclick={handleAutoApplyRecurringTemplates}
+						disabled={isReadOnly || isApplyingRecurringAuto}
+						class="text-nowrap flex items-center gap-1.5 rounded-xl bg-purple-50 dark:bg-purple-600/20 border border-purple-300 dark:border-purple-500/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-600/30 px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer shadow-xs disabled:opacity-50"
+						title="Auto-rellenar semana con plantillas recurrentes ({recurringTemplates.length} configuradas)"
+					>
+						<Zap class="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+						<span>Auto-rellenar ({recurringTemplates.length})</span>
+					</button>
+				{/if}
 
 				{#if import.meta.env.DEV}
 					<button
@@ -559,13 +800,24 @@
 					/>
 				</div>
 				<SearchableSelect
-					bind:value={targetDayOffset}
-					options={dayOptions}
+					bind:value={applyTargetOption}
+					options={targetDestinationOptions}
 					class="w-auto shrink-0"
-					buttonClass="text-xs py-1.5 min-w-[130px]"
-					searchPlaceholder="Buscar día..."
+					buttonClass="text-xs py-1.5 min-w-[140px]"
+					searchPlaceholder="Buscar destino..."
 					disabled={isReadOnly}
 				/>
+				{#if isMultiDayApply}
+					<select
+						bind:value={applyWeeksCount}
+						class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs py-1.5 px-2 text-slate-800 dark:text-slate-200 cursor-pointer shrink-0 focus:outline-hidden"
+						title="Número de semanas a rellenar con esta plantilla"
+					>
+						<option value={1}>1 sem</option>
+						<option value={2}>2 sem</option>
+						<option value={4}>4 sem</option>
+					</select>
+				{/if}
 				<button
 					type="button"
 					onclick={handleApplyTemplate}
@@ -697,6 +949,7 @@
 	{weekDays}
 	onSave={handleUpdateEvent}
 	onDelete={deleteEvent}
+	onDeleteSeries={deleteEventSeries}
 />
 
 <!-- Graphic Export Modal -->

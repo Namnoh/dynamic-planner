@@ -1,19 +1,32 @@
 import { db, ensureDefaultCategories } from '$lib/db';
-import { DEFAULT_CATEGORIES, type CustomCategory, type CategoryOption } from '$lib/types';
+import {
+	DEFAULT_CATEGORIES,
+	type CustomCategory,
+	type CategoryOption,
+	type CategorySortOption,
+	sortCategories
+} from '$lib/types';
 
 type Listener = (categories: CustomCategory[]) => void;
 let listeners: Listener[] = [];
 let currentCategories: CustomCategory[] = [...DEFAULT_CATEGORIES];
+let currentSort: CategorySortOption = 'default';
 let isLoaded = false;
 
+if (typeof window !== 'undefined') {
+	const savedSort = localStorage.getItem('planner_categories_sort') as CategorySortOption | null;
+	if (savedSort) currentSort = savedSort;
+}
+
 function notify() {
-	listeners.forEach((fn) => fn(currentCategories));
+	const sorted = sortCategories(currentCategories, currentSort);
+	listeners.forEach((fn) => fn(sorted));
 }
 
 export const categoriesStore = {
 	subscribe(fn: Listener) {
 		listeners.push(fn);
-		fn(currentCategories);
+		fn(sortCategories(currentCategories, currentSort));
 		if (!isLoaded && typeof window !== 'undefined') {
 			categoriesStore.load();
 		}
@@ -37,16 +50,31 @@ export const categoriesStore = {
 		} catch (e) {
 			console.error('Error loading categories:', e);
 		}
-		return currentCategories;
+		return sortCategories(currentCategories, currentSort);
+	},
+
+	setSort(sort: CategorySortOption) {
+		currentSort = sort;
+		if (typeof window !== 'undefined') {
+			localStorage.setItem('planner_categories_sort', sort);
+		}
+		notify();
+	},
+
+	get sortOption(): CategorySortOption {
+		return currentSort;
 	},
 
 	async addCategory(name: string, color: string): Promise<CustomCategory> {
 		const trimmedName = name.trim();
-		const id = `cat-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+		const now = Date.now();
+		const id = `cat-${now}-${Math.random().toString(36).slice(2, 6)}`;
 		const newCat: CustomCategory = {
 			id,
 			name: trimmedName,
-			color: color || '#3b82f6'
+			color: color || '#3b82f6',
+			createdAt: now,
+			updatedAt: now
 		};
 		await db.categories.add(newCat);
 		currentCategories = [...currentCategories, newCat];
@@ -55,8 +83,14 @@ export const categoriesStore = {
 	},
 
 	async updateCategory(id: string, updates: Partial<Omit<CustomCategory, 'id'>>): Promise<void> {
-		await db.categories.update(id, updates);
-		currentCategories = currentCategories.map((c) => (c.id === id ? { ...c, ...updates } : c));
+		const updatesWithTimestamp = {
+			...updates,
+			updatedAt: Date.now()
+		};
+		await db.categories.update(id, updatesWithTimestamp);
+		currentCategories = currentCategories.map((c) =>
+			c.id === id ? { ...c, ...updatesWithTimestamp } : c
+		);
 		notify();
 	},
 
@@ -74,13 +108,14 @@ export const categoriesStore = {
 	},
 
 	get current(): CustomCategory[] {
-		return currentCategories;
+		return sortCategories(currentCategories, currentSort);
 	},
 
 	get options(): CategoryOption[] {
+		const sorted = sortCategories(currentCategories, currentSort);
 		return [
 			{ value: '', label: 'Sin categoría (Opcional)' },
-			...currentCategories.map((c) => ({
+			...sorted.map((c) => ({
 				value: c.id,
 				label: c.name,
 				color: c.color
@@ -96,3 +131,4 @@ export const categoriesStore = {
 		);
 	}
 };
+

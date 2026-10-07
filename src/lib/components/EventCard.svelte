@@ -2,7 +2,7 @@
 	import type { ScheduledEvent } from '$lib/types';
 	import type { BlockColorStyle } from '$lib/stores/settings';
 	import { categoriesStore } from '$lib/stores/categories';
-	import { Check, Pencil, Trash2 } from 'lucide-svelte';
+	import { Check, Pencil, Trash2, Repeat } from 'lucide-svelte';
 
 	let {
 		event,
@@ -111,6 +111,11 @@
 				<Check class="h-3 w-3 text-emerald-500 stroke-[2.5]" />
 			{/if}
 			<span>{event.startTime} – {event.endTime}</span>
+			{#if event.recurrenceId}
+				<span title="Bloque recurrente" class="inline-flex items-center">
+					<Repeat class="h-2.5 w-2.5 text-indigo-500/80 shrink-0" />
+				</span>
+			{/if}
 		</span>
 
 		{#if event.category}

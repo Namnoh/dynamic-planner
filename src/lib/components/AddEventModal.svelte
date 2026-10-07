@@ -1,6 +1,14 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { type ScheduledEvent, type ActivityTemplate, type ScheduledEventSubtask, type CategoryOption } from '$lib/types';
+	import {
+		type ScheduledEvent,
+		type ActivityTemplate,
+		type ScheduledEventSubtask,
+		type CategoryOption,
+		type RecurrenceConfig,
+		sortActivities,
+		calculateRecurrenceDates
+	} from '$lib/types';
 	import { addMinutesToTime } from '$lib/db';
 	import { categoriesStore } from '$lib/stores/categories';
 	import Modal from './Modal.svelte';
@@ -8,6 +16,7 @@
 	import SearchableSelect from './SearchableSelect.svelte';
 	import ChecklistEditor from './ChecklistEditor.svelte';
 	import CategoryManagerModal from './CategoryManagerModal.svelte';
+	import RecurrenceSelector from './RecurrenceSelector.svelte';
 	import { Plus, Tag } from 'lucide-svelte';
 
 	let {
@@ -21,7 +30,7 @@
 		targetDate: string;
 		initialStartTime?: string;
 		activityTemplates?: ActivityTemplate[];
-		onSave: (newEvent: Omit<ScheduledEvent, 'id'>) => void;
+		onSave: (newEvent: Omit<ScheduledEvent, 'id'>, recurringDates?: string[]) => void;
 	} = $props();
 
 	let isCategoryModalOpen = $state(false);
@@ -45,6 +54,12 @@
 	let currentDuration = $state(60);
 	let errors = $state<{ title?: string; startTime?: string; endTime?: string }>({});
 
+	let recurrence = $state<RecurrenceConfig>({
+		frequency: 'none',
+		rangeType: 'weeks',
+		weeksCount: 4
+	});
+
 	let wasOpen = false;
 
 	function resetForm() {
@@ -57,6 +72,11 @@
 		color = '#3b82f6';
 		notes = '';
 		subtasks = [];
+		recurrence = {
+			frequency: 'none',
+			rangeType: 'weeks',
+			weeksCount: 4
+		};
 		errors = {};
 	}
 
@@ -94,12 +114,16 @@
 		if (errors.endTime) errors.endTime = '';
 	}
 
+	const sortedActivityTemplates = $derived.by(() => {
+		return sortActivities(activityTemplates, 'name_asc');
+	});
+
 	const activityOptions = $derived.by(() => [
 		{ value: '', label: '-- Elige un bloque de actividad base --' },
-		...activityTemplates.map((act) => ({
+		...sortedActivityTemplates.map((act) => ({
 			value: act.id,
 			label: act.title,
-			sublabel: `${act.defaultDuration} min${act.category ? ` • ${act.category}` : ''}`,
+			sublabel: `${act.defaultDuration} min${act.category ? ` • ${categoriesStore.getCategory(act.category)?.name || act.category}` : ''}`,
 			color: act.color
 		}))
 	]);
@@ -179,18 +203,30 @@
 
 		if (hasError) return;
 
-		onSave({
-			date: targetDate,
-			title: title.trim(),
-			startTime,
-			endTime,
-			category: category || undefined,
-			color,
-			notes: notes.trim() || undefined,
-			subtasks: subtasks.length > 0 ? $state.snapshot(subtasks) : undefined,
-			sourceTemplateId: selectedActivityId || undefined,
-			completed: false
-		});
+		let recurringDates: string[] | undefined = undefined;
+		if (recurrence.frequency !== 'none') {
+			const calculated = calculateRecurrenceDates(targetDate, recurrence);
+			if (calculated.length > 0) {
+				recurringDates = calculated;
+			}
+		}
+
+		onSave(
+			{
+				date: targetDate,
+				title: title.trim(),
+				startTime,
+				endTime,
+				category: category || undefined,
+				color,
+				notes: notes.trim() || undefined,
+				subtasks: subtasks.length > 0 ? $state.snapshot(subtasks) : undefined,
+				sourceTemplateId: selectedActivityId || undefined,
+				completed: false,
+				recurrenceRule: recurrence.frequency !== 'none' ? $state.snapshot(recurrence) : undefined
+			},
+			recurringDates
+		);
 
 		isOpen = false;
 	}
@@ -236,7 +272,7 @@
 
 					<!-- Quick Chips for 1-Click Pick -->
 					<div class="flex flex-wrap gap-1.5 pt-0.5">
-						{#each activityTemplates.slice(0, 5) as act}
+						{#each sortedActivityTemplates.slice(0, 5) as act}
 							<button
 								type="button"
 								onclick={() => handleSelectActivity(act)}
@@ -368,6 +404,12 @@
 			/>
 
 			<ColorPicker bind:selectedColor={color} label="Color del Bloque" />
+
+			<RecurrenceSelector
+				bind:value={recurrence}
+				startDate={targetDate}
+				showRangeOptions={true}
+			/>
 		</form>
 	{/snippet}
 
@@ -384,7 +426,7 @@
 			onclick={handleSubmit}
 			class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white transition-all cursor-pointer shadow-md"
 		>
-			Añadir Bloque
+			{recurrence.frequency !== 'none' ? 'Crear Serie Recurrente' : 'Añadir Bloque'}
 		</button>
 	{/snippet}
 </Modal>

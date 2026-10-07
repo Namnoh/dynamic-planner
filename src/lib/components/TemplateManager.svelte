@@ -7,7 +7,13 @@
 		type ScheduledEvent,
 		type ScheduledEventSubtask,
 		type CategoryOption,
-		type CustomCategory
+		type CustomCategory,
+		type ActivitySortOption,
+		type DayTemplateSortOption,
+		type RecurrenceConfig,
+		sortActivities,
+		sortDayTemplates,
+		getRecurrenceLabel
 	} from '$lib/types';
 	import { categoriesStore } from '$lib/stores/categories';
 	import { toastStore } from '$lib/utils/notifications';
@@ -15,7 +21,8 @@
 	import SearchableSelect from './SearchableSelect.svelte';
 	import ChecklistEditor from './ChecklistEditor.svelte';
 	import CategoryManagerModal from './CategoryManagerModal.svelte';
-	import { Plus, Trash2, Clock, Layers, Tag, Pencil, ArrowUpDown, ListChecks } from 'lucide-svelte';
+	import RecurrenceSelector from './RecurrenceSelector.svelte';
+	import { Plus, Trash2, Clock, Layers, Tag, Pencil, ArrowUpDown, ListChecks, Search, Filter, Repeat } from 'lucide-svelte';
 
 	let { onTemplatesUpdated }: { onTemplatesUpdated?: () => void } = $props();
 
@@ -89,6 +96,7 @@
 	let tplName = $state('');
 	let tplDescription = $state('');
 	let tplBlocks = $state<DayTemplateBlock[]>([]);
+	let tplRecurrence = $state<RecurrenceConfig>({ frequency: 'none' });
 	let dayTemplateErrors = $state<{ name?: string; blocks?: string }>({});
 
 	// Block Form State (for inserting or updating a block within the template)
@@ -99,11 +107,81 @@
 	let blockCustomTitle = $state('');
 	let blockErrors = $state<{ activityId?: string; startTime?: string; duration?: string }>({});
 
+	// Day Templates search and sort state
+	let searchDayTemplates = $state('');
+	let dayTplSortOption = $state<DayTemplateSortOption>('name_asc');
+	if (typeof window !== 'undefined') {
+		const saved = localStorage.getItem('planner_day_templates_sort') as DayTemplateSortOption | null;
+		if (saved) dayTplSortOption = saved;
+	}
+
+	function handleDayTplSortChange(newSort: DayTemplateSortOption) {
+		dayTplSortOption = newSort;
+		if (typeof window !== 'undefined') {
+			localStorage.setItem('planner_day_templates_sort', newSort);
+		}
+	}
+
+	const filteredDayTemplates = $derived.by(() => {
+		const query = searchDayTemplates.trim().toLowerCase();
+		let list = dayTemplates;
+		if (query) {
+			list = list.filter(
+				(t) =>
+					t.name.toLowerCase().includes(query) ||
+					(t.description && t.description.toLowerCase().includes(query))
+			);
+		}
+		return sortDayTemplates(list, dayTplSortOption);
+	});
+
+	// Activities search, category filter, and sort state
+	let searchActivities = $state('');
+	let actCategoryFilter = $state<string>('');
+	let actSortOption = $state<ActivitySortOption>('name_asc');
+	if (typeof window !== 'undefined') {
+		const saved = localStorage.getItem('planner_activities_sort') as ActivitySortOption | null;
+		if (saved) actSortOption = saved;
+	}
+
+	function handleActSortChange(newSort: ActivitySortOption) {
+		actSortOption = newSort;
+		if (typeof window !== 'undefined') {
+			localStorage.setItem('planner_activities_sort', newSort);
+		}
+	}
+
+	const categoryNamesMap = $derived.by(() => {
+		const map = new Map<string, string>();
+		for (const c of categoriesList) {
+			map.set(c.id, c.name);
+		}
+		return map;
+	});
+
+	const filteredActivities = $derived.by(() => {
+		const query = searchActivities.trim().toLowerCase();
+		let list = activities;
+		if (actCategoryFilter) {
+			list = list.filter((a) => (a.category || '') === actCategoryFilter);
+		}
+		if (query) {
+			list = list.filter((a) => {
+				const titleMatch = a.title.toLowerCase().includes(query);
+				const notesMatch = Boolean(a.notes && a.notes.toLowerCase().includes(query));
+				const catName = (a.category && categoryNamesMap.get(a.category)) || '';
+				const catMatch = catName.toLowerCase().includes(query);
+				return titleMatch || notesMatch || catMatch;
+			});
+		}
+		return sortActivities(list, actSortOption, categoryNamesMap);
+	});
+
 	const blockActivityOptions = $derived.by(() =>
-		activities.map((act) => ({
+		sortActivities(activities, 'name_asc').map((act) => ({
 			value: act.id,
 			label: act.title,
-			sublabel: `${act.defaultDuration} min${act.category ? ` • ${act.category}` : ''}`,
+			sublabel: `${act.defaultDuration} min${act.category ? ` • ${categoriesStore.getCategory(act.category)?.name || act.category}` : ''}`,
 			color: act.color
 		}))
 	);
@@ -205,6 +283,7 @@
 		const cleanSubtasks = actSubtasks.map((s) => s.title.trim()).filter(Boolean);
 
 		if (editingActivityId) {
+			const existing = activities.find((a) => a.id === editingActivityId);
 			const updatedTemplate: ActivityTemplate = {
 				id: editingActivityId,
 				title: actTitle.trim(),
@@ -212,7 +291,9 @@
 				defaultDuration: Number(actDuration),
 				color: actColor,
 				notes: actNotes.trim() || undefined,
-				subtasks: cleanSubtasks.length > 0 ? cleanSubtasks : undefined
+				subtasks: cleanSubtasks.length > 0 ? cleanSubtasks : undefined,
+				createdAt: existing?.createdAt,
+				updatedAt: Date.now()
 			};
 			await db.activityTemplates.update(editingActivityId, $state.snapshot(updatedTemplate));
 
@@ -242,6 +323,7 @@
 			});
 		} else {
 			const id = crypto.randomUUID ? crypto.randomUUID() : `act-${Date.now()}`;
+			const now = Date.now();
 			const newAct: ActivityTemplate = {
 				id,
 				title: actTitle.trim(),
@@ -249,7 +331,9 @@
 				defaultDuration: Number(actDuration),
 				color: actColor,
 				notes: actNotes.trim() || undefined,
-				subtasks: cleanSubtasks.length > 0 ? cleanSubtasks : undefined
+				subtasks: cleanSubtasks.length > 0 ? cleanSubtasks : undefined,
+				createdAt: now,
+				updatedAt: now
 			};
 
 			await db.activityTemplates.add($state.snapshot(newAct));
@@ -291,6 +375,7 @@
 		tplName = '';
 		tplDescription = '';
 		tplBlocks = [];
+		tplRecurrence = { frequency: 'none' };
 		editingBlockIndex = null;
 		blockCustomTitle = '';
 		dayTemplateErrors = {};
@@ -304,6 +389,7 @@
 		tplName = tpl.name;
 		tplDescription = tpl.description || '';
 		tplBlocks = tpl.blocks.map((b) => ({ ...b }));
+		tplRecurrence = tpl.recurrence ? JSON.parse(JSON.stringify(tpl.recurrence)) : { frequency: 'none' };
 		editingBlockIndex = null;
 		blockCustomTitle = '';
 		dayTemplateErrors = {};
@@ -329,6 +415,7 @@
 			tplName = '';
 			tplDescription = '';
 			tplBlocks = [];
+			tplRecurrence = { frequency: 'none' };
 			editingBlockIndex = null;
 			blockCustomTitle = '';
 			dayTemplateErrors = {};
@@ -445,11 +532,15 @@
 		}));
 
 		if (editingDayTemplateId) {
+			const existing = dayTemplates.find((t) => t.id === editingDayTemplateId);
 			const updatedTpl: DayTemplate = {
 				id: editingDayTemplateId,
 				name: tplName.trim(),
 				description: tplDescription.trim() || undefined,
-				blocks: cleanBlocks
+				blocks: cleanBlocks,
+				recurrence: tplRecurrence.frequency !== 'none' ? $state.snapshot(tplRecurrence) : undefined,
+				createdAt: existing?.createdAt,
+				updatedAt: Date.now()
 			};
 			await db.dayTemplates.put($state.snapshot(updatedTpl));
 
@@ -468,11 +559,15 @@
 			});
 		} else {
 			const id = crypto.randomUUID ? crypto.randomUUID() : `tpl-${Date.now()}`;
+			const now = Date.now();
 			const newTpl: DayTemplate = {
 				id,
 				name: tplName.trim(),
 				description: tplDescription.trim() || undefined,
-				blocks: cleanBlocks
+				blocks: cleanBlocks,
+				recurrence: tplRecurrence.frequency !== 'none' ? $state.snapshot(tplRecurrence) : undefined,
+				createdAt: now,
+				updatedAt: now
 			};
 			await db.dayTemplates.add($state.snapshot(newTpl));
 			toastStore.show({
@@ -486,6 +581,7 @@
 		tplName = '';
 		tplDescription = '';
 		tplBlocks = [];
+		tplRecurrence = { frequency: 'none' };
 		editingBlockIndex = null;
 		blockCustomTitle = '';
 		dayTemplateErrors = {};
@@ -603,6 +699,13 @@
 						/>
 					</div>
 				</div>
+
+				<!-- Recurrence Selector for Day Template -->
+				<RecurrenceSelector
+					bind:value={tplRecurrence}
+					showRangeOptions={false}
+					allowNone={true}
+				/>
 
 				<!-- Add/Edit Block in Template -->
 				<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-950/60 p-4 space-y-3">
@@ -836,65 +939,124 @@
 			</div>
 		{/if}
 
+		<!-- Search and Sort Toolbar for Day Templates -->
+		<div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pb-1">
+			<div class="relative flex-1">
+				<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+				<input
+					type="text"
+					bind:value={searchDayTemplates}
+					placeholder="Buscar plantilla de día..."
+					class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 pl-8.5 pr-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:border-indigo-500 focus:outline-hidden transition-colors"
+				/>
+			</div>
+
+			<div class="flex items-center gap-2 shrink-0">
+				<div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
+					<ArrowUpDown class="h-3.5 w-3.5 text-slate-400 shrink-0" />
+					<label for="day-tpl-sort" class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Ordenar:</label>
+					<select
+						id="day-tpl-sort"
+						value={dayTplSortOption}
+						onchange={(e) => handleDayTplSortChange((e.target as HTMLSelectElement).value as DayTemplateSortOption)}
+						class="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-hidden cursor-pointer"
+					>
+						<option value="name_asc">Alfabético (A - Z)</option>
+						<option value="name_desc">Alfabético (Z - A)</option>
+						<option value="blocks_desc">Más bloques</option>
+						<option value="blocks_asc">Menos bloques</option>
+						<option value="created_desc">Más recientes (Creación)</option>
+						<option value="created_asc">Más antiguos (Creación)</option>
+						<option value="updated_desc">Modificados recientemente</option>
+					</select>
+				</div>
+			</div>
+		</div>
+
 		<!-- Grid of Existing Day Templates -->
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-			{#each dayTemplates as tpl}
-				<div class="flex flex-col justify-between rounded-2xl border bg-slate-50/70 dark:bg-slate-900/40 p-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs {editingDayTemplateId === tpl.id
-					? 'border-indigo-500 ring-2 ring-indigo-500/20'
-					: 'border-slate-200 dark:border-slate-800'}">
-					<div class="space-y-2">
-						<div class="flex items-start justify-between gap-2">
-							<div>
-								<h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">{tpl.name}</h4>
-								{#if editingDayTemplateId === tpl.id}
-									<span class="inline-block mt-0.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 rounded px-1.5 py-0.5">
-										En edición
+		{#if filteredDayTemplates.length > 0}
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+				{#each filteredDayTemplates as tpl (tpl.id)}
+					<div class="flex flex-col justify-between rounded-2xl border bg-slate-50/70 dark:bg-slate-900/40 p-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs {editingDayTemplateId === tpl.id
+						? 'border-indigo-500 ring-2 ring-indigo-500/20'
+						: 'border-slate-200 dark:border-slate-800'}">
+						<div class="space-y-2">
+							<div class="flex items-start justify-between gap-2">
+								<div>
+									<h4 class="font-bold text-sm text-slate-800 dark:text-slate-100">{tpl.name}</h4>
+									{#if editingDayTemplateId === tpl.id}
+										<span class="inline-block mt-0.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 rounded px-1.5 py-0.5">
+											En edición
+										</span>
+									{/if}
+								</div>
+								<div class="flex items-center gap-1">
+									<button
+										type="button"
+										onclick={() => handleStartEditDayTemplate(tpl)}
+										class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 cursor-pointer transition-colors"
+										title="Editar plantilla"
+									>
+										<Pencil class="h-4 w-4" />
+									</button>
+									<button
+										type="button"
+										onclick={() => handleDeleteDayTemplate(tpl.id)}
+										class="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition-colors"
+										title="Eliminar plantilla"
+									>
+										<Trash2 class="h-4 w-4" />
+									</button>
+								</div>
+							</div>
+							{#if tpl.description}
+								<p class="text-xs text-slate-600 dark:text-slate-400">{tpl.description}</p>
+							{/if}
+							<div class="flex items-center justify-between gap-1.5 text-[11px] text-slate-500 pt-1 flex-wrap">
+								<div class="flex items-center gap-1.5">
+									<Clock class="h-3 w-3" />
+									<span>{tpl.blocks.length} bloques</span>
+								</div>
+								{#if tpl.recurrence && tpl.recurrence.frequency !== 'none'}
+									<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80">
+										<Repeat class="h-3 w-3" />
+										<span>{getRecurrenceLabel(tpl.recurrence)}</span>
 									</span>
 								{/if}
 							</div>
-							<div class="flex items-center gap-1">
-								<button
-									type="button"
-									onclick={() => handleStartEditDayTemplate(tpl)}
-									class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 cursor-pointer transition-colors"
-									title="Editar plantilla"
-								>
-									<Pencil class="h-4 w-4" />
-								</button>
-								<button
-									type="button"
-									onclick={() => handleDeleteDayTemplate(tpl.id)}
-									class="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition-colors"
-									title="Eliminar plantilla"
-								>
-									<Trash2 class="h-4 w-4" />
-								</button>
-							</div>
 						</div>
-						{#if tpl.description}
-							<p class="text-xs text-slate-600 dark:text-slate-400">{tpl.description}</p>
-						{/if}
-						<div class="flex items-center gap-1.5 text-[11px] text-slate-500 pt-1">
-							<Clock class="h-3 w-3" />
-							<span>{tpl.blocks.length} bloques programados</span>
-						</div>
-					</div>
 
-					<div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80 flex flex-wrap gap-1">
-						{#each tpl.blocks.slice(0, 4) as b}
-							<span class="rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-transparent px-2 py-0.5 text-[10px] font-sans tabular-nums font-medium tracking-tight text-slate-700 dark:text-slate-300">
-								{b.startTime} ({b.duration}m)
-							</span>
-						{/each}
-						{#if tpl.blocks.length > 4}
-							<span class="rounded-md bg-slate-100 dark:bg-slate-800/60 px-1.5 py-0.5 text-[10px] text-slate-500">
-								+{tpl.blocks.length - 4} más
-							</span>
-						{/if}
+						<div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80 flex flex-wrap gap-1">
+							{#each tpl.blocks.slice(0, 4) as b}
+								<span class="rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-transparent px-2 py-0.5 text-[10px] font-sans tabular-nums font-medium tracking-tight text-slate-700 dark:text-slate-300">
+									{b.startTime} ({b.duration}m)
+								</span>
+							{/each}
+							{#if tpl.blocks.length > 4}
+								<span class="rounded-md bg-slate-100 dark:bg-slate-800/60 px-1.5 py-0.5 text-[10px] text-slate-500">
+									+{tpl.blocks.length - 4} más
+								</span>
+							{/if}
+						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{:else}
+			<div class="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-8 text-center">
+				<p class="text-xs text-slate-500 dark:text-slate-400">
+					{searchDayTemplates ? `No se encontraron plantillas que coincidan con "${searchDayTemplates}".` : 'No hay plantillas de día creadas.'}
+				</p>
+				{#if searchDayTemplates}
+					<button
+						type="button"
+						onclick={() => (searchDayTemplates = '')}
+						class="mt-2 text-xs text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-medium"
+					>
+						Limpiar búsqueda
+					</button>
+				{/if}
+			</div>
+		{/if}
 	</section>
 
 	<!-- Section 2: Base Activity Template Catalog -->
@@ -1190,62 +1352,130 @@
 			</div>
 		{/if}
 
-		<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-			{#each activities as act}
-				<div
-					class="flex items-center justify-between rounded-xl border p-3 transition-all shadow-xs {editingActivityId === act.id
-						? 'border-indigo-400 dark:border-indigo-500 ring-2 ring-indigo-500/40 bg-indigo-50/50 dark:bg-indigo-950/40'
-						: 'border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'}"
-					style="border-left: 4px solid {act.color};"
-				>
-					<div class="space-y-0.5 min-w-0 pr-2">
-						<h5 class="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">{act.title}</h5>
-						<div class="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
-							{#if act.category}
-								{@const cat = categoriesStore.getCategory(act.category)}
-								<span
-									class="uppercase tracking-wider font-bold text-[9px] px-1.5 py-0.5 rounded"
-									style={cat?.color
-										? `color: ${cat.color}; background-color: color-mix(in srgb, ${cat.color} 15%, transparent);`
-										: ''}
-								>
-									{cat?.name || act.category}
-								</span>
-								<span>•</span>
-							{/if}
-							<span>{act.defaultDuration} min</span>
-						</div>
-						{#if act.notes}
-							<p class="text-[10px] text-slate-400 dark:text-slate-500 truncate">{act.notes}</p>
-						{/if}
-						{#if act.subtasks && act.subtasks.length > 0}
-							<div class="flex items-center gap-1 text-[9.5px] text-indigo-600 dark:text-indigo-400 font-medium pt-0.5">
-								<ListChecks class="h-3 w-3" />
-								<span>{act.subtasks.length} {act.subtasks.length === 1 ? 'tarea' : 'tareas'}</span>
-							</div>
-						{/if}
-					</div>
-					<div class="flex items-center gap-0.5 shrink-0">
-						<button
-							type="button"
-							onclick={() => handleStartEditActivity(act)}
-							class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 cursor-pointer transition-colors"
-							title="Editar bloque de actividad"
-						>
-							<Pencil class="h-3.5 w-3.5" />
-						</button>
-						<button
-							type="button"
-							onclick={() => handleDeleteActivity(act.id)}
-							class="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition-colors"
-							title="Eliminar bloque base"
-						>
-							<Trash2 class="h-3.5 w-3.5" />
-						</button>
-					</div>
+		<!-- Search, Filter, and Sort Toolbar for Activities -->
+		<div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 pb-1">
+			<div class="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2">
+				<div class="relative flex-1">
+					<Search class="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+					<input
+						type="text"
+						bind:value={searchActivities}
+						placeholder="Buscar actividad o nota..."
+						class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 pl-8.5 pr-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:border-indigo-500 focus:outline-hidden transition-colors"
+					/>
 				</div>
-			{/each}
+
+				<div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
+					<Filter class="h-3.5 w-3.5 text-slate-400 shrink-0" />
+					<label for="act-cat-filter" class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Etiqueta:</label>
+					<select
+						id="act-cat-filter"
+						bind:value={actCategoryFilter}
+						class="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-hidden cursor-pointer"
+					>
+						<option value="">Todas las etiquetas</option>
+						{#each categoriesList as cat}
+							<option value={cat.id}>{cat.name}</option>
+						{/each}
+					</select>
+				</div>
+			</div>
+
+			<div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1 shrink-0">
+				<ArrowUpDown class="h-3.5 w-3.5 text-slate-400 shrink-0" />
+				<label for="act-sort" class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Ordenar:</label>
+				<select
+					id="act-sort"
+					value={actSortOption}
+					onchange={(e) => handleActSortChange((e.target as HTMLSelectElement).value as ActivitySortOption)}
+					class="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-hidden cursor-pointer"
+				>
+					<option value="name_asc">Alfabético (A - Z)</option>
+					<option value="name_desc">Alfabético (Z - A)</option>
+					<option value="category_asc">Por Etiqueta / Categoría</option>
+					<option value="duration_asc">Duración (Menor a mayor)</option>
+					<option value="duration_desc">Duración (Mayor a menor)</option>
+					<option value="created_desc">Más recientes (Creación)</option>
+					<option value="created_asc">Más antiguos (Creación)</option>
+					<option value="updated_desc">Modificados recientemente</option>
+				</select>
+			</div>
 		</div>
+
+		<!-- Grid of Existing Activities -->
+		{#if filteredActivities.length > 0}
+			<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+				{#each filteredActivities as act (act.id)}
+					<div
+						class="flex items-center justify-between rounded-xl border p-3 transition-all shadow-xs {editingActivityId === act.id
+							? 'border-indigo-400 dark:border-indigo-500 ring-2 ring-indigo-500/40 bg-indigo-50/50 dark:bg-indigo-950/40'
+							: 'border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'}"
+						style="border-left: 4px solid {act.color};"
+					>
+						<div class="space-y-0.5 min-w-0 pr-2">
+							<h5 class="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">{act.title}</h5>
+							<div class="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
+								{#if act.category}
+									{@const cat = categoriesStore.getCategory(act.category)}
+									<span
+										class="uppercase tracking-wider font-bold text-[9px] px-1.5 py-0.5 rounded"
+										style={cat?.color
+											? `color: ${cat.color}; background-color: color-mix(in srgb, ${cat.color} 15%, transparent);`
+											: ''}
+									>
+										{cat?.name || act.category}
+									</span>
+									<span>•</span>
+								{/if}
+								<span>{act.defaultDuration} min</span>
+							</div>
+							{#if act.notes}
+								<p class="text-[10px] text-slate-400 dark:text-slate-500 truncate">{act.notes}</p>
+							{/if}
+							{#if act.subtasks && act.subtasks.length > 0}
+								<div class="flex items-center gap-1 text-[9.5px] text-indigo-600 dark:text-indigo-400 font-medium pt-0.5">
+									<ListChecks class="h-3 w-3" />
+									<span>{act.subtasks.length} {act.subtasks.length === 1 ? 'tarea' : 'tareas'}</span>
+								</div>
+							{/if}
+						</div>
+						<div class="flex items-center gap-0.5 shrink-0">
+							<button
+								type="button"
+								onclick={() => handleStartEditActivity(act)}
+								class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 cursor-pointer transition-colors"
+								title="Editar bloque de actividad"
+							>
+								<Pencil class="h-3.5 w-3.5" />
+							</button>
+							<button
+								type="button"
+								onclick={() => handleDeleteActivity(act.id)}
+								class="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition-colors"
+								title="Eliminar bloque base"
+							>
+								<Trash2 class="h-3.5 w-3.5" />
+							</button>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{:else}
+			<div class="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-8 text-center">
+				<p class="text-xs text-slate-500 dark:text-slate-400">
+					{searchActivities || actCategoryFilter ? 'No se encontraron bloques de actividad con los filtros seleccionados.' : 'No hay bloques de actividad creados.'}
+				</p>
+				{#if searchActivities || actCategoryFilter}
+					<button
+						type="button"
+						onclick={() => { searchActivities = ''; actCategoryFilter = ''; }}
+						class="mt-2 text-xs text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-medium"
+					>
+						Limpiar filtros
+					</button>
+				{/if}
+			</div>
+		{/if}
 	</section>
 
 	<!-- Section 3: Custom Categories Management -->

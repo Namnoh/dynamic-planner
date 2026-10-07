@@ -5,7 +5,10 @@
 		type ScheduledEvent,
 		type ScheduledEventSubtask,
 		type CategoryOption,
-		type ActivityTemplate
+		type ActivityTemplate,
+		type RecurrenceConfig,
+		getRecurrenceLabel,
+		calculateRecurrenceDates
 	} from '$lib/types';
 	import { categoriesStore } from '$lib/stores/categories';
 	import Modal from './Modal.svelte';
@@ -13,14 +16,16 @@
 	import SearchableSelect from './SearchableSelect.svelte';
 	import ChecklistEditor from './ChecklistEditor.svelte';
 	import CategoryManagerModal from './CategoryManagerModal.svelte';
-	import { Pencil, Trash2, Layers } from 'lucide-svelte';
+	import RecurrenceSelector from './RecurrenceSelector.svelte';
+	import { Pencil, Trash2, Layers, Repeat } from 'lucide-svelte';
 
 	let {
 		isOpen = $bindable(false),
 		event,
 		weekDays = [],
 		onSave,
-		onDelete
+		onDelete,
+		onDeleteSeries
 	}: {
 		isOpen: boolean;
 		event: ScheduledEvent | null;
@@ -37,9 +42,15 @@
 					subtasks: boolean;
 				};
 				updateBaseTemplate?: boolean;
+			},
+			recurrenceOptions?: {
+				updateAllSeries?: boolean;
+				newRecurringDates?: string[];
+				newRecurrenceRule?: RecurrenceConfig;
 			}
 		) => void;
 		onDelete: (id: string) => void;
+		onDeleteSeries?: (recurrenceId: string) => void;
 	} = $props();
 
 	let isCategoryModalOpen = $state(false);
@@ -72,6 +83,16 @@
 	let syncSubtasks = $state(false);
 	let syncBaseTemplate = $state(false);
 
+	// Recurrence state
+	let updateSeriesScope = $state<'this_only' | 'all_series'>('this_only');
+	let isDeleteConfirmOpen = $state(false);
+	let enableNewRecurrence = $state(false);
+	let newRecurrence = $state<RecurrenceConfig>({
+		frequency: 'none',
+		rangeType: 'weeks',
+		weeksCount: 4
+	});
+
 	let otherEvents = $state<ScheduledEvent[]>([]);
 	let matchingTemplate = $state<ActivityTemplate | null>(null);
 
@@ -91,6 +112,11 @@
 			console.error('Error loading propagation context:', err);
 		}
 	}
+
+	const seriesEventsCount = $derived.by(() => {
+		if (!event?.recurrenceId) return 0;
+		return otherEvents.filter((e) => e.recurrenceId === event.recurrenceId).length + 1;
+	});
 
 	const matchingSameTitleCount = $derived.by(() => {
 		const trimmed = title.trim().toLowerCase();
@@ -140,6 +166,16 @@
 					syncNotes = false;
 					syncSubtasks = false;
 					syncBaseTemplate = false;
+
+					updateSeriesScope = 'this_only';
+					isDeleteConfirmOpen = false;
+					enableNewRecurrence = false;
+					newRecurrence = {
+						frequency: 'none',
+						rangeType: 'weeks',
+						weeksCount: 4
+					};
+
 					loadPropagationContext(event);
 				}
 			});
@@ -178,6 +214,24 @@
 
 		if (hasError) return;
 
+		let recurrenceOpts: {
+			updateAllSeries?: boolean;
+			newRecurringDates?: string[];
+			newRecurrenceRule?: RecurrenceConfig;
+		} | undefined = undefined;
+
+		if (event.recurrenceId && updateSeriesScope === 'all_series') {
+			recurrenceOpts = { updateAllSeries: true };
+		} else if (!event.recurrenceId && enableNewRecurrence && newRecurrence.frequency !== 'none') {
+			const calculated = calculateRecurrenceDates(date, newRecurrence);
+			if (calculated.length > 0) {
+				recurrenceOpts = {
+					newRecurringDates: calculated,
+					newRecurrenceRule: $state.snapshot(newRecurrence)
+				};
+			}
+		}
+
 		onSave(
 			{
 				...event,
@@ -203,17 +257,39 @@
 						},
 						updateBaseTemplate: syncBaseTemplate && Boolean(matchingTemplate)
 				  }
-				: undefined
+				: undefined,
+			recurrenceOpts
 		);
 
 		isOpen = false;
 	}
 
-	function handleDelete() {
+	function handleDeleteClick() {
 		if (!event) return;
-		const id = event.id;
+		if (event.recurrenceId && seriesEventsCount > 1) {
+			isDeleteConfirmOpen = true;
+		} else {
+			isOpen = false;
+			onDelete(event.id);
+		}
+	}
+
+	function handleDeleteSingle() {
+		if (!event) return;
+		isDeleteConfirmOpen = false;
 		isOpen = false;
-		onDelete(id);
+		onDelete(event.id);
+	}
+
+	function handleDeleteSeries() {
+		if (!event?.recurrenceId) return;
+		isDeleteConfirmOpen = false;
+		isOpen = false;
+		if (onDeleteSeries) {
+			onDeleteSeries(event.recurrenceId);
+		} else {
+			onDelete(event.id);
+		}
 	}
 </script>
 
@@ -374,6 +450,76 @@
 				<span class="font-medium text-slate-700 dark:text-slate-300">Marcar este bloque como completado</span>
 			</label>
 
+			<!-- Recurrence Section -->
+			{#if event?.recurrenceId}
+				<div class="rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/50 dark:bg-indigo-950/30 p-3 space-y-2.5">
+					<div class="flex items-center justify-between">
+						<div class="flex items-center gap-1.5 text-xs font-semibold text-indigo-900 dark:text-indigo-200">
+							<Repeat class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+							<span>Serie Recurrente ({seriesEventsCount} bloques)</span>
+						</div>
+						{#if event.recurrenceRule}
+							<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300">
+								{getRecurrenceLabel(event.recurrenceRule)}
+							</span>
+						{/if}
+					</div>
+
+					<p class="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
+						Este bloque forma parte de una serie recurrente de {seriesEventsCount} bloques.
+					</p>
+
+					<div>
+						<span class="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+							¿Dónde deseas aplicar los cambios?
+						</span>
+						<div class="grid grid-cols-2 gap-2">
+							<button
+								type="button"
+								onclick={() => { updateSeriesScope = 'this_only'; }}
+								class="px-2.5 py-1.5 text-[11px] rounded-lg border text-center font-medium transition-all cursor-pointer {updateSeriesScope === 'this_only'
+									? 'border-indigo-500 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs ring-1 ring-indigo-500/20'
+									: 'border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-400'}"
+							>
+								Solo a este bloque
+							</button>
+							<button
+								type="button"
+								onclick={() => { updateSeriesScope = 'all_series'; }}
+								class="px-2.5 py-1.5 text-[11px] rounded-lg border text-center font-medium transition-all cursor-pointer {updateSeriesScope === 'all_series'
+									? 'border-indigo-500 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs ring-1 ring-indigo-500/20'
+									: 'border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-400'}"
+							>
+								A toda la serie ({seriesEventsCount})
+							</button>
+						</div>
+					</div>
+				</div>
+			{:else}
+				<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3 space-y-2">
+					<label class="flex items-center justify-between cursor-pointer select-none text-xs font-semibold text-slate-800 dark:text-slate-200">
+						<div class="flex items-center gap-1.5">
+							<Repeat class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+							<span>Repetir este bloque (Convertir en recurrente)</span>
+						</div>
+						<input
+							type="checkbox"
+							bind:checked={enableNewRecurrence}
+							class="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+						/>
+					</label>
+					{#if enableNewRecurrence}
+						<div class="pt-2">
+							<RecurrenceSelector
+								bind:value={newRecurrence}
+								startDate={date}
+								showRangeOptions={true}
+							/>
+						</div>
+					{/if}
+				</div>
+			{/if}
+
 			<!-- Propagation / Synchronize with other blocks -->
 			<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3 space-y-3">
 				<div class="flex items-center justify-between">
@@ -499,32 +645,63 @@
 	{/snippet}
 
 	{#snippet footerSnippet()}
-		<div class="flex items-center justify-between w-full">
-			<button
-				type="button"
-				onclick={handleDelete}
-				class="flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors cursor-pointer"
-			>
-				<Trash2 class="h-3.5 w-3.5" />
-				<span>Eliminar</span>
-			</button>
+		<div class="flex flex-col w-full gap-2">
+			{#if isDeleteConfirmOpen}
+				<div class="flex items-center justify-between p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs">
+					<span class="text-rose-800 dark:text-rose-200 font-medium">¿Qué deseas eliminar?</span>
+					<div class="flex items-center gap-1.5">
+						<button
+							type="button"
+							onclick={handleDeleteSingle}
+							class="px-2 py-1 rounded-lg bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-100 font-medium cursor-pointer"
+						>
+							Solo este
+						</button>
+						<button
+							type="button"
+							onclick={handleDeleteSeries}
+							class="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-medium cursor-pointer shadow-xs"
+						>
+							Toda la serie ({seriesEventsCount})
+						</button>
+						<button
+							type="button"
+							onclick={() => { isDeleteConfirmOpen = false; }}
+							class="px-1.5 py-1 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer text-[11px]"
+						>
+							Cancelar
+						</button>
+					</div>
+				</div>
+			{:else}
+				<div class="flex items-center justify-between w-full">
+					<button
+						type="button"
+						onclick={handleDeleteClick}
+						class="flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors cursor-pointer"
+					>
+						<Trash2 class="h-3.5 w-3.5" />
+						<span>Eliminar</span>
+					</button>
 
-			<div class="flex items-center gap-2">
-				<button
-					type="button"
-					onclick={() => (isOpen = false)}
-					class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
-				>
-					Cancelar
-				</button>
-				<button
-					type="button"
-					onclick={handleSubmit}
-					class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white transition-all cursor-pointer shadow-md"
-				>
-					Guardar Cambios
-				</button>
-			</div>
+					<div class="flex items-center gap-2">
+						<button
+							type="button"
+							onclick={() => (isOpen = false)}
+							class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
+						>
+							Cancelar
+						</button>
+						<button
+							type="button"
+							onclick={handleSubmit}
+							class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white transition-all cursor-pointer shadow-md"
+						>
+							{updateSeriesScope === 'all_series' ? 'Guardar en Toda la Serie' : 'Guardar Cambios'}
+						</button>
+					</div>
+				</div>
+			{/if}
 		</div>
 	{/snippet}
 </Modal>

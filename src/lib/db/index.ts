@@ -7,7 +7,11 @@ import {
 	type ScheduledEventSubtask,
 	type SpecialEvent,
 	type AppSetting,
-	type CustomCategory
+	type CustomCategory,
+	type RecurrenceConfig,
+	formatDateToYYYYMMDD,
+	calculateRecurrenceDates,
+	isDateMatchingRecurrence
 } from '$lib/types';
 
 export class DynamicPlannerDatabase extends Dexie {
@@ -33,6 +37,11 @@ export class DynamicPlannerDatabase extends Dexie {
 		// Version 2: Custom Categories
 		this.version(2).stores({
 			categories: 'id, name'
+		});
+
+		// Version 3: Recurrence Support
+		this.version(3).stores({
+			scheduledEvents: 'id, date, startTime, endTime, category, completed, recurrenceId'
 		});
 	}
 }
@@ -96,7 +105,12 @@ export async function clearAllData(): Promise<void> {
 /**
  * Applies a Day Template to a specific target date, generating ScheduledEvent instances.
  */
-export async function applyDayTemplateToDate(templateId: string, targetDateStr: string): Promise<number> {
+export async function applyDayTemplateToDate(
+	templateId: string,
+	targetDateStr: string,
+	recurrenceId?: string,
+	recurrenceRule?: RecurrenceConfig
+): Promise<number> {
 	const template = await db.dayTemplates.get(templateId);
 	if (!template) {
 		throw new Error(`Plantilla no encontrada: ${templateId}`);
@@ -129,12 +143,167 @@ export async function applyDayTemplateToDate(templateId: string, targetDateStr: 
 				id: `st-${i}`,
 				title: st,
 				completed: false
-			}))
+			})),
+			recurrenceId,
+			recurrenceRule: recurrenceRule ? JSON.parse(JSON.stringify(recurrenceRule)) : undefined
 		});
 	}
 
 	await db.scheduledEvents.bulkAdd(newEvents);
 	return newEvents.length;
+}
+
+/**
+ * Applies a Day Template across dates according to a recurrence configuration.
+ */
+export async function applyDayTemplateWithRecurrence(
+	templateId: string,
+	baseMonday: Date,
+	config: RecurrenceConfig,
+	weeksCount = 1
+): Promise<{ daysCount: number; blocksCount: number }> {
+	const mondayStr = formatDateToYYYYMMDD(baseMonday);
+	const targetDates = calculateRecurrenceDates(mondayStr, {
+		...config,
+		rangeType: 'weeks',
+		weeksCount
+	});
+
+	if (targetDates.length === 0) {
+		return { daysCount: 0, blocksCount: 0 };
+	}
+
+	const seriesRecurrenceId = crypto.randomUUID
+		? crypto.randomUUID()
+		: `rec-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+	let totalBlocks = 0;
+	for (const dateStr of targetDates) {
+		const count = await applyDayTemplateToDate(templateId, dateStr, seriesRecurrenceId, config);
+		totalBlocks += count;
+	}
+
+	return { daysCount: targetDates.length, blocksCount: totalBlocks };
+}
+
+/**
+ * Applies all Day Templates with configured recurrence to the active week.
+ */
+export async function applyRecurringTemplatesToWeek(
+	mondayDate: Date
+): Promise<{ appliedTemplates: number; totalBlocks: number; matchedDays: number; details: string[] }> {
+	const allTemplates = await db.dayTemplates.toArray();
+	const recurringTemplates = allTemplates.filter(
+		(t) => t.recurrence && t.recurrence.frequency !== 'none'
+	);
+
+	if (recurringTemplates.length === 0) {
+		return { appliedTemplates: 0, totalBlocks: 0, matchedDays: 0, details: [] };
+	}
+
+	const weekDays: { date: Date; dateStr: string }[] = [];
+	for (let i = 0; i < 7; i++) {
+		const d = new Date(mondayDate);
+		d.setDate(d.getDate() + i);
+		weekDays.push({
+			date: d,
+			dateStr: formatDateToYYYYMMDD(d)
+		});
+	}
+
+	let totalBlocks = 0;
+	const appliedTplIds = new Set<string>();
+	const matchedDates = new Set<string>();
+	const details: string[] = [];
+
+	for (const tpl of recurringTemplates) {
+		if (!tpl.recurrence) continue;
+		let tplBlocksCount = 0;
+		let tplDaysCount = 0;
+		const seriesRecurrenceId = crypto.randomUUID
+			? crypto.randomUUID()
+			: `rec-${tpl.id}-${mondayDate.getTime()}`;
+
+		for (const day of weekDays) {
+			if (isDateMatchingRecurrence(day.date, tpl.recurrence)) {
+				const count = await applyDayTemplateToDate(
+					tpl.id,
+					day.dateStr,
+					seriesRecurrenceId,
+					tpl.recurrence
+				);
+				tplBlocksCount += count;
+				tplDaysCount++;
+				appliedTplIds.add(tpl.id);
+				matchedDates.add(day.dateStr);
+			}
+		}
+
+		if (tplDaysCount > 0) {
+			totalBlocks += tplBlocksCount;
+			details.push(`"${tpl.name}" aplicada a ${tplDaysCount} ${tplDaysCount === 1 ? 'día' : 'días'}`);
+		}
+	}
+
+	return {
+		appliedTemplates: appliedTplIds.size,
+		totalBlocks,
+		matchedDays: matchedDates.size,
+		details
+	};
+}
+
+/**
+ * Deletes all scheduled events belonging to a recurring series.
+ */
+export async function deleteRecurringEvents(
+	recurrenceId: string,
+	fromDateStr?: string
+): Promise<number> {
+	const all = await db.scheduledEvents.toArray();
+	const toDelete = all.filter(
+		(e) => e.recurrenceId === recurrenceId && (!fromDateStr || e.date >= fromDateStr)
+	);
+	if (toDelete.length > 0) {
+		await db.scheduledEvents.bulkDelete(toDelete.map((e) => e.id));
+	}
+	return toDelete.length;
+}
+
+/**
+ * Updates all scheduled events belonging to a recurring series.
+ */
+export async function updateRecurringEvents(
+	recurrenceId: string,
+	updates: Partial<ScheduledEvent>,
+	fromDateStr?: string
+): Promise<number> {
+	const all = await db.scheduledEvents.toArray();
+	const toUpdate = all.filter(
+		(e) => e.recurrenceId === recurrenceId && (!fromDateStr || e.date >= fromDateStr)
+	);
+	if (toUpdate.length === 0) return 0;
+
+	for (const evt of toUpdate) {
+		if (updates.title !== undefined) evt.title = updates.title;
+		if (updates.startTime !== undefined) evt.startTime = updates.startTime;
+		if (updates.endTime !== undefined) evt.endTime = updates.endTime;
+		if (updates.category !== undefined) evt.category = updates.category;
+		if (updates.color !== undefined) evt.color = updates.color;
+		if (updates.notes !== undefined) evt.notes = updates.notes;
+		if (updates.subtasks !== undefined) {
+			evt.subtasks = updates.subtasks.map((st, i) => ({
+				id: crypto.randomUUID
+					? crypto.randomUUID()
+					: `st-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 5)}`,
+				title: st.title,
+				completed: false
+			}));
+		}
+	}
+
+	await db.scheduledEvents.bulkPut(toUpdate);
+	return toUpdate.length;
 }
 
 /**
