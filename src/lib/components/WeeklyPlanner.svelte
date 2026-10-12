@@ -589,11 +589,19 @@
 				daysApplied = 1;
 			}
 
-			toastStore.show({
-				title: 'Plantilla aplicada con éxito',
-				message: `Se añadieron ${totalBlocks} bloques a ${daysApplied} ${daysApplied === 1 ? 'día' : 'días'}.`,
-				type: 'success'
-			});
+			if (totalBlocks > 0) {
+				toastStore.show({
+					title: 'Plantilla aplicada con éxito',
+					message: `Se añadieron ${totalBlocks} bloques a ${daysApplied} ${daysApplied === 1 ? 'día' : 'días'}.`,
+					type: 'success'
+				});
+			} else {
+				toastStore.show({
+					title: 'Sin cambios en la planificación',
+					message: `Los bloques de "${tpl.name}" ya se encuentran programados. No se generaron duplicados.`,
+					type: 'info'
+				});
+			}
 			refreshData();
 		} catch (err: any) {
 			toastStore.show({
@@ -630,8 +638,14 @@
 			if (res.totalBlocks > 0) {
 				toastStore.show({
 					title: '¡Semana planificada! ⚡',
-					message: `Se aplicaron ${res.appliedTemplates} plantillas (${res.totalBlocks} bloques en ${res.matchedDays} días).`,
+					message: `Se aplicaron ${res.appliedTemplates} plantillas (${res.totalBlocks} bloques nuevos en ${res.matchedDays} días).`,
 					type: 'success'
+				});
+			} else if (res.appliedTemplates > 0) {
+				toastStore.show({
+					title: 'Semana ya actualizada',
+					message: 'Los bloques recurrentes ya estaban programados en esta semana. No se generaron duplicados.',
+					type: 'info'
 				});
 			} else {
 				toastStore.show({

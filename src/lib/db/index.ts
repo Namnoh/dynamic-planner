@@ -128,6 +128,7 @@ export async function clearWeekEvents(dates: string[]): Promise<number> {
 
 /**
  * Applies a Day Template to a specific target date, generating ScheduledEvent instances.
+ * Checks for existing blocks to avoid creating duplicates (idempotent behavior).
  */
 export async function applyDayTemplateToDate(
 	templateId: string,
@@ -143,6 +144,10 @@ export async function applyDayTemplateToDate(
 	const allActivities = await db.activityTemplates.toArray();
 	const actMap = new Map(allActivities.map((a) => [a.id, a]));
 
+	// Retrieve existing scheduled events on the target date for deduplication
+	const existingEvents = await db.scheduledEvents.where('date').equals(targetDateStr).toArray();
+	const matchedExistingIds = new Set<string>();
+
 	const newEvents: ScheduledEvent[] = [];
 
 	for (const block of template.blocks) {
@@ -151,6 +156,20 @@ export async function applyDayTemplateToDate(
 		const title = block.customTitle || (act ? act.title : 'Actividad');
 		const category = act ? act.category : 'work';
 		const color = act?.color || '#3b82f6';
+
+		// Match against existing events on that day
+		const existingMatch = existingEvents.find((existing) => {
+			if (matchedExistingIds.has(existing.id)) return false;
+			const sameStartTime = existing.startTime === block.startTime;
+			const sameTitle = existing.title.trim().toLowerCase() === title.trim().toLowerCase();
+			const sameTemplate = existing.sourceTemplateId === template.id;
+			return sameStartTime && (sameTitle || sameTemplate);
+		});
+
+		if (existingMatch) {
+			matchedExistingIds.add(existingMatch.id);
+			continue;
+		}
 
 		newEvents.push({
 			id: crypto.randomUUID ? crypto.randomUUID() : `event-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -173,7 +192,11 @@ export async function applyDayTemplateToDate(
 		});
 	}
 
-	await db.scheduledEvents.bulkAdd(newEvents);
+	if (newEvents.length > 0) {
+		await db.scheduledEvents.bulkAdd(newEvents);
+		await triggerEmergencySnapshot();
+	}
+
 	return newEvents.length;
 }
 
