@@ -23,7 +23,9 @@
 		type ActivityTemplate,
 		type RecurrenceConfig,
 		sortDayTemplates,
-		getRecurrenceLabel
+		getRecurrenceLabel,
+		formatDateToYYYYMMDD,
+		getTodayDateString
 	} from '$lib/types';
 	import ExportModal from './ExportModal.svelte';
 	import EventCard from './EventCard.svelte';
@@ -226,16 +228,18 @@
 		return dayTemplates.filter((t) => t.recurrence && t.recurrence.frequency !== 'none');
 	});
 
+	// Reactive current local date string (avoids UTC offset shifts and rolls over at midnight)
+	let todayStr = $state<string>(getTodayDateString());
+
 	// 7 days calculation derived from currentMonday
 	const weekDays = $derived.by(() => {
 		const days: { date: Date; dateStr: string; dayName: string; dayNumber: number; isToday: boolean }[] = [];
-		const todayStr = new Date().toISOString().split('T')[0];
 		const names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 		for (let i = 0; i < 7; i++) {
 			const d = new Date(currentMonday);
 			d.setDate(d.getDate() + i);
-			const dateStr = d.toISOString().split('T')[0];
+			const dateStr = formatDateToYYYYMMDD(d);
 			days.push({
 				date: d,
 				dateStr,
@@ -344,16 +348,40 @@
 	onMount(() => {
 		refreshData();
 
+		// Keep todayStr up to date every minute so midnight rollover updates seamlessly
+		const interval = setInterval(() => {
+			const current = getTodayDateString();
+			if (current !== todayStr) {
+				todayStr = current;
+			}
+		}, 60000);
+
+		// Synchronize when the tab becomes visible after system sleep or backgrounding
+		const handleVisibilityChange = () => {
+			if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+				const current = getTodayDateString();
+				if (current !== todayStr) {
+					todayStr = current;
+				}
+			}
+		};
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
 		const handleOpenTransfer = () => {
 			isTransferModalOpen = true;
 		};
 		window.addEventListener('open-data-transfer', handleOpenTransfer);
+
 		return () => {
+			clearInterval(interval);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			window.removeEventListener('open-data-transfer', handleOpenTransfer);
 		};
 	});
 
 	const isCurrentWeek = $derived.by(() => {
+		// Depend on todayStr to recompute reactively when day rolls over
+		void todayStr;
 		const todayMonday = getMondayOfCurrentWeek();
 		return (
 			currentMonday.getFullYear() === todayMonday.getFullYear() &&

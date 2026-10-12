@@ -2,6 +2,7 @@
 	import { settingsStore, type BlockColorStyle } from '$lib/stores/settings';
 	import { toastStore } from '$lib/utils/notifications';
 	import { exportDatabaseToJson, importDatabaseFromJson } from '$lib/db';
+	import { getTodayDateString } from '$lib/types';
 	import Modal from './Modal.svelte';
 	import CategoryManagerModal from './CategoryManagerModal.svelte';
 	import {
@@ -157,7 +158,7 @@
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = `dynamic-planner-backup-${new Date().toISOString().split('T')[0]}.json`;
+		a.download = `dynamic-planner-backup-${getTodayDateString()}.json`;
 		a.click();
 		URL.revokeObjectURL(url);
 		toastStore.show({

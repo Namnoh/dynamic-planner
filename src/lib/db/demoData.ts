@@ -1,6 +1,12 @@
 import { db } from './index';
 import { getMondayOfCurrentWeek } from './index';
-import type { ActivityTemplate, DayTemplate, ScheduledEvent, SpecialEvent } from '$lib/types';
+import {
+	type ActivityTemplate,
+	type DayTemplate,
+	type ScheduledEvent,
+	type SpecialEvent,
+	formatDateToYYYYMMDD
+} from '$lib/types';
 
 export const DEMO_ACTIVITIES: ActivityTemplate[] = [
 	{
@@ -173,7 +179,7 @@ function addMinutesToTime(timeStr: string, minutes: number): string {
 function getISODate(date: Date, dayOffset = 0): string {
 	const d = new Date(date);
 	d.setDate(d.getDate() + dayOffset);
-	return d.toISOString().split('T')[0];
+	return formatDateToYYYYMMDD(d);
 }
 
 export function generateDemoScheduledEvents(): ScheduledEvent[] {

@@ -7,6 +7,8 @@
  * 3. Backward compatible decompression for legacy multi-part and JSON payloads.
  */
 
+import { getTodayDateString } from '$lib/types';
+
 function uint8ArrayToBase64(bytes: Uint8Array): string {
 	let binary = '';
 	const len = bytes.byteLength;
@@ -400,7 +402,7 @@ export async function shareOrDownloadPlannerFile(
 	jsonContent: string,
 	filenamePrefix = 'rutina'
 ): Promise<{ success: boolean; method: 'shared' | 'downloaded' | 'cancelled' }> {
-	const dateStr = new Date().toISOString().split('T')[0];
+	const dateStr = getTodayDateString();
 	const fileName = `${filenamePrefix}-${dateStr}.planner`;
 	const file = new File([jsonContent], fileName, { type: 'application/json' });
 

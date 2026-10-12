@@ -14,6 +14,7 @@
 		processScannedQr,
 		shareOrDownloadPlannerFile
 	} from '$lib/utils/transfer';
+	import { getTodayDateString } from '$lib/types';
 	import { toastStore } from '$lib/utils/notifications';
 	import {
 		QrCode,
@@ -404,7 +405,7 @@
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement('a');
 			a.href = url;
-			a.download = `rutina-${new Date().toISOString().split('T')[0]}.planner`;
+			a.download = `rutina-${getTodayDateString()}.planner`;
 			a.click();
 			URL.revokeObjectURL(url);
 			toastStore.show({
@@ -455,7 +456,7 @@
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = `dynamic-planner-backup-${new Date().toISOString().split('T')[0]}.json`;
+		a.download = `dynamic-planner-backup-${getTodayDateString()}.json`;
 		a.click();
 		URL.revokeObjectURL(url);
 		toastStore.show({ title: 'JSON exportado con éxito', type: 'success' });

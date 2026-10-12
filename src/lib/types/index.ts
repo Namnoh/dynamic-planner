@@ -298,6 +298,14 @@ export function formatDateToYYYYMMDD(d: Date): string {
 	return `${year}-${month}-${day}`;
 }
 
+/**
+ * Returns today's date formatted as YYYY-MM-DD in the user's local timezone.
+ * Avoids UTC timezone shift bugs caused by new Date().toISOString().split('T')[0].
+ */
+export function getTodayDateString(): string {
+	return formatDateToYYYYMMDD(new Date());
+}
+
 export function parseYYYYMMDD(str: string): Date {
 	const [y, m, d] = str.split('-').map(Number);
 	return new Date(y, m - 1, d, 12, 0, 0);
