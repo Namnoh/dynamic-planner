@@ -4,7 +4,7 @@
 	import { toastStore } from '$lib/utils/notifications';
 	import Modal from './Modal.svelte';
 	import ColorPicker from './ColorPicker.svelte';
-	import { Tag, Plus, Pencil, Trash2, RotateCcw, ArrowUpDown, Search } from 'lucide-svelte';
+	import { Tag, Plus, X, Pencil, Trash2, RotateCcw, ArrowUpDown, Search } from 'lucide-svelte';
 
 	let {
 		isOpen = $bindable(false),
@@ -141,16 +141,21 @@
 				<span class="font-medium text-slate-700 dark:text-slate-300">
 					{categories.length} categoría{categories.length === 1 ? '' : 's'} disponible{categories.length === 1 ? '' : 's'}
 				</span>
-				{#if !isCreating}
-					<button
-						type="button"
-						onclick={handleStartCreate}
-						class="inline-flex items-center gap-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all shadow-2xs cursor-pointer"
-					>
+				<button
+					type="button"
+					onclick={isCreating ? handleCancel : handleStartCreate}
+					class="inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all shadow-2xs cursor-pointer {isCreating
+						? 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200'
+						: 'bg-indigo-600 hover:bg-indigo-500 text-white'}"
+				>
+					{#if isCreating}
+						<X class="h-3.5 w-3.5" />
+						<span>Cancelar</span>
+					{:else}
 						<Plus class="h-3.5 w-3.5" />
 						<span>Nueva Categoría</span>
-					</button>
-				{/if}
+					{/if}
+				</button>
 			</div>
 
 			<!-- Inline Creator / Editor Form -->

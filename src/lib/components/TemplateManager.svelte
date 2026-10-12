@@ -23,7 +23,7 @@
 	import CategoryManagerModal from './CategoryManagerModal.svelte';
 	import RecurrenceSelector from './RecurrenceSelector.svelte';
 	import TimeInput24 from './TimeInput24.svelte';
-	import { Plus, Trash2, Clock, Layers, Tag, Pencil, ArrowUpDown, ListChecks, Search, Filter, Repeat } from 'lucide-svelte';
+	import { Plus, X, Trash2, Clock, Layers, Tag, Pencil, ArrowUpDown, ListChecks, Search, Filter, Repeat } from 'lucide-svelte';
 
 	let { onTemplatesUpdated }: { onTemplatesUpdated?: () => void } = $props();
 
@@ -630,9 +630,15 @@
 			<button
 				type="button"
 				onclick={handleToggleDayTemplateBuilder}
-				class="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3.5 py-2 text-xs font-semibold text-white transition-all shadow-md cursor-pointer"
+				class="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all shadow-md cursor-pointer {isCreatingDayTemplate
+					? 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200'
+					: 'bg-indigo-600 hover:bg-indigo-500 text-white'}"
 			>
-				<Plus class="h-4 w-4" />
+				{#if isCreatingDayTemplate}
+					<X class="h-4 w-4" />
+				{:else}
+					<Plus class="h-4 w-4" />
+				{/if}
 				<span class="hidden sm:inline-block">
 					{#if isCreatingDayTemplate}
 						{editingDayTemplateId ? 'Cancelar Edición' : 'Cerrar Creador'}
@@ -1082,9 +1088,15 @@
 			<button
 				type="button"
 				onclick={handleToggleActivityForm}
-				class="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer"
+				class="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer {isCreatingActivity
+					? 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200'
+					: 'bg-indigo-600 hover:bg-indigo-500 text-white'}"
 			>
-				<Plus class="h-4 w-4" />
+				{#if isCreatingActivity}
+					<X class="h-4 w-4" />
+				{:else}
+					<Plus class="h-4 w-4" />
+				{/if}
 				<span class="hidden sm:inline-block">
 					{#if isCreatingActivity}
 						{editingActivityId ? 'Cancelar Edición' : 'Cerrar'}
