@@ -106,9 +106,9 @@
 
 	<!-- Row 1: Time (clean typography) and Category -->
 	<div class="flex items-center justify-between gap-1 leading-none">
-		<span class="inline-flex items-center gap-1 font-sans text-[11px] font-medium tabular-nums text-slate-500 dark:text-slate-400 tracking-tight">
+		<span class="inline-flex items-center gap-1 font-sans text-[10px] font-medium tabular-nums text-slate-500 dark:text-slate-400 tracking-tight">
 			{#if event.completed}
-				<Check class="h-3 w-3 text-emerald-500 stroke-[2.5]" />
+				<Check class="h-2.5 w-2.5 text-emerald-500 stroke-[2.5]" />
 			{/if}
 			<span>{event.startTime} – {event.endTime}</span>
 			{#if event.recurrenceId}
@@ -121,12 +121,13 @@
 		{#if event.category}
 			{@const cat = categoriesStore.getCategory(event.category)}
 			<span
-				class="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider transition-colors {blockColorStyle === 'full'
+				class="rounded px-1 py-0.5 text-[8px] font-medium uppercase tracking-wide truncate max-w-24 transition-colors leading-none {blockColorStyle === 'full'
 					? 'bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200'
 					: 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-transparent'}"
 				style={cat?.color
 					? `border-left: 2px solid ${cat.color};`
 					: ''}
+				title={cat?.name || event.category}
 			>
 				{cat?.name || event.category}
 			</span>
@@ -142,39 +143,19 @@
 		{event.title}
 	</h5>
 
-	<!-- Row 3: Subtasks or Notes (if present) -->
-	{#if (event.subtasks && event.subtasks.length > 0) || event.notes}
-		<div class="flex items-center justify-between gap-2 pt-0.5 text-[10px] text-slate-400 dark:text-slate-500">
-			{#if event.notes}
-				<span class="truncate italic max-w-32.5" title={event.notes}>
-					{event.notes}
-				</span>
-			{/if}
-			{#if event.subtasks && event.subtasks.length > 0}
-				{@const completedCount = event.subtasks.filter((s) => s.completed).length}
-				{@const totalCount = event.subtasks.length}
-				{@const percent = Math.round((completedCount / totalCount) * 100)}
-				<div
-					class="ml-auto flex items-center gap-1.5 shrink-0"
-					title={`Checklist: ${completedCount}/${totalCount} tareas completadas (${percent}%)`}
-				>
-					<span
-						class="font-sans tabular-nums text-[9.5px] font-medium {completedCount === totalCount
-							? 'text-emerald-600 dark:text-emerald-400 font-semibold'
-							: 'text-slate-500 dark:text-slate-400'}"
-					>
-						✓ {completedCount}/{totalCount}
-					</span>
-					<div class="w-8 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700/80 overflow-hidden">
-						<div
-							class="h-full rounded-full transition-all duration-300 {completedCount === totalCount
-								? 'bg-emerald-500'
-								: 'bg-indigo-500'}"
-							style="width: {percent}%"
-						></div>
-					</div>
-				</div>
-			{/if}
+	<!-- Row 3: Checklist indicator (if present, minimal numbers only) -->
+	{#if event.subtasks && event.subtasks.length > 0}
+		{@const completedCount = event.subtasks.filter((s) => s.completed).length}
+		{@const totalCount = event.subtasks.length}
+		<div class="flex items-center justify-end pt-0.5">
+			<span
+				class="font-sans tabular-nums text-[9.5px] font-medium {completedCount === totalCount
+					? 'text-emerald-600 dark:text-emerald-400 font-semibold'
+					: 'text-slate-400 dark:text-slate-500'}"
+				title={`Checklist: ${completedCount}/${totalCount} tareas completadas`}
+			>
+				({completedCount}/{totalCount})
+			</span>
 		</div>
 	{/if}
 </article>
