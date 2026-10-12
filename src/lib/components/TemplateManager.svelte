@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { db, propagateActivityTemplateChanges, propagateDayTemplateChanges } from '$lib/db';
+	import { db, propagateActivityTemplateChanges, propagateDayTemplateChanges, addMinutesToTime } from '$lib/db';
 	import {
 		type ActivityTemplate,
 		type DayTemplate,
@@ -751,9 +751,16 @@
 							{/if}
 						</div>
 						<div>
-							<label for="block-start-input" class="block text-[11px] text-slate-600 dark:text-slate-400 mb-1">
-								Hora Inicio <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
-							</label>
+							<div class="flex items-center justify-between mb-1">
+								<label for="block-start-input" class="block text-[11px] text-slate-600 dark:text-slate-400">
+									Hora Inicio <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
+								</label>
+								{#if blockStartTime && blockDuration && addMinutesToTime(blockStartTime, blockDuration)}
+									<span class="text-[10px] font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+										→ {addMinutesToTime(blockStartTime, blockDuration)}
+									</span>
+								{/if}
+							</div>
 							<input
 								id="block-start-input"
 								type="time"
@@ -836,7 +843,7 @@
 									? 'border-amber-500 ring-2 ring-amber-500/30'
 									: 'border-slate-200 dark:border-slate-800'}">
 									<div class="min-w-0 pr-2">
-										<span class="font-sans tabular-nums font-semibold text-indigo-600 dark:text-indigo-400 tracking-tight">{blk.startTime}</span>
+										<span class="font-sans tabular-nums font-semibold text-indigo-600 dark:text-indigo-400 tracking-tight">{blk.startTime} – {addMinutesToTime(blk.startTime, blk.duration)}</span>
 										<span class="text-slate-500 dark:text-slate-400 text-[10px]">({blk.duration}m)</span>
 										<p class="font-medium text-slate-800 dark:text-slate-200 mt-0.5 truncate">
 											{blk.customTitle || activities.find((a) => a.id === blk.activityId)?.title || 'Bloque'}
@@ -1029,7 +1036,7 @@
 						<div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80 flex flex-wrap gap-1">
 							{#each tpl.blocks.slice(0, 4) as b}
 								<span class="rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-transparent px-2 py-0.5 text-[10px] font-sans tabular-nums font-medium tracking-tight text-slate-700 dark:text-slate-300">
-									{b.startTime} ({b.duration}m)
+									{b.startTime} – {addMinutesToTime(b.startTime, b.duration)}
 								</span>
 							{/each}
 							{#if tpl.blocks.length > 4}

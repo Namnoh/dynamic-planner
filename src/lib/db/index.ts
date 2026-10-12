@@ -57,10 +57,12 @@ export const db = new DynamicPlannerDatabase();
  * Calculates start and end times helper
  */
 export function addMinutesToTime(timeStr: string, minutes: number): string {
+	if (!timeStr || !timeStr.includes(':')) return '';
 	const [h, m] = timeStr.split(':').map(Number);
-	const totalMin = h * 60 + m + minutes;
-	const hours = Math.floor(totalMin / 60) % 24;
-	const mins = totalMin % 60;
+	if (isNaN(h) || isNaN(m)) return '';
+	const totalMin = h * 60 + m + (minutes || 0);
+	const hours = ((Math.floor(totalMin / 60) % 24) + 24) % 24;
+	const mins = ((totalMin % 60) + 60) % 60;
 	return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
 }
 
