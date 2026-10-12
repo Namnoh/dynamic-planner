@@ -22,6 +22,7 @@
 	import ChecklistEditor from './ChecklistEditor.svelte';
 	import CategoryManagerModal from './CategoryManagerModal.svelte';
 	import RecurrenceSelector from './RecurrenceSelector.svelte';
+	import TimeInput24 from './TimeInput24.svelte';
 	import { Plus, Trash2, Clock, Layers, Tag, Pencil, ArrowUpDown, ListChecks, Search, Filter, Repeat } from 'lucide-svelte';
 
 	let { onTemplatesUpdated }: { onTemplatesUpdated?: () => void } = $props();
@@ -761,14 +762,11 @@
 									</span>
 								{/if}
 							</div>
-							<input
+							<TimeInput24
 								id="block-start-input"
-								type="time"
 								bind:value={blockStartTime}
-								oninput={() => { if (blockErrors.startTime) blockErrors.startTime = ''; }}
-								class="w-full rounded-lg border bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden transition-colors {blockErrors.startTime
-									? 'border-rose-500 focus:border-rose-500'
-									: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
+								hasError={Boolean(blockErrors.startTime)}
+								onchange={() => { if (blockErrors.startTime) blockErrors.startTime = ''; }}
 							/>
 							{#if blockErrors.startTime}
 								<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">

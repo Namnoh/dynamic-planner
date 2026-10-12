@@ -17,6 +17,7 @@
 	import ChecklistEditor from './ChecklistEditor.svelte';
 	import CategoryManagerModal from './CategoryManagerModal.svelte';
 	import RecurrenceSelector from './RecurrenceSelector.svelte';
+	import TimeInput24 from './TimeInput24.svelte';
 	import { Plus, Tag } from 'lucide-svelte';
 
 	let {
@@ -157,8 +158,7 @@
 		return (h2 * 60 + m2) - (h1 * 60 + m1);
 	}
 
-	function handleStartTimeChange(e: Event) {
-		const newStart = (e.target as HTMLInputElement).value;
+	function handleStartTimeChange(newStart: string) {
 		startTime = newStart;
 		if (errors.startTime) errors.startTime = '';
 		if (newStart && currentDuration > 0) {
@@ -167,8 +167,7 @@
 		}
 	}
 
-	function handleEndTimeChange(e: Event) {
-		const newEnd = (e.target as HTMLInputElement).value;
+	function handleEndTimeChange(newEnd: string) {
 		endTime = newEnd;
 		if (errors.endTime) errors.endTime = '';
 		if (startTime && newEnd) {
@@ -316,15 +315,11 @@
 					<label for="new-event-start-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
 						Hora Inicio <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
 					</label>
-					<input
+					<TimeInput24
 						id="new-event-start-time"
-						type="time"
 						bind:value={startTime}
-						oninput={handleStartTimeChange}
+						hasError={Boolean(errors.startTime)}
 						onchange={handleStartTimeChange}
-						class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.startTime
-							? 'border-rose-500 focus:border-rose-500'
-							: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 					/>
 					{#if errors.startTime}
 						<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
@@ -336,15 +331,11 @@
 					<label for="new-event-end-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
 						Hora Fin <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
 					</label>
-					<input
+					<TimeInput24
 						id="new-event-end-time"
-						type="time"
 						bind:value={endTime}
-						oninput={handleEndTimeChange}
+						hasError={Boolean(errors.endTime)}
 						onchange={handleEndTimeChange}
-						class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.endTime
-							? 'border-rose-500 focus:border-rose-500'
-							: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 					/>
 					{#if errors.endTime}
 						<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">

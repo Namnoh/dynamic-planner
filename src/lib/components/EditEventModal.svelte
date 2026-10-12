@@ -17,6 +17,7 @@
 	import ChecklistEditor from './ChecklistEditor.svelte';
 	import CategoryManagerModal from './CategoryManagerModal.svelte';
 	import RecurrenceSelector from './RecurrenceSelector.svelte';
+	import TimeInput24 from './TimeInput24.svelte';
 	import { Pencil, Trash2, Layers, Repeat } from 'lucide-svelte';
 
 	let {
@@ -350,15 +351,11 @@
 					<label for="edit-event-start-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
 						Hora Inicio <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
 					</label>
-					<input
+					<TimeInput24
 						id="edit-event-start-time"
-						type="time"
 						bind:value={startTime}
-						oninput={() => { if (errors.startTime) errors.startTime = ''; }}
+						hasError={Boolean(errors.startTime)}
 						onchange={() => { if (errors.startTime) errors.startTime = ''; }}
-						class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.startTime
-							? 'border-rose-500 focus:border-rose-500'
-							: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 					/>
 					{#if errors.startTime}
 						<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
@@ -370,15 +367,11 @@
 					<label for="edit-event-end-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
 						Hora Fin <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
 					</label>
-					<input
+					<TimeInput24
 						id="edit-event-end-time"
-						type="time"
 						bind:value={endTime}
-						oninput={() => { if (errors.endTime) errors.endTime = ''; }}
+						hasError={Boolean(errors.endTime)}
 						onchange={() => { if (errors.endTime) errors.endTime = ''; }}
-						class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.endTime
-							? 'border-rose-500 focus:border-rose-500'
-							: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
 					/>
 					{#if errors.endTime}
 						<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
