@@ -10,6 +10,8 @@
 		deleteRecurringEvents,
 		updateRecurringEvents,
 		clearAllData,
+		clearDayEvents,
+		clearWeekEvents,
 		propagateEventChanges,
 		triggerEmergencySnapshot,
 		importDatabaseFromJson
@@ -31,6 +33,7 @@
 	import EventCard from './EventCard.svelte';
 	import AddEventModal from './AddEventModal.svelte';
 	import EditEventModal from './EditEventModal.svelte';
+	import ClearConfirmModal from './ClearConfirmModal.svelte';
 	import DataTransferModal from './DataTransferModal.svelte';
 	import ReadOnlyFloatingPill from './ReadOnlyFloatingPill.svelte';
 	import WeekPickerCalendar from './WeekPickerCalendar.svelte';
@@ -40,6 +43,7 @@
 		ChevronLeft,
 		ChevronRight,
 		ChevronDown,
+		ChevronUp,
 		Calendar,
 		Camera,
 		Sparkles,
@@ -87,6 +91,9 @@
 	let targetDateForNewEvent = $state('');
 	let initialStartTimeForNewEvent = $state('09:00');
 
+	// Day Column Dropdown Menu State
+	let openDayMenuIndex = $state<number | null>(null);
+
 	// Edit Modal State
 	let isEditModalOpen = $state(false);
 	let selectedEventForEdit = $state<ScheduledEvent | null>(null);
@@ -100,6 +107,50 @@
 	function openEditModal(event: ScheduledEvent) {
 		selectedEventForEdit = event;
 		isEditModalOpen = true;
+	}
+
+	// Clear Day / Week Confirmation Modal State
+	let isClearModalOpen = $state(false);
+	let clearScope = $state<'day' | 'week'>('day');
+	let clearTargetTitle = $state('');
+	let clearTargetDateOrDates = $state<string | string[]>('');
+	let clearItemsCount = $state(0);
+
+	function promptClearDay(dateStr: string, dayTitle: string, count: number) {
+		clearScope = 'day';
+		clearTargetTitle = dayTitle;
+		clearTargetDateOrDates = dateStr;
+		clearItemsCount = count;
+		isClearModalOpen = true;
+	}
+
+	function promptClearWeek() {
+		clearScope = 'week';
+		clearTargetTitle = weekRangeLabel;
+		clearTargetDateOrDates = weekDays.map((d) => d.dateStr);
+		clearItemsCount = totalWeekEventsCount;
+		isClearModalOpen = true;
+	}
+
+	async function handleExecuteClear() {
+		if (clearScope === 'day') {
+			const dateStr = clearTargetDateOrDates as string;
+			const deleted = await clearDayEvents(dateStr);
+			toastStore.show({
+				title: 'Día despejado',
+				message: `Se eliminaron ${deleted} bloques de ${clearTargetTitle}.`,
+				type: 'info'
+			});
+		} else {
+			const dates = clearTargetDateOrDates as string[];
+			const deleted = await clearWeekEvents(dates);
+			toastStore.show({
+				title: 'Semana despejada',
+				message: `Se eliminaron ${deleted} bloques de la semana (${clearTargetTitle}).`,
+				type: 'info'
+			});
+		}
+		refreshData();
 	}
 
 	async function handleUpdateEvent(
@@ -263,6 +314,11 @@
 		const endStr = end.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 		return `${startStr} — ${endStr}`;
 	});
+
+	// Total count of scheduled events in the active week
+	const totalWeekEventsCount = $derived(
+		dayColumns.reduce((sum, col) => sum + (col ? col.length : 0), 0)
+	);
 
 	// Select options for applying day template
 	const templateOptions = $derived.by(() => {
@@ -760,12 +816,13 @@
 
 				<button
 					type="button"
-					onclick={handleClearAll}
-					disabled={isReadOnly}
-					class="rounded-xl p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-500/20 dark:hover:text-rose-300 border border-slate-200 dark:border-slate-700/60 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-					title="Limpiar todo (Lienzo en blanco)"
+					onclick={promptClearWeek}
+					disabled={isReadOnly || totalWeekEventsCount === 0}
+					class="text-nowrap flex items-center gap-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 px-2.5 py-1.5 text-xs font-medium transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed shadow-2xs"
+					title={totalWeekEventsCount > 0 ? `Limpiar semana activa (${totalWeekEventsCount} bloques)` : 'La semana actual no contiene bloques'}
 				>
-					<Trash2 class="h-3.5 w-3.5 text-red-500" />
+					<Trash2 class="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+					<span class="hidden sm:inline">Limpiar Semana</span>
 				</button>
 
 				<!-- Transfer Data (QR & JSON Backup) -->
@@ -928,17 +985,6 @@
 							{/if}
 						</div>
 					</div>
-
-					{#if !isReadOnly}
-						<button
-							type="button"
-							onclick={() => openAddModal(day.dateStr)}
-							class="no-export rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
-							title="Añadir bloque"
-						>
-							<Plus class="h-3.5 w-3.5" />
-						</button>
-					{/if}
 				</div>
 
 				<!-- Column Body Area -->
@@ -981,20 +1027,75 @@
 					{/if}
 				</div>
 
-				<!-- Quick Add Footer -->
+				<!-- Day Actions Dropdown Footer -->
 				{#if !isReadOnly}
-					<button
-						type="button"
-						onclick={() => {
-							const dayEvts = dayColumns[dayIndex] || [];
-							const lastEvt = dayEvts[dayEvts.length - 1];
-							openAddModal(day.dateStr, lastEvt ? lastEvt.endTime : '09:00');
-						}}
-						class="no-export m-2 flex items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-slate-800/80 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200 transition-all cursor-pointer"
-					>
-						<Plus class="h-3 w-3" />
-						<span>Agregar</span>
-					</button>
+					{@const dayCount = (dayColumns[dayIndex] || []).length}
+					<div class="relative m-2">
+						{#if openDayMenuIndex === dayIndex}
+							<!-- Backdrop to close dropdown on click outside -->
+							<button
+								type="button"
+								tabindex="-1"
+								onclick={() => (openDayMenuIndex = null)}
+								class="fixed inset-0 z-30 cursor-default bg-transparent border-0 p-0 m-0 w-full h-full"
+								aria-label="Cerrar menú"
+							></button>
+
+							<!-- Dropdown Popover (opens upward above trigger button) -->
+							<div
+								class="absolute bottom-full left-0 right-0 mb-1.5 z-40 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 p-1 shadow-lg dark:shadow-xl space-y-0.5 animate-in fade-in slide-in-from-bottom-2 duration-150"
+							>
+								<!-- Option 1: Agregar bloque -->
+								<button
+									type="button"
+									onclick={() => {
+										openDayMenuIndex = null;
+										const dayEvts = dayColumns[dayIndex] || [];
+										const lastEvt = dayEvts[dayEvts.length - 1];
+										openAddModal(day.dateStr, lastEvt ? lastEvt.endTime : '09:00');
+									}}
+									class="flex items-center gap-2 w-full rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors cursor-pointer text-left"
+								>
+									<Plus class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+									<span>Agregar bloque</span>
+								</button>
+
+								<!-- Option 2: Limpiar día -->
+								<button
+									type="button"
+									onclick={() => {
+										openDayMenuIndex = null;
+										promptClearDay(day.dateStr, `${day.dayName} (${day.dayNumber})`, dayCount);
+									}}
+									disabled={dayCount === 0}
+									class="flex items-center justify-between w-full rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer text-left {dayCount > 0
+										? 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+										: 'text-slate-400 dark:text-slate-500 opacity-50 cursor-not-allowed'}"
+								>
+									<span class="flex items-center gap-2">
+										<Trash2 class="h-3.5 w-3.5 shrink-0" />
+										<span>Limpiar día</span>
+									</span>
+									{#if dayCount > 0}
+										<span class="text-[10px] tabular-nums font-semibold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 px-1.5 py-0.2 rounded-full">
+											{dayCount}
+										</span>
+									{/if}
+								</button>
+							</div>
+						{/if}
+
+						<!-- Trigger Button -->
+						<button
+							type="button"
+							onclick={() => (openDayMenuIndex = openDayMenuIndex === dayIndex ? null : dayIndex)}
+							class="no-export w-full flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800/80 py-1.5 px-2 text-[11px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200 transition-all cursor-pointer {openDayMenuIndex === dayIndex ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 ring-1 ring-slate-300 dark:ring-slate-700' : ''}"
+							aria-expanded={openDayMenuIndex === dayIndex}
+						>
+							<span>Acciones</span>
+							<ChevronUp class="h-3 w-3 text-slate-400 transition-transform duration-150 {openDayMenuIndex === dayIndex ? 'rotate-180 text-indigo-600 dark:text-indigo-400' : ''}" />
+						</button>
+					</div>
 				{/if}
 			</section>
 		{/each}
@@ -1030,6 +1131,15 @@
 <DataTransferModal
 	bind:isOpen={isTransferModalOpen}
 	onDataImported={refreshData}
+/>
+
+<!-- Clear Day / Week Confirmation Modal -->
+<ClearConfirmModal
+	bind:isOpen={isClearModalOpen}
+	scope={clearScope}
+	targetTitle={clearTargetTitle}
+	itemsCount={clearItemsCount}
+	onConfirm={handleExecuteClear}
 />
 
 <!-- Floating Pill for Read-Only / Lock Mode -->

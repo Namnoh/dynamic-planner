@@ -106,6 +106,27 @@ export async function clearAllData(): Promise<void> {
 }
 
 /**
+ * Deletes all scheduled events on a specific date (e.g. '2026-10-12').
+ * Triggers an emergency snapshot for safety and returns the deleted count.
+ */
+export async function clearDayEvents(dateStr: string): Promise<number> {
+	const count = await db.scheduledEvents.where('date').equals(dateStr).delete();
+	await triggerEmergencySnapshot();
+	return count;
+}
+
+/**
+ * Deletes all scheduled events across an array of dates (e.g. the 7 days of a week).
+ * Triggers an emergency snapshot for safety and returns the deleted count.
+ */
+export async function clearWeekEvents(dates: string[]): Promise<number> {
+	if (!dates || dates.length === 0) return 0;
+	const count = await db.scheduledEvents.where('date').anyOf(dates).delete();
+	await triggerEmergencySnapshot();
+	return count;
+}
+
+/**
  * Applies a Day Template to a specific target date, generating ScheduledEvent instances.
  */
 export async function applyDayTemplateToDate(
