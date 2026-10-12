@@ -18,8 +18,18 @@
 		Download,
 		Sparkles,
 		Tag,
-		QrCode
+		QrCode,
+		HardDrive,
+		Database,
+		RefreshCw,
+		RotateCcw
 	} from 'lucide-svelte';
+	import {
+		getStorageDiagnostics,
+		requestPersistentStorage,
+		getEmergencySnapshot,
+		type StorageDiagnostics
+	} from '$lib/utils/storage';
 
 	let isCategoryModalOpen = $state(false);
 
@@ -62,6 +72,83 @@
 			type: 'info',
 			durationMs: 2500
 		});
+	}
+
+	let storageInfo = $state<StorageDiagnostics | null>(null);
+	let isEnablingPersistence = $state(false);
+	let isRestoringEmergency = $state(false);
+
+	$effect(() => {
+		if (isOpen) {
+			loadStorageInfo();
+		}
+	});
+
+	async function loadStorageInfo() {
+		storageInfo = await getStorageDiagnostics();
+	}
+
+	async function handleEnablePersistence() {
+		isEnablingPersistence = true;
+		try {
+			const granted = await requestPersistentStorage();
+			storageInfo = await getStorageDiagnostics();
+			if (granted) {
+				toastStore.show({
+					title: '¡Almacenamiento Blindado!',
+					message: 'El navegador ahora protegerá tus datos contra limpieza automática.',
+					type: 'success'
+				});
+			} else {
+				toastStore.show({
+					title: 'No se pudo activar la persistencia',
+					message: 'El navegador no otorgó el permiso o requiere instalación PWA.',
+					type: 'warning'
+				});
+			}
+		} finally {
+			isEnablingPersistence = false;
+		}
+	}
+
+	async function handleRestoreEmergencySnapshot() {
+		const snapshot = getEmergencySnapshot();
+		if (!snapshot) {
+			toastStore.show({
+				title: 'No hay copia de emergencia',
+				message: 'No se encontró ninguna copia en el almacenamiento secundario.',
+				type: 'error'
+			});
+			return;
+		}
+
+		if (
+			!confirm(
+				`¿Deseas restaurar la copia de seguridad de emergencia guardada el ${new Date(snapshot.timestamp).toLocaleString()} (${snapshot.eventsCount} bloques, ${snapshot.templatesCount} plantillas)? Se combinará con tus datos actuales.`
+			)
+		) {
+			return;
+		}
+
+		isRestoringEmergency = true;
+		try {
+			const res = await importDatabaseFromJson(snapshot.dataJson, 'merge');
+			toastStore.show({
+				title: '¡Copia restaurada con éxito!',
+				message: `Se sincronizaron ${res.eventsCount} bloques y ${res.templatesCount} plantillas.`,
+				type: 'success'
+			});
+			isOpen = false;
+			window.location.reload();
+		} catch (err: any) {
+			toastStore.show({
+				title: 'Error al restaurar copia',
+				message: err.message || 'No se pudo procesar la copia de emergencia.',
+				type: 'error'
+			});
+		} finally {
+			isRestoringEmergency = false;
+		}
 	}
 
 	async function handleExportJson() {
@@ -360,6 +447,95 @@
 							✓ Air-Gapped / CSP Bloqueo Total
 						</span>
 					</div>
+				</div>
+
+				<!-- Storage Health and Persistence Diagnostics -->
+				<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-3 space-y-2.5 text-xs">
+					<div class="flex items-center justify-between">
+						<span class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+							<HardDrive class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+							<span>Diagnóstico de Almacenamiento</span>
+						</span>
+						{#if storageInfo}
+							<span class="text-[10px] text-slate-500 font-mono">
+								{storageInfo.usageFormatted} usados {#if storageInfo.quotaBytes}de {storageInfo.quotaFormatted}{/if}
+							</span>
+						{/if}
+					</div>
+
+					<div class="space-y-1.5 text-[11px] text-slate-600 dark:text-slate-400">
+						<div class="flex items-center justify-between">
+							<span>Dispositivo / Origen local:</span>
+							<span class="font-mono text-slate-800 dark:text-slate-200 font-semibold truncate max-w-[200px]" title={storageInfo?.origin}>
+								{storageInfo?.origin || 'N/A'}
+							</span>
+						</div>
+						<p class="text-[10px] text-slate-500 leading-tight">
+							⚠️ <em>Tus datos se guardan exclusivamente en este navegador y máquina. No viajan automáticamente a otros computadores.</em>
+						</p>
+
+						<div class="p-2 rounded-lg bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-[10px] text-slate-600 dark:text-slate-300 space-y-1">
+							<p class="font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1">
+								<Sparkles class="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
+								<span>Espacios de Trabajo (Zen Browser / Firefox):</span>
+							</p>
+							<p class="leading-relaxed">
+								Cada <em>Espacio de Trabajo (Workspace)</em> o contenedor aísla su propio almacenamiento. Si abres la app en otro espacio, verás una libreta independiente.
+							</p>
+						</div>
+
+						<div class="flex items-center justify-between pt-1">
+							<span>Protección contra limpieza del sistema:</span>
+							{#if storageInfo?.isPersisted}
+								<span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+									<CheckCircle2 class="h-3.5 w-3.5" /> Blindado (Persistente)
+								</span>
+							{:else}
+								<button
+									type="button"
+									onclick={handleEnablePersistence}
+									disabled={isEnablingPersistence}
+									class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-semibold hover:bg-indigo-100 transition-colors cursor-pointer"
+								>
+									{#if isEnablingPersistence}
+										<RefreshCw class="h-3 w-3 animate-spin" />
+										<span>Activando...</span>
+									{:else}
+										<ShieldCheck class="h-3 w-3 text-indigo-600" />
+										<span>Activar Blindaje</span>
+									{/if}
+								</button>
+							{/if}
+						</div>
+					</div>
+
+					<!-- Emergency Snapshot Status & Quick Restore -->
+					{#if storageInfo?.hasEmergencySnapshot}
+						<div class="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
+							<div class="space-y-0.5">
+								<div class="text-[10px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+									<Database class="h-3 w-3 text-emerald-600" />
+									<span>Copia de emergencia local</span>
+								</div>
+								<div class="text-[10px] text-slate-500">
+									{storageInfo.snapshotEventsCount} bloques • {storageInfo.snapshotTemplatesCount} plantillas
+									{#if storageInfo.snapshotTimestamp}
+										• {new Date(storageInfo.snapshotTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+									{/if}
+								</div>
+							</div>
+							<button
+								type="button"
+								onclick={handleRestoreEmergencySnapshot}
+								disabled={isRestoringEmergency}
+								class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-[10px] font-semibold text-slate-700 dark:text-slate-200 cursor-pointer transition-all shadow-2xs"
+								title="Restaurar datos desde la copia de seguridad de emergencia almacenada en el navegador"
+							>
+								<RotateCcw class="h-3 w-3 text-indigo-600" />
+								<span>{isRestoringEmergency ? 'Restaurando...' : 'Restaurar'}</span>
+							</button>
+						</div>
+					{/if}
 				</div>
 
 				<!-- Data Portability (QR Transfer & JSON Backup) -->

@@ -10,8 +10,11 @@
 		deleteRecurringEvents,
 		updateRecurringEvents,
 		clearAllData,
-		propagateEventChanges
+		propagateEventChanges,
+		triggerEmergencySnapshot,
+		importDatabaseFromJson
 	} from '$lib/db';
+	import { getEmergencySnapshot, type EmergencySnapshotMeta } from '$lib/utils/storage';
 	import { settingsStore, type BlockColorStyle } from '$lib/stores/settings';
 	import { readOnlyStore } from '$lib/stores/readOnly';
 	import {
@@ -43,7 +46,9 @@
 		QrCode,
 		Layers,
 		Repeat,
-		Zap
+		Zap,
+		AlertTriangle,
+		RotateCcw
 	} from 'lucide-svelte';
 
 	// Component State
@@ -57,6 +62,9 @@
 	let boardElement = $state<HTMLElement | null>(null);
 	let blockColorStyle = $state<BlockColorStyle>(settingsStore.current);
 	let isReadOnly = $state(readOnlyStore.current);
+	let emergencySnapshot = $state<EmergencySnapshotMeta | null>(null);
+	let showEmergencyBanner = $state(false);
+	let isRestoringEmergencyBanner = $state(false);
 
 	$effect(() => {
 		const unsubscribe = settingsStore.subscribe((val) => {
@@ -307,6 +315,18 @@
 		dayTemplates = await db.dayTemplates.toArray();
 		activityTemplates = await db.activityTemplates.toArray();
 		rebuildDayColumns();
+		if (events.length > 0 || dayTemplates.length > 0) {
+			showEmergencyBanner = false;
+			triggerEmergencySnapshot();
+		} else {
+			const snap = getEmergencySnapshot();
+			if (snap && (snap.eventsCount > 0 || snap.templatesCount > 0)) {
+				emergencySnapshot = snap;
+				showEmergencyBanner = true;
+			} else {
+				showEmergencyBanner = false;
+			}
+		}
 	}
 
 	function rebuildDayColumns() {
@@ -610,10 +630,66 @@
 		}
 	}
 
-
+	async function handleRestoreEmergencyFromBanner() {
+		if (!emergencySnapshot) return;
+		isRestoringEmergencyBanner = true;
+		try {
+			const res = await importDatabaseFromJson(emergencySnapshot.dataJson, 'merge');
+			toastStore.show({
+				title: '¡Copia restaurada con éxito!',
+				message: `Se recuperaron ${res.eventsCount} bloques y ${res.templatesCount} plantillas.`,
+				type: 'success'
+			});
+			showEmergencyBanner = false;
+			await refreshData();
+		} catch (err: any) {
+			toastStore.show({
+				title: 'Error al restaurar',
+				message: err.message || 'No se pudo recuperar la copia de seguridad.',
+				type: 'error'
+			});
+		} finally {
+			isRestoringEmergencyBanner = false;
+		}
+	}
 </script>
 
 <div class="flex flex-col gap-5 w-full">
+	<!-- Emergency Snapshot Detection Banner -->
+	{#if showEmergencyBanner && emergencySnapshot}
+		<div class="rounded-2xl border border-amber-300 dark:border-amber-700/60 bg-amber-50/90 dark:bg-amber-950/40 p-4 text-xs shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
+			<div class="flex items-start gap-2.5">
+				<AlertTriangle class="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+				<div>
+					<p class="font-bold text-amber-900 dark:text-amber-200">
+						¿No encuentras tus bloques o plantillas habituales?
+					</p>
+					<p class="text-amber-800/90 dark:text-amber-300/80 mt-0.5">
+						Detectamos una copia de seguridad de emergencia local con <strong>{emergencySnapshot.eventsCount} bloques</strong> y <strong>{emergencySnapshot.templatesCount} plantillas</strong>. Si usas Zen Browser o Firefox, comprueba también si estás en el espacio de trabajo (Workspace) correcto.
+					</p>
+				</div>
+			</div>
+			<div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+				<button
+					type="button"
+					onclick={handleRestoreEmergencyFromBanner}
+					disabled={isRestoringEmergencyBanner}
+					class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+				>
+					<RotateCcw class="h-3.5 w-3.5" />
+					<span>{isRestoringEmergencyBanner ? 'Restaurando...' : 'Restaurar Copia'}</span>
+				</button>
+				<button
+					type="button"
+					onclick={() => (showEmergencyBanner = false)}
+					class="px-2 py-1.5 text-amber-700 hover:text-amber-900 dark:text-amber-300 dark:hover:text-amber-100 font-medium text-xs cursor-pointer"
+				>
+					Ignorar
+				</button>
+			</div>
+		</div>
+	{/if}
+
 	<!-- Top Control Bar -->
 	<header class="flex flex-col md:flex-row items-center justify-between gap-1">
 		<!-- Left: Export, Demo and Data Controls -->

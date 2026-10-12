@@ -24,10 +24,10 @@
 		initialTab = 'overview'
 	}: {
 		isOpen: boolean;
-		initialTab?: 'overview' | 'features' | 'usecases' | 'examples' | 'privacy';
+		initialTab?: 'overview' | 'features' | 'examples' | 'privacy';
 	} = $props();
 
-	type TabId = 'overview' | 'features' | 'usecases' | 'examples' | 'privacy';
+	type TabId = 'overview' | 'features' | 'examples' | 'privacy';
 	let activeTab = $state<TabId>('overview');
 
 	$effect(() => {
@@ -39,7 +39,6 @@
 	const tabs: { id: TabId; label: string; icon: any }[] = [
 		{ id: 'overview', label: '¿Qué es y Para qué sirve?', icon: Sparkles },
 		{ id: 'features', label: 'Funcionalidades', icon: Layers },
-		{ id: 'usecases', label: 'Casos de Uso', icon: Briefcase },
 		{ id: 'examples', label: 'Ejemplos Prácticos', icon: Clock },
 		{ id: 'privacy', label: 'Privacidad y Seguridad', icon: ShieldCheck }
 	];
@@ -228,76 +227,6 @@
 					</div>
 				</div>
 
-			<!-- Tab 3: Use Cases -->
-			{:else if activeTab === 'usecases'}
-				<div class="space-y-4 animate-in fade-in duration-200">
-					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-						<!-- Case 1: Software Engineer / Remote Worker -->
-						<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-4 space-y-2.5">
-							<div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-								<Laptop class="h-4 w-4" />
-								<h5 class="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">
-									Desarrollador / Profesional Remoto
-								</h5>
-							</div>
-							<p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-								Protege 2 a 3 horas de <em>Deep Work</em> matutino para arquitectura y código complejo. Programa sincronizaciones de equipo (Daily) antes del mediodía y bloques de revisión de PRs por la tarde.
-							</p>
-							<div class="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-								Ej: 09:00 Core Architecture • 11:30 Standup • 14:00 Code Review
-							</div>
-						</div>
-
-						<!-- Case 2: University Student / Self-learner -->
-						<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-4 space-y-2.5">
-							<div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-								<GraduationCap class="h-4 w-4" />
-								<h5 class="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">
-									Estudiante Universitario & Autodidacta
-								</h5>
-							</div>
-							<p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-								Divide materias difíciles en bloques de 60 a 90 minutos usando repetición espaciada. Asigna tiempo exclusivo para lectura técnica, laboratorios y práctica de idiomas sin mezclar asignaturas.
-							</p>
-							<div class="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-								Ej: 08:00 Algoritmos • 10:00 Idiomas • 16:00 Tesis
-							</div>
-						</div>
-
-						<!-- Case 3: Entrepreneur / Creator -->
-						<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-4 space-y-2.5">
-							<div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-								<Briefcase class="h-4 w-4" />
-								<h5 class="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">
-									Emprendedor & Creador de Contenido
-								</h5>
-							</div>
-							<p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-								Separa los días de "creación pura" (escribir, grabar, diseñar producto) de los días "operativos" (emails, facturación, llamadas comerciales) para evitar el cambio constante de contexto.
-							</p>
-							<div class="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-								Ej: Martes Creación • Jueves Ventas & Finanzas
-							</div>
-						</div>
-
-						<!-- Case 4: Wellness & Healthy Routine -->
-						<div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-4 space-y-2.5">
-							<div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-								<HeartPulse class="h-4 w-4" />
-								<h5 class="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">
-									Equilibrio Personal & Deporte
-								</h5>
-							</div>
-							<p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-								Bloquea innegociablemente tus sesiones de entrenamiento, caminatas al aire libre y tiempo en familia. El planificador garantiza que el trabajo no invada tu descanso.
-							</p>
-							<div class="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-								Ej: 07:00 Running • 19:30 Gimnasio • 21:00 Desconexión
-							</div>
-						</div>
-					</div>
-				</div>
-
 			<!-- Tab 4: Practical Examples -->
 			{:else if activeTab === 'examples'}
 				<div class="space-y-4 animate-in fade-in duration-200">
@@ -403,6 +332,15 @@
 							<span class="font-bold text-slate-900 dark:text-slate-100">💾 Copia de respaldo en JSON</span>
 							<p class="text-slate-600 dark:text-slate-400 leading-normal">
 								Tus datos siempre te pertenecen. Puedes guardar un archivo de respaldo o restaurarlo cuando quieras con un solo clic.
+							</p>
+						</div>
+
+						<div class="rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/40 dark:bg-indigo-950/20 p-3 space-y-1.5 sm:col-span-2">
+							<span class="font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+								💻 ¿Por qué no veo mis datos al cambiar de computador o navegador?
+							</span>
+							<p class="text-slate-600 dark:text-slate-400 leading-normal">
+								Al no depender de servidores en la nube, tus datos se guardan estrictamente en el disco del equipo actual (por ejemplo, en Windows). Si abres la página en Linux o en otro dispositivo, ese navegador tiene su propia base de datos local independiente. Para mover tu progreso entre computadores, usa la herramienta <strong>"Transferir"</strong> (mediante Código QR instantáneo o compartiendo el archivo <code>.planner</code>).
 							</p>
 						</div>
 					</div>

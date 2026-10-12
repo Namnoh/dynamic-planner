@@ -8,6 +8,8 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import { onMount } from 'svelte';
 	import { requestNotificationPermission, toastStore } from '$lib/utils/notifications';
+	import { requestPersistentStorage } from '$lib/utils/storage';
+	import { triggerEmergencySnapshot } from '$lib/db';
 	import { pwaInstallStore } from '$lib/stores/pwaInstall';
 	import { changelogStore } from '$lib/stores/changelog';
 	import { Wifi, WifiOff, Bell, Sun, Moon, Settings, BookOpen, Download, Sparkles } from 'lucide-svelte';
@@ -21,7 +23,7 @@
 	let isInstallOpen = $state(false);
 	let isChangelogOpen = $state(false);
 	let hasUnreadChangelog = $state(false);
-	let initialAboutTab = $state<'overview' | 'features' | 'usecases' | 'examples' | 'privacy'>('overview');
+	let initialAboutTab = $state<'overview' | 'features' | 'examples' | 'privacy'>('overview');
 	let notificationPermission = $state<NotificationPermission>('default');
 	let installState = $state($pwaInstallStore);
 
@@ -39,7 +41,7 @@
 		return unsubscribe;
 	});
 
-	function openAbout(tab: 'overview' | 'features' | 'usecases' | 'examples' | 'privacy' = 'overview') {
+	function openAbout(tab: 'overview' | 'features' | 'examples' | 'privacy' = 'overview') {
 		initialAboutTab = tab;
 		isAboutOpen = true;
 	}
@@ -112,6 +114,14 @@
 					});
 				});
 		}
+
+		// Request persistent storage to protect IndexedDB from browser eviction
+		requestPersistentStorage();
+
+		// Trigger an emergency snapshot backup if data exists
+		setTimeout(() => {
+			triggerEmergencySnapshot();
+		}, 3000);
 
 		return () => {
 			window.removeEventListener('online', handleOnline);

@@ -13,7 +13,7 @@
 		onOpenInstall,
 		onOpenChangelog
 	}: {
-		onOpenAbout?: (tab?: 'overview' | 'features' | 'usecases' | 'examples' | 'privacy') => void;
+		onOpenAbout?: (tab?: 'overview' | 'features' | 'examples' | 'privacy') => void;
 		onOpenSettings?: () => void;
 		onOpenInstall?: () => void;
 		onOpenChangelog?: () => void;

@@ -13,6 +13,7 @@ import {
 	calculateRecurrenceDates,
 	isDateMatchingRecurrence
 } from '$lib/types';
+import { saveEmergencySnapshot } from '$lib/utils/storage';
 
 export class DynamicPlannerDatabase extends Dexie {
 	activityTemplates!: Table<ActivityTemplate, string>;
@@ -439,11 +440,28 @@ export async function importDatabaseFromJson(
 		}
 	);
 
+	// Save emergency snapshot in secondary local storage
+	await triggerEmergencySnapshot();
+
 	return {
 		success: true,
 		eventsCount: events.length,
 		templatesCount: dayTemplates.length
 	};
+}
+
+/**
+ * Automatically creates an emergency snapshot in localStorage from the current database state.
+ */
+export async function triggerEmergencySnapshot(): Promise<boolean> {
+	if (typeof window === 'undefined') return false;
+	try {
+		const json = await exportDatabaseToJson('full', false);
+		return saveEmergencySnapshot(json);
+	} catch (err) {
+		console.warn('Failed to trigger emergency snapshot:', err);
+		return false;
+	}
 }
 
 // -------------------------------------------------------------
