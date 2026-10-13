@@ -17,10 +17,67 @@ export interface Release {
 
 export const CHANGELOG_DATA: Release[] = [
 	{
+		version: '1.2.0',
+		title: 'Plantillas Inteligentes, Limpieza Rápida & Selector 24 Horas',
+		date: '2026-10-13',
+		badge: 'Versión Actual',
+		description:
+			'Mejoras clave en la aplicación de plantillas con prevención inteligente de bloques duplicados, nuevas opciones para limpiar el día y la semana con confirmación segura, selector horario de 24 horas personalizado y una vista semanal más limpia y minimalista.',
+		items: [
+			{
+				type: 'feat',
+				text: 'Plantillas inteligentes sin bloques duplicados',
+				detail:
+					'Al aplicar plantillas de día a una fecha, el sistema detecta qué bloques ya existen por su hora y título, evitando repeticiones innecesarias e insertando únicamente los bloques faltantes.'
+			},
+			{
+				type: 'feat',
+				text: 'Acciones de Limpiar Día y Limpiar Semana con confirmación',
+				detail:
+					'Nuevas opciones para vaciar rápidamente un día o la semana completa en caso de error al organizar, con un modal de confirmación interactivo y respaldos de seguridad automáticos antes de borrar.'
+			},
+			{
+				type: 'feat',
+				text: 'Selector de hora estricto de 24 horas (TimeInput24)',
+				detail:
+					'Nuevo selector horario táctil e intuitivo de 00:00 a 23:59 independiente del formato del navegador o sistema operativo, con rueda de selección rápida e ingreso directo por teclado.'
+			},
+			{
+				type: 'improvement',
+				text: 'Tablero semanal minimalista y despejado',
+				detail:
+					'Tarjetas de bloques más compactas con notas ocultas en la vista general, etiquetas de categoría optimizadas y conteo de subtareas simplificado para una lectura visual más limpia.'
+			},
+			{
+				type: 'improvement',
+				text: 'Menú contextual de acciones en cada columna de día',
+				detail:
+					'Cabeceras limpias sin botones saturados y un menú desplegable en la parte inferior para agregar bloques o limpiar el día cómodamente.'
+			},
+			{
+				type: 'improvement',
+				text: 'Botones interactivos con alternancia de icono Crear/Cancelar',
+				detail:
+					'En los gestores de plantillas y categorías, los botones principales alternan visualmente de forma clara entre "+" y "✕" al abrir o cerrar formularios.'
+			},
+			{
+				type: 'fix',
+				text: 'Corrección de desfase en el indicador del día actual (Hoy)',
+				detail:
+					'Se solucionó el error de zona horaria donde el indicador de "Hoy" cambiaba de columna antes de la medianoche local en husos horarios occidentales.'
+			},
+			{
+				type: 'improvement',
+				text: 'Persistencia garantizada de almacenamiento offline',
+				detail:
+					'Integración con la StorageManager API para proteger tus datos locales contra desalojo automático del navegador y panel de estado en Ajustes.'
+			}
+		]
+	},
+	{
 		version: '1.1.0',
 		title: 'Transferencia Offline, Recurrencia & Categorías Personalizadas',
 		date: '2026-10-06',
-		badge: 'Versión Actual',
 		description:
 			'Nueva suite de sincronización entre dispositivos sin servidor mediante Código QR único y archivos compartibles (.planner), soporte de recurrencia en bloques y plantillas, categorías personalizadas con colores a medida, propagación en lote y listas de subtareas integradas.',
 		items: [

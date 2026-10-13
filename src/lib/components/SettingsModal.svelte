@@ -290,7 +290,7 @@
 								</span>
 							{/if}
 							<span class="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-								v1.1.0 →
+								v1.2.0 →
 							</span>
 						</div>
 					</button>
