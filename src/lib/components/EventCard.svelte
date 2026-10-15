@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import type { ScheduledEvent } from '$lib/types';
 	import type { BlockColorStyle } from '$lib/stores/settings';
 	import { categoriesStore } from '$lib/stores/categories';
@@ -20,6 +21,58 @@
 		onDelete: (id: string) => void;
 	} = $props();
 
+	let clickTimer: ReturnType<typeof setTimeout> | null = null;
+	let lastClickTime = 0;
+
+	onDestroy(() => {
+		if (clickTimer) {
+			clearTimeout(clickTimer);
+			clickTimer = null;
+		}
+	});
+
+	function handleCardClick(e: MouseEvent) {
+		if (isReadOnly) return;
+
+		const now = Date.now();
+		const timeDiff = now - lastClickTime;
+
+		// Detect double-tap / double-click (within 280ms threshold or native e.detail === 2)
+		if ((timeDiff > 0 && timeDiff < 280) || e.detail === 2) {
+			if (clickTimer) {
+				clearTimeout(clickTimer);
+				clickTimer = null;
+			}
+			lastClickTime = 0;
+
+			// Light haptic feedback on supported mobile devices
+			if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+				try {
+					navigator.vibrate(25);
+				} catch {
+					// Ignore vibration errors if restricted
+				}
+			}
+
+			onToggleComplete(event);
+			return;
+		}
+
+		lastClickTime = now;
+		if (clickTimer) {
+			clearTimeout(clickTimer);
+		}
+
+		// Single tap/click: wait 240ms to differentiate from a potential second tap before opening edit modal
+		clickTimer = setTimeout(() => {
+			clickTimer = null;
+			lastClickTime = 0;
+			if (!isReadOnly) {
+				onEdit(event);
+			}
+		}, 240);
+	}
+
 	function getBlockStyle(item: ScheduledEvent, styleMode: BlockColorStyle): string {
 		const color = item.color || '#3b82f6';
 		if (styleMode === 'full') {
@@ -34,7 +87,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <article
-	class="group relative flex flex-col gap-1 rounded-xl px-2.5 py-2 shadow-2xs transition-all duration-150 {isReadOnly
+	class="group relative flex flex-col gap-1 rounded-xl px-2.5 py-2 shadow-2xs transition-all duration-150 select-none touch-manipulation active:scale-[0.99] {isReadOnly
 		? 'cursor-default'
 		: 'cursor-pointer'} {event.completed
 		? 'opacity-65 border-dashed'
@@ -46,9 +99,13 @@
 			? 'border'
 			: `border ${isReadOnly ? '' : 'hover:shadow-xs hover:brightness-[1.02]'}`)}"
 	style={getBlockStyle(event, blockColorStyle)}
-	onclick={() => {
-		if (!isReadOnly) onEdit(event);
-	}}
+	title={isReadOnly
+		? ''
+		: (event.completed
+			? 'Doble tap: marcar como pendiente • Clic: editar'
+			: 'Doble tap: marcar como completado • Clic: editar')}
+	onclick={handleCardClick}
+	ondblclick={(e) => e.preventDefault()}
 >
 	<!-- Floating Top Action Tab (Smooth Hover, only in edit mode) -->
 	{#if !isReadOnly}
@@ -60,6 +117,11 @@
 			type="button"
 			onclick={(e) => {
 				e.stopPropagation();
+				if (clickTimer) {
+					clearTimeout(clickTimer);
+					clickTimer = null;
+				}
+				lastClickTime = 0;
 				onToggleComplete(event);
 			}}
 			class="flex h-5 w-5 items-center justify-center rounded-md transition-all duration-150 cursor-pointer {event.completed
@@ -79,6 +141,11 @@
 			type="button"
 			onclick={(e) => {
 				e.stopPropagation();
+				if (clickTimer) {
+					clearTimeout(clickTimer);
+					clickTimer = null;
+				}
+				lastClickTime = 0;
 				onEdit(event);
 			}}
 			class="flex h-5 w-5 items-center justify-center rounded-md text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-400 transition-all duration-150 cursor-pointer"
@@ -93,6 +160,11 @@
 			type="button"
 			onclick={(e) => {
 				e.stopPropagation();
+				if (clickTimer) {
+					clearTimeout(clickTimer);
+					clickTimer = null;
+				}
+				lastClickTime = 0;
 				onDelete(event.id);
 			}}
 			class="flex h-5 w-5 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-950/50 dark:hover:text-rose-400 transition-all duration-150 cursor-pointer"

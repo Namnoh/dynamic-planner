@@ -509,6 +509,11 @@
 				body: `Has finalizado "${event.title}". ¡Buen trabajo!`,
 				type: 'success'
 			});
+		} else {
+			toastStore.show({
+				title: 'Bloque marcado como pendiente',
+				type: 'info'
+			});
 		}
 	}
 
