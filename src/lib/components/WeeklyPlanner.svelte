@@ -98,6 +98,7 @@
 	// Edit Modal State
 	let isEditModalOpen = $state(false);
 	let selectedEventForEdit = $state<ScheduledEvent | null>(null);
+	let editModalInitialMode = $state<'view' | 'edit'>('view');
 
 	function openAddModal(dateStr: string, suggestedStartTime = '09:00') {
 		targetDateForNewEvent = dateStr;
@@ -105,8 +106,9 @@
 		isAddModalOpen = true;
 	}
 
-	function openEditModal(event: ScheduledEvent) {
+	function openEditModal(event: ScheduledEvent, mode: 'view' | 'edit' = 'view') {
 		selectedEventForEdit = event;
+		editModalInitialMode = mode;
 		isEditModalOpen = true;
 	}
 
@@ -265,6 +267,14 @@
 			});
 		}
 
+		refreshData();
+	}
+
+	async function handleQuickUpdateEvent(updatedEvent: ScheduledEvent) {
+		await db.scheduledEvents.update(updatedEvent.id, {
+			completed: updatedEvent.completed,
+			subtasks: updatedEvent.subtasks ? $state.snapshot(updatedEvent.subtasks) : undefined
+		});
 		refreshData();
 	}
 
@@ -1146,8 +1156,10 @@
 <EditEventModal
 	bind:isOpen={isEditModalOpen}
 	event={selectedEventForEdit}
+	initialMode={editModalInitialMode}
 	{weekDays}
 	onSave={handleUpdateEvent}
+	onQuickUpdate={handleQuickUpdateEvent}
 	onDelete={deleteEvent}
 	onDeleteSeries={deleteEventSeries}
 />

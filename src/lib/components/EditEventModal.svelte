@@ -18,18 +18,33 @@
 	import CategoryManagerModal from './CategoryManagerModal.svelte';
 	import RecurrenceSelector from './RecurrenceSelector.svelte';
 	import TimeInput24 from './TimeInput24.svelte';
-	import { Pencil, Trash2, Layers, Repeat } from 'lucide-svelte';
+	import {
+		Pencil,
+		Trash2,
+		Layers,
+		Repeat,
+		Eye,
+		Calendar,
+		Clock,
+		FileText,
+		ListChecks,
+		Check,
+		ArrowLeft
+	} from 'lucide-svelte';
 
 	let {
 		isOpen = $bindable(false),
 		event,
+		initialMode = 'view',
 		weekDays = [],
 		onSave,
+		onQuickUpdate,
 		onDelete,
 		onDeleteSeries
 	}: {
 		isOpen: boolean;
 		event: ScheduledEvent | null;
+		initialMode?: 'view' | 'edit';
 		weekDays: { dateStr: string; dayName: string; dayNumber: number }[];
 		onSave: (
 			updatedEvent: ScheduledEvent,
@@ -50,10 +65,12 @@
 				newRecurrenceRule?: RecurrenceConfig;
 			}
 		) => void;
+		onQuickUpdate?: (updatedEvent: ScheduledEvent) => void;
 		onDelete: (id: string) => void;
 		onDeleteSeries?: (recurrenceId: string) => void;
 	} = $props();
 
+	let isEditing = $state(false);
 	let isCategoryModalOpen = $state(false);
 	let categoryOptions = $state<CategoryOption[]>(categoriesStore.options);
 
@@ -141,6 +158,77 @@
 		}))
 	);
 
+	const selectedDayLabel = $derived.by(() => {
+		const match = weekDays.find((d) => d.dateStr === date);
+		if (match) return `${match.dayName} ${match.dayNumber} (${match.dateStr})`;
+		return date;
+	});
+
+	const selectedCategoryObj = $derived.by(() => {
+		if (!category) return null;
+		return categoriesStore.getCategory(category);
+	});
+
+	function resetFormFromEvent() {
+		if (!event) return;
+		title = event.title;
+		date = event.date;
+		startTime = event.startTime;
+		endTime = event.endTime;
+		category = event.category || '';
+		color = event.color || '#3b82f6';
+		notes = event.notes || '';
+		subtasks = event.subtasks ? JSON.parse(JSON.stringify(event.subtasks)) : [];
+		completed = event.completed;
+		errors = {};
+
+		applyToOthers = false;
+		propagateScope = 'same_title';
+		syncColor = true;
+		syncCategory = false;
+		syncNotes = false;
+		syncSubtasks = false;
+		syncBaseTemplate = false;
+
+		updateSeriesScope = 'this_only';
+		isDeleteConfirmOpen = false;
+		enableNewRecurrence = false;
+		newRecurrence = {
+			frequency: 'none',
+			rangeType: 'weeks',
+			weeksCount: 4
+		};
+	}
+
+	// Quick update for subtasks or completed status from detail view
+	async function handleQuickToggleSubtask(idx: number) {
+		if (!event) return;
+		subtasks = subtasks.map((st, i) => (i === idx ? { ...st, completed: !st.completed } : st));
+		const updated = {
+			...event,
+			subtasks: $state.snapshot(subtasks)
+		};
+		if (onQuickUpdate) {
+			onQuickUpdate(updated);
+		} else {
+			await db.scheduledEvents.update(event.id, { subtasks: $state.snapshot(subtasks) });
+		}
+	}
+
+	async function handleQuickToggleCompleted() {
+		if (!event) return;
+		completed = !completed;
+		const updated = {
+			...event,
+			completed
+		};
+		if (onQuickUpdate) {
+			onQuickUpdate(updated);
+		} else {
+			await db.scheduledEvents.update(event.id, { completed });
+		}
+	}
+
 	// Synchronize form when modal opens or active event ID changes
 	$effect(() => {
 		const currentlyOpen = isOpen;
@@ -148,35 +236,9 @@
 
 		if (currentlyOpen && (!wasOpen || currentEventId !== lastEventId)) {
 			untrack(() => {
+				isEditing = initialMode === 'edit';
 				if (event) {
-					title = event.title;
-					date = event.date;
-					startTime = event.startTime;
-					endTime = event.endTime;
-					category = event.category || '';
-					color = event.color || '#3b82f6';
-					notes = event.notes || '';
-					subtasks = event.subtasks ? JSON.parse(JSON.stringify(event.subtasks)) : [];
-					completed = event.completed;
-					errors = {};
-
-					applyToOthers = false;
-					propagateScope = 'same_title';
-					syncColor = true;
-					syncCategory = false;
-					syncNotes = false;
-					syncSubtasks = false;
-					syncBaseTemplate = false;
-
-					updateSeriesScope = 'this_only';
-					isDeleteConfirmOpen = false;
-					enableNewRecurrence = false;
-					newRecurrence = {
-						frequency: 'none',
-						rangeType: 'weeks',
-						weeksCount: 4
-					};
-
+					resetFormFromEvent();
 					loadPropagationContext(event);
 				}
 			});
@@ -296,345 +358,473 @@
 
 <Modal
 	bind:isOpen
-	title="Editar Bloque de Tiempo"
-	icon={Pencil}
+	title={isEditing ? 'Editar Bloque de Tiempo' : 'Detalle del Bloque'}
+	icon={isEditing ? Pencil : Eye}
 	maxWidth="max-w-md"
 >
 	{#snippet children()}
-		<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-3.5 text-xs">
-			<div>
-				<label for="edit-event-title-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-					Título del Bloque <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
-				</label>
-				<input
-					id="edit-event-title-input"
-					type="text"
-					bind:value={title}
-					oninput={() => { if (errors.title) errors.title = ''; }}
-					placeholder="Ej: Deep Work, Gimnasio, Estudio..."
-					class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.title
-						? 'border-rose-500 focus:border-rose-500'
-						: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
-				/>
-				{#if errors.title}
-					<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
-						{errors.title}
-					</p>
-				{/if}
-			</div>
-
-			<!-- Day Selector -->
-			<div>
-				<label for="edit-event-date-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-					Día Asignado <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
-				</label>
-				<SearchableSelect
-					id="edit-event-date-select"
-					bind:value={date}
-					options={dayOptions}
-					placeholder="Selecciona el día..."
-					searchPlaceholder="Buscar día..."
-					buttonClass={errors.date ? 'border-rose-500 focus:border-rose-500' : ''}
-					onchange={() => {
-						if (errors.date) errors.date = '';
-					}}
-				/>
-				{#if errors.date}
-					<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
-						{errors.date}
-					</p>
-				{/if}
-			</div>
-
-			<div class="grid grid-cols-2 gap-2">
-				<div>
-					<label for="edit-event-start-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-						Hora Inicio <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
-					</label>
-					<TimeInput24
-						id="edit-event-start-time"
-						bind:value={startTime}
-						hasError={Boolean(errors.startTime)}
-						onchange={() => { if (errors.startTime) errors.startTime = ''; }}
-					/>
-					{#if errors.startTime}
-						<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
-							{errors.startTime}
-						</p>
-					{/if}
-				</div>
-				<div>
-					<label for="edit-event-end-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
-						Hora Fin <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
-					</label>
-					<TimeInput24
-						id="edit-event-end-time"
-						bind:value={endTime}
-						hasError={Boolean(errors.endTime)}
-						onchange={() => { if (errors.endTime) errors.endTime = ''; }}
-					/>
-					{#if errors.endTime}
-						<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
-							{errors.endTime}
-						</p>
-					{/if}
-				</div>
-			</div>
-
-			<div>
-				<div class="flex items-center justify-between mb-1">
-					<label for="edit-event-category-select" class="block font-medium text-slate-700 dark:text-slate-300">
-						Categoría
-					</label>
-					<div class="flex items-center gap-1.5">
+		{#if !isEditing}
+			<!-- COMPACT DETAIL VIEW -->
+			<div class="space-y-3 text-xs">
+				<!-- Main Block Summary Card -->
+				<div
+					class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-4 space-y-3"
+					style="border-left: 4px solid {color};"
+				>
+					<div class="flex items-center justify-between gap-2 flex-wrap">
+						<!-- Interactive Completed Status Badge -->
 						<button
 							type="button"
-							onclick={() => (isCategoryModalOpen = true)}
-							class="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-medium"
+							onclick={handleQuickToggleCompleted}
+							class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer shadow-2xs active:scale-95 {completed
+								? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 hover:bg-emerald-200/80'
+								: 'bg-slate-200/80 text-slate-700 dark:bg-slate-700/70 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 hover:text-indigo-600 dark:hover:text-indigo-300'}"
+							title={completed ? 'Clic para marcar como pendiente' : 'Clic para marcar como completado'}
 						>
-							+ Gestionar
+							<Check class="h-3 w-3 stroke-[2.5]" />
+							<span>{completed ? 'Completado' : 'Pendiente'}</span>
 						</button>
-						<span class="text-slate-300 dark:text-slate-700">•</span>
-						<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
-					</div>
-				</div>
-				<SearchableSelect
-					id="edit-event-category-select"
-					bind:value={category}
-					options={categoryOptions}
-					placeholder="Sin categoría (Opcional)"
-					searchPlaceholder="Buscar categoría..."
-				/>
-			</div>
 
-			<ColorPicker bind:selectedColor={color} label="Color del Bloque" />
-
-			<!-- Additional Notes -->
-			<div>
-				<div class="flex items-center justify-between mb-1">
-					<label for="edit-event-notes-input" class="block font-medium text-slate-700 dark:text-slate-300">
-						Notas / Recordatorio
-					</label>
-					<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
-				</div>
-				<input
-					id="edit-event-notes-input"
-					type="text"
-					bind:value={notes}
-					placeholder="Ej: Revisar documentación antes de empezar..."
-					class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
-				/>
-			</div>
-
-			<ChecklistEditor
-				bind:items={subtasks}
-				allowCompletion={true}
-				label="Checklist / Tareas"
-				placeholder="Añadir tarea a este bloque..."
-			/>
-
-			<!-- Completed Status Toggle -->
-			<label class="flex items-center gap-2 cursor-pointer pt-1">
-				<input
-					type="checkbox"
-					bind:checked={completed}
-					class="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500"
-				/>
-				<span class="font-medium text-slate-700 dark:text-slate-300">Marcar este bloque como completado</span>
-			</label>
-
-			<!-- Recurrence Section -->
-			{#if event?.recurrenceId}
-				<div class="rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/50 dark:bg-indigo-950/30 p-3 space-y-2.5">
-					<div class="flex items-center justify-between">
-						<div class="flex items-center gap-1.5 text-xs font-semibold text-indigo-900 dark:text-indigo-200">
-							<Repeat class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-							<span>Serie Recurrente ({seriesEventsCount} bloques)</span>
-						</div>
-						{#if event.recurrenceRule}
-							<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300">
-								{getRecurrenceLabel(event.recurrenceRule)}
+						<!-- Category Badge (only if assigned) -->
+						{#if selectedCategoryObj}
+							<span
+								class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs"
+								style="border-left: 2.5px solid {selectedCategoryObj.color};"
+								title={`Categoría: ${selectedCategoryObj.name}`}
+							>
+								{selectedCategoryObj.name}
 							</span>
 						{/if}
 					</div>
 
-					<p class="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
-						Este bloque forma parte de una serie recurrente de {seriesEventsCount} bloques.
-					</p>
+					<!-- Block Title -->
+					<h4
+						class="text-base sm:text-lg font-bold leading-snug tracking-tight {completed
+							? 'line-through text-slate-400 dark:text-slate-500'
+							: 'text-slate-900 dark:text-slate-100'}"
+					>
+						{title}
+					</h4>
 
-					<div>
-						<span class="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-							¿Dónde deseas aplicar los cambios?
+					<!-- Time & Day Metadata -->
+					<div class="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-slate-600 dark:text-slate-300 pt-0.5">
+						<span class="inline-flex items-center gap-1.5 font-medium">
+							<Calendar class="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+							<span>{selectedDayLabel}</span>
 						</span>
-						<div class="grid grid-cols-2 gap-2">
-							<button
-								type="button"
-								onclick={() => { updateSeriesScope = 'this_only'; }}
-								class="px-2.5 py-1.5 text-[11px] rounded-lg border text-center font-medium transition-all cursor-pointer {updateSeriesScope === 'this_only'
-									? 'border-indigo-500 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs ring-1 ring-indigo-500/20'
-									: 'border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-400'}"
+						<span class="inline-flex items-center gap-1.5 font-medium tabular-nums">
+							<Clock class="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+							<span>{startTime} – {endTime}</span>
+						</span>
+						{#if event?.recurrenceId}
+							<span
+								class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60"
+								title="Bloque recurrente"
 							>
-								Solo a este bloque
-							</button>
-							<button
-								type="button"
-								onclick={() => { updateSeriesScope = 'all_series'; }}
-								class="px-2.5 py-1.5 text-[11px] rounded-lg border text-center font-medium transition-all cursor-pointer {updateSeriesScope === 'all_series'
-									? 'border-indigo-500 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs ring-1 ring-indigo-500/20'
-									: 'border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-400'}"
-							>
-								A toda la serie ({seriesEventsCount})
-							</button>
-						</div>
+								<Repeat class="h-3 w-3 text-indigo-500 shrink-0" />
+								<span>{event.recurrenceRule ? getRecurrenceLabel(event.recurrenceRule) : 'Recurrente'}</span>
+							</span>
+						{/if}
 					</div>
 				</div>
-			{:else}
-				<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3 space-y-2">
-					<label class="flex items-center justify-between cursor-pointer select-none text-xs font-semibold text-slate-800 dark:text-slate-200">
-						<div class="flex items-center gap-1.5">
-							<Repeat class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-							<span>Repetir este bloque (Convertir en recurrente)</span>
+
+				<!-- Notes Section (only if present) -->
+				{#if notes.trim()}
+					<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3 space-y-1">
+						<div class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+							<FileText class="h-3.5 w-3.5 text-indigo-500" />
+							<span>Notas / Recordatorio</span>
 						</div>
-						<input
-							type="checkbox"
-							bind:checked={enableNewRecurrence}
-							class="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-						/>
+						<p class="text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed pl-5">
+							{notes}
+						</p>
+					</div>
+				{/if}
+
+				<!-- Interactive Checklist Section (only if present) -->
+				{#if subtasks.length > 0}
+					{@const completedCount = subtasks.filter((s) => s.completed).length}
+					<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3 space-y-2">
+						<div class="flex items-center justify-between">
+							<div class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+								<ListChecks class="h-3.5 w-3.5 text-indigo-500" />
+								<span>Checklist / Tareas</span>
+							</div>
+							<span
+								class="px-2 py-0.5 rounded-full text-[10px] font-bold tabular-nums {completedCount === subtasks.length
+									? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+									: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300'}"
+							>
+								{completedCount}/{subtasks.length}
+							</span>
+						</div>
+
+						<div class="space-y-1.5 pt-1">
+							{#each subtasks as item, idx (item.id || idx)}
+								<button
+									type="button"
+									onclick={() => handleQuickToggleSubtask(idx)}
+									class="flex items-center gap-2.5 w-full text-left px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 hover:bg-slate-100/70 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group"
+								>
+									<span
+										class="h-4 w-4 shrink-0 rounded flex items-center justify-center transition-all {item.completed
+											? 'bg-emerald-500 text-white shadow-2xs'
+											: 'border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 group-hover:border-indigo-400'}"
+									>
+										{#if item.completed}
+											<Check class="h-3 w-3 stroke-[3]" />
+										{/if}
+									</span>
+									<span
+										class="text-xs text-slate-800 dark:text-slate-200 transition-colors {item.completed
+											? 'line-through text-slate-400 dark:text-slate-500'
+											: ''}"
+									>
+										{item.title}
+									</span>
+								</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+		{:else}
+			<!-- FULL EDIT FORM -->
+			<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-3.5 text-xs">
+				<div>
+					<label for="edit-event-title-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+						Título del Bloque <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
 					</label>
-					{#if enableNewRecurrence}
-						<div class="pt-2">
-							<RecurrenceSelector
-								bind:value={newRecurrence}
-								startDate={date}
-								showRangeOptions={true}
-							/>
-						</div>
+					<input
+						id="edit-event-title-input"
+						type="text"
+						bind:value={title}
+						oninput={() => { if (errors.title) errors.title = ''; }}
+						placeholder="Ej: Deep Work, Gimnasio, Estudio..."
+						class="w-full rounded-xl border bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-hidden transition-colors {errors.title
+							? 'border-rose-500 focus:border-rose-500'
+							: 'border-slate-300 dark:border-slate-700 focus:border-indigo-500'}"
+					/>
+					{#if errors.title}
+						<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+							{errors.title}
+						</p>
 					{/if}
 				</div>
-			{/if}
 
-			<!-- Propagation / Synchronize with other blocks -->
-			<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3 space-y-3">
-				<div class="flex items-center justify-between">
-					<label class="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-800 dark:text-slate-200">
-						<input
-							type="checkbox"
-							bind:checked={applyToOthers}
-							class="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-						/>
-						<span>Aplicar cambios a otros bloques existentes</span>
+				<!-- Day Selector -->
+				<div>
+					<label for="edit-event-date-select" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+						Día Asignado <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
 					</label>
-					<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+					<SearchableSelect
+						id="edit-event-date-select"
+						bind:value={date}
+						options={dayOptions}
+						placeholder="Selecciona el día..."
+						searchPlaceholder="Buscar día..."
+						buttonClass={errors.date ? 'border-rose-500 focus:border-rose-500' : ''}
+						onchange={() => {
+							if (errors.date) errors.date = '';
+						}}
+					/>
+					{#if errors.date}
+						<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+							{errors.date}
+						</p>
+					{/if}
 				</div>
 
-				{#if applyToOthers}
-					<div class="pt-2 space-y-3 border-t border-slate-200 dark:border-slate-700/60 animate-in fade-in duration-150">
-						<!-- Scope selector -->
-						<div>
-							<span class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">
-								¿A qué bloques aplicar?
-							</span>
-							<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-								<label class="flex items-start gap-2 p-2 rounded-lg border cursor-pointer transition-colors {propagateScope === 'same_title' ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'}">
-									<input
-										type="radio"
-										name="propagate-scope"
-										value="same_title"
-										bind:group={propagateScope}
-										class="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-									/>
-									<div class="text-[11px] leading-snug">
-										<span class="font-medium text-slate-800 dark:text-slate-200 block">Mismo nombre</span>
-										<span class="text-[10px] text-slate-500 dark:text-slate-400">
-											"{title.trim() || 'Sin título'}" ({matchingSameTitleCount} {matchingSameTitleCount === 1 ? 'bloque' : 'bloques'})
-										</span>
-									</div>
-								</label>
+				<div class="grid grid-cols-2 gap-2">
+					<div>
+						<label for="edit-event-start-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+							Hora Inicio <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
+						</label>
+						<TimeInput24
+							id="edit-event-start-time"
+							bind:value={startTime}
+							hasError={Boolean(errors.startTime)}
+							onchange={() => { if (errors.startTime) errors.startTime = ''; }}
+						/>
+						{#if errors.startTime}
+							<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+								{errors.startTime}
+							</p>
+						{/if}
+					</div>
+					<div>
+						<label for="edit-event-end-time" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">
+							Hora Fin <span class="text-rose-500 font-bold ml-0.5" title="Obligatorio">*</span>
+						</label>
+						<TimeInput24
+							id="edit-event-end-time"
+							bind:value={endTime}
+							hasError={Boolean(errors.endTime)}
+							onchange={() => { if (errors.endTime) errors.endTime = ''; }}
+						/>
+						{#if errors.endTime}
+							<p class="mt-1 text-[11px] font-medium text-rose-500 dark:text-rose-400 animate-in fade-in duration-150">
+								{errors.endTime}
+							</p>
+						{/if}
+					</div>
+				</div>
 
-								<label class="flex items-start gap-2 p-2 rounded-lg border cursor-pointer transition-colors {propagateScope === 'all' ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'}">
-									<input
-										type="radio"
-										name="propagate-scope"
-										value="all"
-										bind:group={propagateScope}
-										class="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-									/>
-									<div class="text-[11px] leading-snug">
-										<span class="font-medium text-slate-800 dark:text-slate-200 block">Todos los bloques</span>
-										<span class="text-[10px] text-slate-500 dark:text-slate-400">
-											Todo el planificador ({totalOtherCount} {totalOtherCount === 1 ? 'bloque' : 'bloques'})
-										</span>
-									</div>
-								</label>
+				<div>
+					<div class="flex items-center justify-between mb-1">
+						<label for="edit-event-category-select" class="block font-medium text-slate-700 dark:text-slate-300">
+							Categoría
+						</label>
+						<div class="flex items-center gap-1.5">
+							<button
+								type="button"
+								onclick={() => (isCategoryModalOpen = true)}
+								class="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-medium"
+							>
+								+ Gestionar
+							</button>
+							<span class="text-slate-300 dark:text-slate-700">•</span>
+							<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+						</div>
+					</div>
+					<SearchableSelect
+						id="edit-event-category-select"
+						bind:value={category}
+						options={categoryOptions}
+						placeholder="Sin categoría (Opcional)"
+						searchPlaceholder="Buscar categoría..."
+					/>
+				</div>
+
+				<ColorPicker bind:selectedColor={color} label="Color del Bloque" />
+
+				<!-- Additional Notes -->
+				<div>
+					<div class="flex items-center justify-between mb-1">
+						<label for="edit-event-notes-input" class="block font-medium text-slate-700 dark:text-slate-300">
+							Notas / Recordatorio
+						</label>
+						<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+					</div>
+					<input
+						id="edit-event-notes-input"
+						type="text"
+						bind:value={notes}
+						placeholder="Ej: Revisar documentación antes de empezar..."
+						class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:outline-hidden"
+					/>
+				</div>
+
+				<ChecklistEditor
+					bind:items={subtasks}
+					allowCompletion={true}
+					label="Checklist / Tareas"
+					placeholder="Añadir tarea a este bloque..."
+				/>
+
+				<!-- Completed Status Toggle -->
+				<label class="flex items-center gap-2 cursor-pointer pt-1">
+					<input
+						type="checkbox"
+						bind:checked={completed}
+						class="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500"
+					/>
+					<span class="font-medium text-slate-700 dark:text-slate-300">Marcar este bloque como completado</span>
+				</label>
+
+				<!-- Recurrence Section -->
+				{#if event?.recurrenceId}
+					<div class="rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/50 dark:bg-indigo-950/30 p-3 space-y-2.5">
+						<div class="flex items-center justify-between">
+							<div class="flex items-center gap-1.5 text-xs font-semibold text-indigo-900 dark:text-indigo-200">
+								<Repeat class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+								<span>Serie Recurrente ({seriesEventsCount} bloques)</span>
 							</div>
+							{#if event.recurrenceRule}
+								<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300">
+									{getRecurrenceLabel(event.recurrenceRule)}
+								</span>
+							{/if}
 						</div>
 
-						<!-- Fields to sync -->
+						<p class="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
+							Este bloque forma parte de una serie recurrente de {seriesEventsCount} bloques.
+						</p>
+
 						<div>
-							<span class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">
-								Datos a sincronizar:
+							<span class="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+								¿Dónde deseas aplicar los cambios?
 							</span>
 							<div class="grid grid-cols-2 gap-2">
-								<label class="flex items-center gap-2 cursor-pointer select-none">
-									<input
-										type="checkbox"
-										bind:checked={syncColor}
-										class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-									/>
-									<span class="text-[11px] text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-										Color
-										<span class="inline-block w-2.5 h-2.5 rounded-full border border-black/10 shrink-0" style="background-color: {color};"></span>
-									</span>
-								</label>
-
-								<label class="flex items-center gap-2 cursor-pointer select-none">
-									<input
-										type="checkbox"
-										bind:checked={syncCategory}
-										class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-									/>
-									<span class="text-[11px] text-slate-700 dark:text-slate-300">Categoría</span>
-								</label>
-
-								<label class="flex items-center gap-2 cursor-pointer select-none">
-									<input
-										type="checkbox"
-										bind:checked={syncNotes}
-										class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-									/>
-									<span class="text-[11px] text-slate-700 dark:text-slate-300">Notas</span>
-								</label>
-
-								<label class="flex items-center gap-2 cursor-pointer select-none">
-									<input
-										type="checkbox"
-										bind:checked={syncSubtasks}
-										class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-									/>
-									<span class="text-[11px] text-slate-700 dark:text-slate-300">Checklist ({subtasks.length})</span>
-								</label>
+								<button
+									type="button"
+									onclick={() => { updateSeriesScope = 'this_only'; }}
+									class="px-2.5 py-1.5 text-[11px] rounded-lg border text-center font-medium transition-all cursor-pointer {updateSeriesScope === 'this_only'
+										? 'border-indigo-500 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs ring-1 ring-indigo-500/20'
+										: 'border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-400'}"
+								>
+									Solo a este bloque
+								</button>
+								<button
+									type="button"
+									onclick={() => { updateSeriesScope = 'all_series'; }}
+									class="px-2.5 py-1.5 text-[11px] rounded-lg border text-center font-medium transition-all cursor-pointer {updateSeriesScope === 'all_series'
+										? 'border-indigo-500 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs ring-1 ring-indigo-500/20'
+										: 'border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-400'}"
+								>
+									A toda la serie ({seriesEventsCount})
+								</button>
 							</div>
 						</div>
-
-						<!-- Base template update option -->
-						{#if matchingTemplate}
-							<div class="pt-2 border-t border-slate-200 dark:border-slate-700/60">
-								<label class="flex items-center gap-2 cursor-pointer select-none">
-									<input
-										type="checkbox"
-										bind:checked={syncBaseTemplate}
-										class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-									/>
-									<span class="text-[11px] text-slate-700 dark:text-slate-300">
-										Actualizar también la plantilla base ("{matchingTemplate.title}")
-									</span>
-								</label>
+					</div>
+				{:else}
+					<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3 space-y-2">
+						<label class="flex items-center justify-between cursor-pointer select-none text-xs font-semibold text-slate-800 dark:text-slate-200">
+							<div class="flex items-center gap-1.5">
+								<Repeat class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+								<span>Repetir este bloque (Convertir en recurrente)</span>
+							</div>
+							<input
+								type="checkbox"
+								bind:checked={enableNewRecurrence}
+								class="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+							/>
+						</label>
+						{#if enableNewRecurrence}
+							<div class="pt-2">
+								<RecurrenceSelector
+									bind:value={newRecurrence}
+									startDate={date}
+									showRangeOptions={true}
+								/>
 							</div>
 						{/if}
 					</div>
 				{/if}
-			</div>
-		</form>
+
+				<!-- Propagation / Synchronize with other blocks -->
+				<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-3 space-y-3">
+					<div class="flex items-center justify-between">
+						<label class="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-800 dark:text-slate-200">
+							<input
+								type="checkbox"
+								bind:checked={applyToOthers}
+								class="h-4 w-4 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+							/>
+							<span>Aplicar cambios a otros bloques existentes</span>
+						</label>
+						<span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">Opcional</span>
+					</div>
+
+					{#if applyToOthers}
+						<div class="pt-2 space-y-3 border-t border-slate-200 dark:border-slate-700/60 animate-in fade-in duration-150">
+							<!-- Scope selector -->
+							<div>
+								<span class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+									¿A qué bloques aplicar?
+								</span>
+								<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+									<label class="flex items-start gap-2 p-2 rounded-lg border cursor-pointer transition-colors {propagateScope === 'same_title' ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'}">
+										<input
+											type="radio"
+											name="propagate-scope"
+											value="same_title"
+											bind:group={propagateScope}
+											class="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+										/>
+										<div class="text-[11px] leading-snug">
+											<span class="font-medium text-slate-800 dark:text-slate-200 block">Mismo nombre</span>
+											<span class="text-[10px] text-slate-500 dark:text-slate-400">
+												"{title.trim() || 'Sin título'}" ({matchingSameTitleCount} {matchingSameTitleCount === 1 ? 'bloque' : 'bloques'})
+											</span>
+										</div>
+									</label>
+
+									<label class="flex items-start gap-2 p-2 rounded-lg border cursor-pointer transition-colors {propagateScope === 'all' ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800'}">
+										<input
+											type="radio"
+											name="propagate-scope"
+											value="all"
+											bind:group={propagateScope}
+											class="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+										/>
+										<div class="text-[11px] leading-snug">
+											<span class="font-medium text-slate-800 dark:text-slate-200 block">Todos los bloques</span>
+											<span class="text-[10px] text-slate-500 dark:text-slate-400">
+												Todo el planificador ({totalOtherCount} {totalOtherCount === 1 ? 'bloque' : 'bloques'})
+											</span>
+										</div>
+									</label>
+								</div>
+							</div>
+
+							<!-- Fields to sync -->
+							<div>
+								<span class="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+									Datos a sincronizar:
+								</span>
+								<div class="grid grid-cols-2 gap-2">
+									<label class="flex items-center gap-2 cursor-pointer select-none">
+										<input
+											type="checkbox"
+											bind:checked={syncColor}
+											class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+										/>
+										<span class="text-[11px] text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+											Color
+											<span class="inline-block w-2.5 h-2.5 rounded-full border border-black/10 shrink-0" style="background-color: {color};"></span>
+										</span>
+									</label>
+
+									<label class="flex items-center gap-2 cursor-pointer select-none">
+										<input
+											type="checkbox"
+											bind:checked={syncCategory}
+											class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+										/>
+										<span class="text-[11px] text-slate-700 dark:text-slate-300">Categoría</span>
+									</label>
+
+									<label class="flex items-center gap-2 cursor-pointer select-none">
+										<input
+											type="checkbox"
+											bind:checked={syncNotes}
+											class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+										/>
+										<span class="text-[11px] text-slate-700 dark:text-slate-300">Notas</span>
+									</label>
+
+									<label class="flex items-center gap-2 cursor-pointer select-none">
+										<input
+											type="checkbox"
+											bind:checked={syncSubtasks}
+											class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+										/>
+										<span class="text-[11px] text-slate-700 dark:text-slate-300">Checklist ({subtasks.length})</span>
+									</label>
+								</div>
+							</div>
+
+							<!-- Base template update option -->
+							{#if matchingTemplate}
+								<div class="pt-2 border-t border-slate-200 dark:border-slate-700/60">
+									<label class="flex items-center gap-2 cursor-pointer select-none">
+										<input
+											type="checkbox"
+											bind:checked={syncBaseTemplate}
+											class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+										/>
+										<span class="text-[11px] text-slate-700 dark:text-slate-300">
+											Actualizar también la plantilla base ("{matchingTemplate.title}")
+										</span>
+									</label>
+								</div>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			</form>
+		{/if}
 	{/snippet}
 
 	{#snippet footerSnippet()}
@@ -678,20 +868,44 @@
 					</button>
 
 					<div class="flex items-center gap-2">
-						<button
-							type="button"
-							onclick={() => (isOpen = false)}
-							class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
-						>
-							Cancelar
-						</button>
-						<button
-							type="button"
-							onclick={handleSubmit}
-							class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white transition-all cursor-pointer shadow-md"
-						>
-							{updateSeriesScope === 'all_series' ? 'Guardar en Toda la Serie' : 'Guardar Cambios'}
-						</button>
+						{#if !isEditing}
+							<!-- Detail view footer buttons -->
+							<button
+								type="button"
+								onclick={() => (isOpen = false)}
+								class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
+							>
+								Cerrar
+							</button>
+							<button
+								type="button"
+								onclick={() => (isEditing = true)}
+								class="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white transition-all cursor-pointer shadow-md shadow-indigo-500/20 active:scale-95"
+							>
+								<Pencil class="h-3.5 w-3.5" />
+								<span>Editar</span>
+							</button>
+						{:else}
+							<!-- Edit view footer buttons -->
+							<button
+								type="button"
+								onclick={() => {
+									resetFormFromEvent();
+									isEditing = false;
+								}}
+								class="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
+							>
+								<ArrowLeft class="h-3 w-3" />
+								<span>Volver</span>
+							</button>
+							<button
+								type="button"
+								onclick={handleSubmit}
+								class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-semibold text-white transition-all cursor-pointer shadow-md shadow-indigo-500/20 active:scale-95"
+							>
+								{updateSeriesScope === 'all_series' ? 'Guardar en Toda la Serie' : 'Guardar Cambios'}
+							</button>
+						{/if}
 					</div>
 				</div>
 			{/if}

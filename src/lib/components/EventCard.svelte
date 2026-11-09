@@ -16,7 +16,7 @@
 		event: ScheduledEvent;
 		blockColorStyle?: BlockColorStyle;
 		isReadOnly?: boolean;
-		onEdit: (item: ScheduledEvent) => void;
+		onEdit: (item: ScheduledEvent, mode?: 'view' | 'edit') => void;
 		onToggleComplete: (item: ScheduledEvent) => void;
 		onDelete: (id: string) => void;
 	} = $props();
@@ -63,12 +63,12 @@
 			clearTimeout(clickTimer);
 		}
 
-		// Single tap/click: wait 240ms to differentiate from a potential second tap before opening edit modal
+		// Single tap/click: wait 240ms to differentiate from a potential second tap before opening detail modal
 		clickTimer = setTimeout(() => {
 			clickTimer = null;
 			lastClickTime = 0;
 			if (!isReadOnly) {
-				onEdit(event);
+				onEdit(event, 'view');
 			}
 		}, 240);
 	}
@@ -102,8 +102,8 @@
 	title={isReadOnly
 		? ''
 		: (event.completed
-			? 'Doble tap: marcar como pendiente • Clic: editar'
-			: 'Doble tap: marcar como completado • Clic: editar')}
+			? 'Doble tap: marcar como pendiente • Clic: ver detalle'
+			: 'Doble tap: marcar como completado • Clic: ver detalle')}
 	onclick={handleCardClick}
 	ondblclick={(e) => e.preventDefault()}
 >
@@ -146,7 +146,7 @@
 					clickTimer = null;
 				}
 				lastClickTime = 0;
-				onEdit(event);
+				onEdit(event, 'edit');
 			}}
 			class="flex h-5 w-5 items-center justify-center rounded-md text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-400 transition-all duration-150 cursor-pointer"
 			title="Editar bloque"
