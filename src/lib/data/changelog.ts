@@ -17,10 +17,49 @@ export interface Release {
 
 export const CHANGELOG_DATA: Release[] = [
 	{
+		version: '1.3.0',
+		title: 'Vista Detalle de Bloques, Sincronización P2P & Plantillas Ágiles',
+		date: '2026-11-08',
+		badge: 'Versión Actual',
+		description:
+			'Nueva experiencia compacta de "Ver Detalle" al pulsar bloques, sincronización directa P2P ultrarrápida mediante PIN de 6 dígitos, marcado con doble tap táctil, y selección inteligente del día actual en la aplicación rápida de plantillas.',
+		items: [
+			{
+				type: 'feat',
+				text: 'Vista compacta "Ver Detalle" y modo "Editar"',
+				detail:
+					'Al hacer clic en cualquier bloque se abre una tarjeta limpia con sus datos esenciales (horario, estado, categoría, notas y checklist interactivo). Los selectores avanzados, paleta de colores e inputs de edición ahora se despliegan al presionar el botón "Editar".'
+			},
+			{
+				type: 'feat',
+				text: 'Sincronización P2P directa mediante PIN de 6 dígitos',
+				detail:
+					'Conecta tus dispositivos en tiempo real mediante un código corto o enlace directo para transferir todo tu historial en menos de 1 segundo, sin límites de tamaño, sin servidores intermedios y con input segmentado para mayor comodidad.'
+			},
+			{
+				type: 'feat',
+				text: 'Marcado de bloques con doble tap en móviles',
+				detail:
+					'Toca dos veces sobre cualquier bloque en tu teléfono o tablet para alternar entre completado y pendiente al instante con vibración háptica suave, sin necesidad de abrir modales.'
+			},
+			{
+				type: 'improvement',
+				text: 'Día actual automático al aplicar plantillas en la semana activa',
+				detail:
+					'El selector de destino en la barra rápida de plantillas adopta por defecto el día de hoy si estás en la semana en curso, y Lunes si visitas cualquier otra semana, respetando siempre cualquier cambio manual que elijas.'
+			},
+			{
+				type: 'improvement',
+				text: 'Compartir y respaldar con archivos .planner y Drag & Drop',
+				detail:
+					'Exporta tus rutinas para compartirlas por WhatsApp, AirDrop o Telegram, o arrastra archivos .planner directamente a tu navegador en computadora. El peso de la aplicación se redujo drásticamente al eliminar librerías QR redundantes.'
+			}
+		]
+	},
+	{
 		version: '1.2.0',
 		title: 'Plantillas Inteligentes, Limpieza Rápida & Selector 24 Horas',
 		date: '2026-10-13',
-		badge: 'Versión Actual',
 		description:
 			'Mejoras clave en la aplicación de plantillas con prevención inteligente de bloques duplicados, nuevas opciones para limpiar el día y la semana con confirmación segura, selector horario de 24 horas personalizado y una vista semanal más limpia y minimalista.',
 		items: [
@@ -41,24 +80,6 @@ export const CHANGELOG_DATA: Release[] = [
 				text: 'Selector de hora estricto de 24 horas (TimeInput24)',
 				detail:
 					'Nuevo selector horario táctil e intuitivo de 00:00 a 23:59 independiente del formato del navegador o sistema operativo, con rueda de selección rápida e ingreso directo por teclado.'
-			},
-			{
-				type: 'feat',
-				text: 'Sincronización P2P instantánea por PIN de 6 dígitos',
-				detail:
-					'Reemplazo total del código QR por una conexión directa en tiempo real entre tus dispositivos. Pasa todo tu historial en menos de 1 segundo sin límites de tamaño y sin almacenar nada en servidores.'
-			},
-			{
-				type: 'feat',
-				text: 'Marcado de bloques con doble tap en móviles',
-				detail:
-					'Toca dos veces sobre cualquier bloque en tu teléfono o tablet para marcarlo como completado (o regresarlo a pendiente) con respuesta háptica inmediata y sin abrir modales.'
-			},
-			{
-				type: 'improvement',
-				text: 'Compartir y respaldar con archivos .planner y Drag & Drop',
-				detail:
-					'Comparte fácilmente por WhatsApp, AirDrop o Telegram, y arrastra archivos .planner a tu pantalla en PC. Se eliminaron librerías pesadas, reduciendo el peso de la aplicación en más de 400 KB.'
 			},
 			{
 				type: 'improvement',
