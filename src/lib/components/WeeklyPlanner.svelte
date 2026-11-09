@@ -279,8 +279,15 @@
 	}
 
 	// Apply Template State
+	function getInitialApplyTargetOption(): string {
+		const today = new Date();
+		// In weekDays Monday is 0, Sunday is 6
+		const isoDayIndex = (today.getDay() + 6) % 7;
+		return String(isoDayIndex);
+	}
+
 	let selectedTemplateId = $state<string>('');
-	let applyTargetOption = $state<string>('0');
+	let applyTargetOption = $state<string>(getInitialApplyTargetOption());
 	let applyWeeksCount = $state<number>(1);
 	let isApplyingRecurringAuto = $state(false);
 
@@ -311,6 +318,44 @@
 			});
 		}
 		return days;
+	});
+
+	// Synchronize default destination day when navigating weeks or when day rolls over at midnight
+	let lastWeekKey = '';
+	let lastTodayStr = '';
+
+	$effect(() => {
+		const weekKey = `${currentMonday.getFullYear()}-${currentMonday.getMonth()}-${currentMonday.getDate()}`;
+		const currentToday = todayStr;
+
+		if (weekKey !== lastWeekKey || currentToday !== lastTodayStr) {
+			const isFirstRun = lastWeekKey === '';
+			const weekChanged = weekKey !== lastWeekKey;
+			const todayChanged = currentToday !== lastTodayStr;
+
+			lastWeekKey = weekKey;
+			lastTodayStr = currentToday;
+
+			// If week changed or on initial load, set to default (today if current week, Monday if other week)
+			// If today changed while in current week, update to the new today
+			const todayIndex = weekDays.findIndex((d) => d.isToday);
+			if (weekChanged || isFirstRun) {
+				applyTargetOption = todayIndex !== -1 ? String(todayIndex) : '0';
+			} else if (todayChanged && todayIndex !== -1) {
+				applyTargetOption = String(todayIndex);
+			}
+		}
+	});
+
+	// Guard: If template_rule was selected but new selected template has no recurrence, reset to week default
+	$effect(() => {
+		if (
+			applyTargetOption === 'template_rule' &&
+			(!selectedTemplate?.recurrence || selectedTemplate.recurrence.frequency === 'none')
+		) {
+			const todayIndex = weekDays.findIndex((d) => d.isToday);
+			applyTargetOption = todayIndex !== -1 ? String(todayIndex) : '0';
+		}
 	});
 
 	// Events grouped by day for DnD zones
@@ -368,7 +413,8 @@
 			const d = weekDays[i];
 			opts.push({
 				value: String(i),
-				label: `${d.dayName} (${d.dayNumber})`
+				label: `${d.dayName} (${d.dayNumber})${d.isToday ? ' • Hoy' : ''}`,
+				sublabel: d.isToday ? 'Día actual' : undefined
 			});
 		}
 
