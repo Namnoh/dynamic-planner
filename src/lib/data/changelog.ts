@@ -53,6 +53,12 @@ export const CHANGELOG_DATA: Release[] = [
 				text: 'Compartir y respaldar con archivos .planner y Drag & Drop',
 				detail:
 					'Exporta tus rutinas para compartirlas por WhatsApp, AirDrop o Telegram, o arrastra archivos .planner directamente a tu navegador en computadora. El peso de la aplicación se redujo drásticamente al eliminar librerías QR redundantes.'
+			},
+			{
+				type: 'fix',
+				text: 'Resolución de política de seguridad (CSP) para sincronización P2P',
+				detail:
+					'Se actualizaron las directivas connect-src para autorizar de forma segura los servidores de enlace de PeerJS en entornos de producción, garantizando una conexión inmediata sin bloqueos del navegador.'
 			}
 		]
 	},

@@ -4,13 +4,13 @@
 
 A modular, privacy-first, and offline-capable time-blocking system built with **SvelteKit**, **TypeScript**, **Tailwind CSS**, and **Dexie (IndexedDB)**.
 
-Inspired by the local-first philosophy of tools like Obsidian, **Dynamic Planner** keeps all your data strictly on your device with zero cloud tracking, zero telemetry, and an air-gapped design.
+Inspired by the local-first philosophy of tools like Obsidian, **Dynamic Planner** keeps all your data strictly on your device with zero cloud tracking, zero telemetry, and direct encrypted peer-to-peer sync between your devices.
 
 ---
 
 ## ✨ Features
 
-- **Local-First & Private (Obsidian-Style):** 100% of your data lives in your browser's IndexedDB. No accounts, no external servers, no tracking, and strict Content Security Policy (CSP) blocking unauthorized outbound network traffic.
+- **Local-First & Private (Obsidian-Style):** 100% of your data lives in your browser's IndexedDB. No accounts, no cloud database servers, no tracking, and strict Content Security Policy (CSP) blocking unauthorized outbound network traffic.
 - **Modular Time-Blocking:** Assemble custom routines from a catalog of reusable activities and day templates ("Focus Day", "Rest Day", etc.) with single-click scheduling.
 - **Weekly Drag & Drop Board:** Fluidly move time blocks between days using `@this-is-solved/svelte-dnd-action`.
 - **Minimalist Aesthetic:** Compact block cards with clean tabular number typography and a smooth, GPU-accelerated hover action tab (complete, edit, delete).

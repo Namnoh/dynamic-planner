@@ -324,7 +324,7 @@
 						<div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-3 space-y-1.5">
 							<span class="font-bold text-slate-900 dark:text-slate-100">🛡️ Seguridad en tu navegación</span>
 							<p class="text-slate-600 dark:text-slate-400 leading-normal">
-								Reglas de seguridad estrictas (CSP) impiden que cualquier dato sea enviado a páginas o servicios de terceros.
+								Reglas de seguridad estrictas (CSP) bloquean todo rastreo externo y telemetría, autorizando únicamente el enlace temporal directo (P2P) entre tus propios dispositivos.
 							</p>
 						</div>
 
@@ -340,7 +340,7 @@
 								💻 ¿Por qué no veo mis datos al cambiar de computador o navegador?
 							</span>
 							<p class="text-slate-600 dark:text-slate-400 leading-normal">
-								Al no depender de servidores en la nube, tus datos se guardan estrictamente en el disco del equipo actual (por ejemplo, en Windows). Si abres la página en Linux o en otro dispositivo, ese navegador tiene su propia base de datos local independiente. Para mover tu progreso entre computadores, usa la herramienta <strong>"Transferir"</strong> (mediante Código QR instantáneo o compartiendo el archivo <code>.planner</code>).
+								Al no depender de servidores en la nube, tus datos se guardan estrictamente en el disco del equipo actual. Si abres la página en otro dispositivo o navegador, este cuenta con su propia base de datos local independiente. Para mover tu progreso entre computadores, usa la herramienta <strong>"Transferir"</strong> (mediante sincronización P2P directa con PIN de 6 dígitos o compartiendo el archivo <code>.planner</code>).
 							</p>
 						</div>
 					</div>

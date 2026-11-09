@@ -435,7 +435,7 @@
 
 				<div class="rounded-xl border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-950/20 p-3 text-xs space-y-2 text-slate-700 dark:text-slate-300">
 					<p class="leading-relaxed">
-						<strong>Tus datos te pertenecen al 100%:</strong> La aplicación funciona de manera completamente local y aislada. No existen servidores externos, ni telemetría, ni analíticas, ni almacenamiento en la nube.
+						<strong>Tus datos te pertenecen al 100%:</strong> La aplicación funciona de manera local y privada. No existen servidores centrales de almacenamiento, telemetría ni analíticas en la nube. Toda sincronización entre tus dispositivos se realiza directamente de equipo a equipo (P2P cifrado vía WebRTC).
 					</p>
 					<div class="flex flex-wrap gap-1.5 pt-1">
 						<span class="rounded-md bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-300">
@@ -445,7 +445,7 @@
 							✓ Cero Telemetría
 						</span>
 						<span class="rounded-md bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-300">
-							✓ Air-Gapped / CSP Bloqueo Total
+							✓ CSP Estricto & P2P Cifrado
 						</span>
 					</div>
 				</div>
