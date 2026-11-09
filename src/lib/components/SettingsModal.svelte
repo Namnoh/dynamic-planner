@@ -19,7 +19,7 @@
 		Download,
 		Sparkles,
 		Tag,
-		QrCode,
+		ArrowLeftRight,
 		HardDrive,
 		Database,
 		RefreshCw,
@@ -542,10 +542,10 @@
 				<!-- Data Portability (QR Transfer & JSON Backup) -->
 				<div class="space-y-2 pt-1">
 					<span class="text-xs font-semibold text-slate-700 dark:text-slate-300">
-						Transferencia y Respaldo de Datos:
+						Transferencia y Sincronización de Datos:
 					</span>
 					<p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">
-						Pasa tus rutinas y bloques a otro dispositivo escaneando un código QR en tiempo real, o descarga un archivo JSON como respaldo local.
+						Pasa tus rutinas y bloques a otro dispositivo mediante código PIN de 6 dígitos o compartiendo un archivo .planner, 100% privado y sin límites.
 					</p>
 					<div class="flex flex-wrap items-center gap-2 pt-1">
 						<button
@@ -556,8 +556,8 @@
 							}}
 							class="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 text-xs font-semibold shadow-xs transition-all cursor-pointer"
 						>
-							<QrCode class="h-3.5 w-3.5" />
-							<span>Transferir (QR / JSON)</span>
+							<ArrowLeftRight class="h-3.5 w-3.5" />
+							<span>Sincronizar Datos</span>
 						</button>
 
 						<button

@@ -43,6 +43,24 @@ export const CHANGELOG_DATA: Release[] = [
 					'Nuevo selector horario táctil e intuitivo de 00:00 a 23:59 independiente del formato del navegador o sistema operativo, con rueda de selección rápida e ingreso directo por teclado.'
 			},
 			{
+				type: 'feat',
+				text: 'Sincronización P2P instantánea por PIN de 6 dígitos',
+				detail:
+					'Reemplazo total del código QR por una conexión directa en tiempo real entre tus dispositivos. Pasa todo tu historial en menos de 1 segundo sin límites de tamaño y sin almacenar nada en servidores.'
+			},
+			{
+				type: 'feat',
+				text: 'Marcado de bloques con doble tap en móviles',
+				detail:
+					'Toca dos veces sobre cualquier bloque en tu teléfono o tablet para marcarlo como completado (o regresarlo a pendiente) con respuesta háptica inmediata y sin abrir modales.'
+			},
+			{
+				type: 'improvement',
+				text: 'Compartir y respaldar con archivos .planner y Drag & Drop',
+				detail:
+					'Comparte fácilmente por WhatsApp, AirDrop o Telegram, y arrastra archivos .planner a tu pantalla en PC. Se eliminaron librerías pesadas, reduciendo el peso de la aplicación en más de 400 KB.'
+			},
+			{
 				type: 'improvement',
 				text: 'Tablero semanal minimalista y despejado',
 				detail:

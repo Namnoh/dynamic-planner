@@ -3,8 +3,17 @@ import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 import { defineConfig } from 'vite';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+	resolve: {
+		alias: {
+			'$app/env': path.resolve(__dirname, 'node_modules/@sveltejs/kit/src/runtime/app/env/index.js')
+		}
+	},
 	plugins: [
 		tailwindcss(),
 		sveltekit({

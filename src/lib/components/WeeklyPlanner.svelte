@@ -49,7 +49,7 @@
 		Sparkles,
 		Trash2,
 		Plus,
-		QrCode,
+		ArrowLeftRight,
 		Layers,
 		Repeat,
 		Zap,
@@ -64,6 +64,7 @@
 	let activityTemplates = $state<ActivityTemplate[]>([]);
 	let isExportModalOpen = $state(false);
 	let isTransferModalOpen = $state(false);
+	let directSyncCode = $state('');
 	let isWeekPickerOpen = $state(false);
 	let boardElement = $state<HTMLElement | null>(null);
 	let blockColorStyle = $state<BlockColorStyle>(settingsStore.current);
@@ -427,6 +428,18 @@
 			isTransferModalOpen = true;
 		};
 		window.addEventListener('open-data-transfer', handleOpenTransfer);
+
+		// Check for direct sync link parameter: ?sync=XXXXXX
+		if (typeof window !== 'undefined') {
+			const urlParams = new URLSearchParams(window.location.search);
+			const syncParam = urlParams.get('sync');
+			if (syncParam) {
+				directSyncCode = syncParam;
+				isTransferModalOpen = true;
+				const cleanUrl = window.location.pathname;
+				window.history.replaceState({}, '', cleanUrl);
+			}
+		}
 
 		return () => {
 			clearInterval(interval);
@@ -844,15 +857,15 @@
 					<span class="hidden sm:inline">Limpiar Semana</span>
 				</button>
 
-				<!-- Transfer Data (QR & JSON Backup) -->
+				<!-- Sync & Transfer Data (P2P PIN & .planner Backup) -->
 				<button
 					type="button"
 					onclick={() => (isTransferModalOpen = true)}
 					class="text-nowrap flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/90 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700/70 text-slate-700 dark:text-slate-200 px-2.5 py-1.5 text-xs font-medium transition-all cursor-pointer shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-500/40"
-					title="Transferir o respaldar datos (Código QR o archivo JSON)"
+					title="Sincronizar y transferir datos (Código PIN directo o archivo .planner)"
 				>
-					<QrCode class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-					<span class="hidden sm:inline">Transferir</span>
+					<ArrowLeftRight class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+					<span class="hidden sm:inline">Sincronizar</span>
 				</button>
 			</div>
 		</div>
@@ -1149,6 +1162,7 @@
 <!-- Peer-to-Peer Data Transfer & Backup Modal -->
 <DataTransferModal
 	bind:isOpen={isTransferModalOpen}
+	initialSyncCode={directSyncCode}
 	onDataImported={refreshData}
 />
 

@@ -1,10 +1,11 @@
 /**
- * Data Transfer & QR Payload Compression Utilities for Dynamic Planner
+ * Data Transfer & Synchronization Utilities for Dynamic Planner
  *
  * Supports:
- * 1. Extreme Compact QR Encoding (guaranteeing 1 single static QR code).
- * 2. Native Web Share API (.planner friendly files for WhatsApp, AirDrop, etc.).
- * 3. Backward compatible decompression for legacy multi-part and JSON payloads.
+ * 1. P2P Direct Real-Time Sync via WebRTC (PeerJS) using a 6-digit numeric PIN.
+ * 2. Native Web Share API (.planner files for WhatsApp, AirDrop, Telegram, etc.).
+ * 3. File Drag & Drop import and Clipboard token exchange.
+ * 4. Ultra-compact gzip payload compression.
  */
 
 import { getTodayDateString } from '$lib/types';
@@ -221,178 +222,242 @@ export function decompactDatabase(compactObj: any): string {
 }
 
 /**
- * Generates an ultra-compact single QR payload.
+ * Universal payload parser supporting raw JSON, compact v2 objects, and compressed base64 tokens.
  */
-export async function createSingleQrPayload(jsonText: string): Promise<{
-	payload: string;
-	fitsInSingleQr: boolean;
-	charLength: number;
-}> {
-	const compacted = compactDatabase(jsonText);
-	const compressed = await compressString(compacted);
-	const payload = `DP2:${compressed}`;
-	// Safe threshold for 1-scan QR: standard QR can encode up to 2,900 chars
-	const fitsInSingleQr = payload.length <= 2600;
-	return {
-		payload,
-		fitsInSingleQr,
-		charLength: payload.length
-	};
-}
-
-/**
- * Legacy multi-part chunk generator (fallback if user specifically requires raw payload splitting).
- */
-export async function createQrPayloads(jsonText: string): Promise<string[]> {
-	const single = await createSingleQrPayload(jsonText);
-	if (single.fitsInSingleQr) {
-		return [single.payload];
+export async function parseImportPayload(input: any): Promise<string> {
+	if (!input) {
+		throw new Error('Los datos proporcionados están vacíos.');
 	}
 
-	// If over safe threshold, split using DP1:M:
-	const compressed = await compressString(jsonText);
-	const CHUNK_SIZE = 1200;
-	const sessionId = Math.random().toString(36).slice(2, 6);
-	const totalChunks = Math.ceil(compressed.length / CHUNK_SIZE);
-	const payloads: string[] = [];
+	const str = typeof input === 'string' ? input.trim() : JSON.stringify(input);
 
-	for (let i = 0; i < totalChunks; i++) {
-		const chunk = compressed.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-		payloads.push(`DP1:M:${i + 1}:${totalChunks}:${sessionId}:${chunk}`);
+	if (str.startsWith('DP2:')) {
+		const base64 = str.slice(4);
+		const decompressed = await decompressString(base64);
+		const parsed = JSON.parse(decompressed);
+		return decompactDatabase(parsed);
 	}
 
-	return payloads;
-}
+	if (str.startsWith('DP1:S:')) {
+		const base64 = str.slice(6);
+		return await decompressString(base64);
+	}
 
-export interface ChunkSession {
-	sessionId: string;
-	totalChunks: number;
-	chunks: Map<number, string>;
-}
-
-export type ParseQrResult =
-	| { type: 'complete'; jsonText: string }
-	| { type: 'chunk_progress'; current: number; total: number; sessionId: string }
-	| { type: 'ignored'; reason: string }
-	| { type: 'error'; error: string };
-
-/**
- * Processes a scanned QR text payload, handling DP2 compact, DP1 single, DP1 multi, or plain JSON.
- */
-export async function processScannedQr(
-	scannedText: string,
-	currentSession?: ChunkSession | null
-): Promise<{ result: ParseQrResult; nextSession?: ChunkSession | null }> {
-	const trimmed = scannedText.trim();
-
-	// 1. Ultra-compact v2 format: DP2:<compressedBase64>
-	if (trimmed.startsWith('DP2:')) {
-		const base64 = trimmed.slice(4);
-		try {
-			const decompressed = await decompressString(base64);
-			const compactParsed = JSON.parse(decompressed);
-			const fullJson = decompactDatabase(compactParsed);
-			return { result: { type: 'complete', jsonText: fullJson }, nextSession: null };
-		} catch (err: any) {
-			return {
-				result: { type: 'error', error: 'Error al descomprimir los datos del código QR v2.' },
-				nextSession: null
-			};
+	try {
+		const parsed = JSON.parse(str);
+		if (parsed.v === 2) {
+			return decompactDatabase(parsed);
 		}
-	}
-
-	// 2. Legacy single format: DP1:S:<data>
-	if (trimmed.startsWith('DP1:S:')) {
-		const base64 = trimmed.slice(6);
-		try {
-			const jsonText = await decompressString(base64);
-			return { result: { type: 'complete', jsonText }, nextSession: null };
-		} catch {
-			return {
-				result: { type: 'error', error: 'Error al descomprimir los datos del código QR.' },
-				nextSession: null
-			};
+		if (parsed.data || (parsed.app && parsed.app === 'dynamic-planner')) {
+			return str;
 		}
-	}
-
-	// 3. Multi-part QR format: DP1:M:<index>:<total>:<sessionId>:<chunk>
-	if (trimmed.startsWith('DP1:M:')) {
-		const parts = trimmed.split(':');
-		if (parts.length >= 6) {
-			const index = Number(parts[2]);
-			const total = Number(parts[3]);
-			const sessionId = parts[4];
-			const chunkData = parts.slice(5).join(':');
-
-			if (isNaN(index) || isNaN(total) || total <= 0 || index <= 0) {
-				return {
-					result: { type: 'error', error: 'Formato de fragmento QR inválido.' },
-					nextSession: currentSession
-				};
-			}
-
-			let session = currentSession;
-			if (!session || session.sessionId !== sessionId) {
-				session = {
-					sessionId,
-					totalChunks: total,
-					chunks: new Map()
-				};
-			}
-
-			session.chunks.set(index, chunkData);
-
-			if (session.chunks.size >= total) {
-				let fullBase64 = '';
-				for (let i = 1; i <= total; i++) {
-					const chunk = session.chunks.get(i);
-					if (!chunk) {
-						return {
-							result: { type: 'chunk_progress', current: session.chunks.size, total, sessionId },
-							nextSession: session
-						};
-					}
-					fullBase64 += chunk;
-				}
-
-				try {
-					const jsonText = await decompressString(fullBase64);
-					return { result: { type: 'complete', jsonText }, nextSession: null };
-				} catch {
-					return {
-						result: { type: 'error', error: 'Error al descomprimir la serie de fragmentos QR.' },
-						nextSession: null
-					};
-				}
-			}
-
-			return {
-				result: { type: 'chunk_progress', current: session.chunks.size, total, sessionId },
-				nextSession: session
-			};
+		if (parsed.events || parsed.activities) {
+			return JSON.stringify({
+				app: 'dynamic-planner',
+				version: '1.0.0',
+				scope: 'full',
+				exportedAt: new Date().toISOString(),
+				data: parsed
+			});
 		}
-	}
-
-	// 4. Fallback: Raw JSON string directly
-	if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+		return str;
+	} catch {
 		try {
-			const parsed = JSON.parse(trimmed);
+			const decompressed = await decompressString(str);
+			const parsed = JSON.parse(decompressed);
 			if (parsed.v === 2) {
-				return { result: { type: 'complete', jsonText: decompactDatabase(parsed) }, nextSession: null };
+				return decompactDatabase(parsed);
 			}
-			return { result: { type: 'complete', jsonText: trimmed }, nextSession: null };
+			return decompressed;
 		} catch {
-			return {
-				result: { type: 'error', error: 'El contenido escaneado no es un JSON válido.' },
-				nextSession: null
-			};
+			throw new Error('Formato de datos no reconocido como archivo de Dynamic Planner.');
 		}
 	}
+}
+
+/**
+ * Generates a friendly 6-digit sync code formatted as XXX-XXX (e.g. 482-910).
+ */
+export function generateSyncCode(): string {
+	const num = Math.floor(100000 + Math.random() * 900000);
+	const str = String(num);
+	return `${str.slice(0, 3)}-${str.slice(3)}`;
+}
+
+/**
+ * Normalizes a sync code removing spaces, dashes, or non-alphanumeric chars.
+ */
+export function normalizeSyncCode(code: string): string {
+	return code.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
+export interface P2PSenderSession {
+	code: string;
+	cleanCode: string;
+	destroy: () => void;
+}
+
+/**
+ * Establishes a P2P WebRTC sender session waiting for the receiver to connect with the given 6-digit PIN.
+ */
+export async function startP2PSender(
+	rawJson: string,
+	code: string,
+	onEvent: (event: { type: 'ready' | 'connected' | 'transferred' | 'error'; message?: string }) => void
+): Promise<P2PSenderSession> {
+	if (typeof window === 'undefined') {
+		throw new Error('La sincronización P2P solo está disponible en el navegador.');
+	}
+
+	const cleanCode = normalizeSyncCode(code);
+	const peerId = `dp-sync-${cleanCode}`;
+
+	const { Peer } = await import('peerjs');
+	const peer = new Peer(peerId, { debug: 1 });
+
+	let isDestroyed = false;
+
+	peer.on('open', () => {
+		if (isDestroyed) return;
+		onEvent({ type: 'ready', message: 'Listo para transferir' });
+	});
+
+	peer.on('connection', (conn) => {
+		if (isDestroyed) return;
+		onEvent({ type: 'connected', message: 'Receptor conectado. Transfiriendo datos...' });
+
+		conn.on('open', () => {
+			try {
+				const compacted = compactDatabase(rawJson);
+				conn.send({
+					app: 'dynamic-planner',
+					version: '2.0.0',
+					data: compacted
+				});
+				onEvent({ type: 'transferred', message: '¡Datos transferidos con éxito!' });
+			} catch (err: any) {
+				onEvent({ type: 'error', message: err?.message || 'Error al enviar los datos.' });
+			}
+		});
+
+		conn.on('error', (err) => {
+			onEvent({ type: 'error', message: err?.message || 'Error en la conexión directa.' });
+		});
+	});
+
+	peer.on('error', (err: any) => {
+		if (isDestroyed) return;
+		if (err.type === 'unavailable-id') {
+			onEvent({
+				type: 'error',
+				message: 'El código generado ya está en uso. Genera un nuevo código para continuar.'
+			});
+		} else {
+			onEvent({ type: 'error', message: err?.message || 'Error del servicio de enlace P2P.' });
+		}
+	});
 
 	return {
-		result: { type: 'ignored', reason: 'Código QR no reconocido como respaldo de Dynamic Planner.' },
-		nextSession: currentSession
+		code,
+		cleanCode,
+		destroy: () => {
+			isDestroyed = true;
+			try {
+				peer.destroy();
+			} catch {}
+		}
 	};
+}
+
+/**
+ * Connects to a P2P sender using the 6-digit PIN, downloads the data payload and disconnects.
+ */
+export async function receiveP2PData(
+	code: string,
+	onProgress?: (status: string) => void
+): Promise<string> {
+	if (typeof window === 'undefined') {
+		throw new Error('La sincronización P2P solo está disponible en el navegador.');
+	}
+
+	const cleanCode = normalizeSyncCode(code);
+	if (!cleanCode) {
+		throw new Error('Por favor ingresa un código de 6 dígitos válido.');
+	}
+
+	const targetPeerId = `dp-sync-${cleanCode}`;
+	const { Peer } = await import('peerjs');
+
+	return new Promise<string>((resolve, reject) => {
+		onProgress?.('Conectando con el otro dispositivo...');
+		const receiverPeer = new Peer();
+		let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+		let isFinished = false;
+
+		const cleanup = () => {
+			isFinished = true;
+			if (timeoutTimer) clearTimeout(timeoutTimer);
+			try {
+				receiverPeer.destroy();
+			} catch {}
+		};
+
+		timeoutTimer = setTimeout(() => {
+			if (!isFinished) {
+				cleanup();
+				reject(
+					new Error(
+						'Tiempo de espera agotado. Asegúrate de que el otro dispositivo tenga el código en pantalla.'
+					)
+				);
+			}
+		}, 30000);
+
+		receiverPeer.on('open', () => {
+			onProgress?.('Estableciendo enlace directo seguro...');
+			const conn = receiverPeer.connect(targetPeerId, { reliable: true });
+
+			conn.on('open', () => {
+				onProgress?.('Descargando datos del cronograma...');
+			});
+
+			conn.on('data', async (incoming: any) => {
+				if (isFinished) return;
+				try {
+					let rawPayload = incoming;
+					if (incoming && typeof incoming === 'object' && incoming.data) {
+						rawPayload = incoming.data;
+					}
+					const finalJson = await parseImportPayload(rawPayload);
+					cleanup();
+					resolve(finalJson);
+				} catch (err: any) {
+					cleanup();
+					reject(new Error(err?.message || 'Error al procesar los datos recibidos.'));
+				}
+			});
+
+			conn.on('error', (err) => {
+				if (isFinished) return;
+				cleanup();
+				reject(new Error(err?.message || 'Error en el canal de datos.'));
+			});
+		});
+
+		receiverPeer.on('error', (err: any) => {
+			if (isFinished) return;
+			cleanup();
+			if (err.type === 'peer-unavailable') {
+				reject(
+					new Error(
+						'No se encontró ningún emisor activo con ese código. Verifica el código o genera uno nuevo.'
+					)
+				);
+			} else {
+				reject(new Error(err?.message || 'Error de conexión P2P.'));
+			}
+		});
+	});
 }
 
 /**
